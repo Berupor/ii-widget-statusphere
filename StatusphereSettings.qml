@@ -67,7 +67,7 @@ ColumnLayout {
                 setOption("serverPingSeconds", value);
             }
             StyledToolTip {
-                text: Translation.tr("A server card shows what its machine reports: cpu, memory, disk, load.\nThe agent can't report its own death, so the server is asked directly too")
+                text: Translation.tr("The agent can't report its own death, so the server is asked directly this often.\nThat is what tells \"Host unreachable\" from \"Not reporting\"")
             }
         }
     }
