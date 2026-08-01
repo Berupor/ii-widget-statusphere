@@ -3,7 +3,7 @@
 A room of friends on your desktop: who's online, what they're playing, photos they
 shared. Client for [statusphere](https://github.com/MAX1T1A/statusphere), and the first
 widget living outside the shell tree - a trial run of the extensions mechanism in the
-[illogical-impulse extensions fork](https://github.com/Berupor/dots-hyprland).
+[illogical-impulse extensions fork](https://github.com/Berupor/dots-hyprland-extensions).
 
 | The room | Its settings |
 |---|---|
