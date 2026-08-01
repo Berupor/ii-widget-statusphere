@@ -22,7 +22,7 @@ MouseArea {
         anchors.centerIn: parent
         fill: 0 // Outline, like the indicators next to it - filled turns to mush at this size
         text: "visibility_off"
-        iconSize: Appearance.font.pixelSize.larger
+        iconSize: Appearance.font.pixelSize.large // The util buttons next to it, and this glyph is wide already
         color: Appearance.colors.colOnLayer1
 
         StyledToolTip {
