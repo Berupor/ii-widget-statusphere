@@ -241,7 +241,7 @@ Rectangle {
         PresenceDetailCard { // Right click: the noisy stuff (cpu/mem/disk, workspace, weather)
             Layout.fillWidth: true
             Layout.topMargin: 4
-            visible: root.showDetails || (root.isServer && !root.offline && Statusphere.opt("serverMetrics"))
+            visible: root.showDetails || (root.serverDetailsForced && !root.serverDetailsCollapsed)
             account: root.account
         }
 
@@ -255,6 +255,10 @@ Rectangle {
 
     property bool showDetails: false
     property bool showActions: false
+    // Server cards show details by default (serverMetrics option), which used to make
+    // them the one card right-click couldn't collapse - this tracks that dismissal separately
+    readonly property bool serverDetailsForced: root.isServer && !root.offline && Statusphere.opt("serverMetrics")
+    property bool serverDetailsCollapsed: false
 
     onCanShareChanged: if (!root.canShare)
         root.showActions = false
@@ -266,6 +270,10 @@ Rectangle {
             if (mouse.button === Qt.MiddleButton) {
                 if (root.canShare)
                     root.showActions = !root.showActions;
+                return;
+            }
+            if (root.serverDetailsForced) {
+                root.serverDetailsCollapsed = !root.serverDetailsCollapsed;
                 return;
             }
             root.showDetails = !root.showDetails;
