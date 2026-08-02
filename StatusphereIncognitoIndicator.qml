@@ -5,6 +5,7 @@ import qs.modules.widgets
 import qs.modules.common.widgets
 import qs.services
 import QtQuick
+import QtQuick.Controls
 
 /** Reminder that your room can't see you. Click to come back. */
 MouseArea {
@@ -26,6 +27,13 @@ MouseArea {
         color: Appearance.colors.colOnLayer1
 
         StyledToolTip {
+            // Default (0,0) sits right on top of icon, which eats the click meant for
+            // root's MouseArea - push it below both icon and root so it can't shadow them
+            y: (root.height + icon.height) / 2 + 4
+            // Popup's default closePolicy grabs outside presses to dismiss itself, which
+            // swallows the click before root ever sees it - this tooltip only ever closes
+            // by losing hover, so it has no business intercepting presses at all
+            closePolicy: Popup.NoAutoClose
             extraVisibleCondition: false
             alternativeVisibleCondition: root.containsMouse
             text: `${Statusphere.incognitoLabel()}\n${Translation.tr("Click to be visible again")}`
