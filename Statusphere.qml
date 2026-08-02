@@ -589,13 +589,36 @@ Singleton {
         return fields;
     }
 
+    // The cli's stderr is a raw Go error (eg. "failed to connect: WebSocket dial: expected
+    // handshake response status code 101 but got 200") - no contract on length or language.
+    // Off the home network / behind a captive portal / waking from sleep is the normal path
+    // for a laptop, not a rare one, so this fires often enough to be worth a readable message
+    // instead of a wall of text that blows out the placeholder's width.
+    readonly property int errorMaxLength: 60
+
+    function friendlyError(raw: string): string {
+        if (!raw)
+            return "";
+        const low = raw.toLowerCase();
+        if (low.includes("no such host") || low.includes("network is unreachable") || low.includes("connection refused") || low.includes("dial tcp"))
+            return Translation.tr("Can't reach the room server");
+        if (low.includes("timeout") || low.includes("timed out") || low.includes("deadline exceeded"))
+            return Translation.tr("Room server timed out");
+        if (low.includes("handshake") || low.includes("tls") || low.includes("certificate"))
+            return Translation.tr("Room server rejected the connection");
+        if (low.includes("401") || low.includes("403") || low.includes("unauthorized") || low.includes("forbidden"))
+            return Translation.tr("Not registered with the room server");
+        const oneLine = raw.replace(/\s+/g, " ").trim();
+        return oneLine.length > root.errorMaxLength ? oneLine.slice(0, root.errorMaxLength - 1) + "…" : oneLine;
+    }
+
     function placeholderText(): string {
         if (!root.binaryFound)
             return Translation.tr("statusphere cli not found in ~/.local/bin");
         if (!root.registered)
             return Translation.tr("No statusphere account registered");
         if (!root.live)
-            return root.lastError || Translation.tr("Connecting…");
+            return root.friendlyError(root.lastError) || Translation.tr("Connecting…");
         return Translation.tr("Nobody else around yet");
     }
 
