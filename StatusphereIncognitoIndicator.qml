@@ -36,10 +36,11 @@ MouseArea {
         hoverTarget: root
 
         ColumnLayout {
-            spacing: 2
+            spacing: 4
 
-            StyledText {
-                text: Statusphere.incognitoLabel()
+            StyledPopupHeaderRow {
+                icon: "visibility_off"
+                label: Statusphere.incognitoLabel()
             }
 
             StyledText {
