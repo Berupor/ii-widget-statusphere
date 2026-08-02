@@ -3,9 +3,10 @@ pragma ComponentBehavior: Bound
 import qs.modules.common
 import qs.modules.widgets
 import qs.modules.common.widgets
+import qs.modules.ii.bar
 import qs.services
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Layouts
 
 /** Reminder that your room can't see you. Click to come back. */
 MouseArea {
@@ -25,18 +26,27 @@ MouseArea {
         text: "visibility_off"
         iconSize: Appearance.font.pixelSize.large // The util buttons next to it, and this glyph is wide already
         color: Appearance.colors.colOnLayer1
+    }
 
-        StyledToolTip {
-            // Default (0,0) sits right on top of icon, which eats the click meant for
-            // root's MouseArea - push it below both icon and root so it can't shadow them
-            y: (root.height + icon.height) / 2 + 4
-            // Popup's default closePolicy grabs outside presses to dismiss itself, which
-            // swallows the click before root ever sees it - this tooltip only ever closes
-            // by losing hover, so it has no business intercepting presses at all
-            closePolicy: Popup.NoAutoClose
-            extraVisibleCondition: false
-            alternativeVisibleCondition: root.containsMouse
-            text: `${Statusphere.incognitoLabel()}\n${Translation.tr("Click to be visible again")}`
+    // A QQC2 ToolTip can't escape the bar's own thin layer-shell strip, so it always
+    // ended up clamped back over the icon regardless of offset. StyledPopup (from
+    // qs.modules.ii.bar, the same place the battery/resources popups next to this one
+    // get it) gets its own layer-shell surface instead
+    StyledPopup {
+        hoverTarget: root
+
+        ColumnLayout {
+            spacing: 2
+
+            StyledText {
+                text: Statusphere.incognitoLabel()
+            }
+
+            StyledText {
+                text: Translation.tr("Click to be visible again")
+                font.pixelSize: Appearance.font.pixelSize.smaller
+                color: Appearance.colors.colSubtext
+            }
         }
     }
 }
