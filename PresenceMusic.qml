@@ -25,6 +25,7 @@ Rectangle {
     radius: root.showingCompact ? 0 : Appearance.rounding.normal
     color: root.showingCompact ? "transparent" : Appearance.colors.colLayer2
     implicitHeight: content.implicitHeight + (root.showingCompact ? 0 : 24)
+    clip: true // Content is full height immediately; without this the bg catches up visibly
 
     Behavior on implicitHeight {
         animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)

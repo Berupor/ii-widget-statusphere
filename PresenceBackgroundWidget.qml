@@ -51,6 +51,7 @@ AbstractBackgroundWidget {
         implicitHeight: column.implicitHeight + 24
         radius: Appearance.rounding.large
         color: Appearance.colors.colLayer0
+        clip: true // Content is full height immediately; without this the bg catches up visibly
 
         Behavior on implicitHeight {
             animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
