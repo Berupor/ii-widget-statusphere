@@ -93,6 +93,7 @@ Singleton {
     function noteProgress(members): void {
         const now = Date.now();
         const next = {};
+        let changed = false;
         for (const m of members) {
             const id = m.device_id;
             if (!id || m.spotify_status !== "playing")
@@ -100,12 +101,19 @@ Singleton {
             const key = root.trackKey(m);
             const pos = m.spotify_position ?? 0;
             const prev = root.progressByDevice[id];
-            next[id] = (prev && prev.key === key && pos <= prev.pos) ? prev : {
+            const entry = (prev && prev.key === key && pos <= prev.pos) ? prev : {
                 "key": key,
                 "pos": pos,
                 "at": now
             };
+            next[id] = entry;
+            if (entry !== prev)
+                changed = true;
         }
+        // Nobody playing is the common case, so skip the reassignment (and the accountsById
+        // recompute it triggers via stalled()) instead of replacing {} with {} every poll.
+        if (!changed && Object.keys(next).length === Object.keys(root.progressByDevice).length)
+            return;
         root.progressByDevice = next;
     }
 
@@ -622,21 +630,52 @@ Singleton {
         return Translation.tr("Nobody else around yet");
     }
 
+    // Pending snapshot from lines not yet applied to members/photos
+    property var _pendingMembers: null
+    property var _pendingPhotos: null
+
     function ingest(line: string): void {
         const text = line.trim();
         if (!text)
             return;
         try {
             const data = JSON.parse(text);
-            root.noteProgress(data.members ?? []);
-            root.noteKinds(data.members ?? []);
-            root.members = data.members ?? [];
-            root.photos = data.photos ?? [];
+            root._pendingMembers = data.members ?? [];
+            root._pendingPhotos = data.photos ?? [];
             root.live = true;
             root.retryDelay = root.retryMin;
+            root.scheduleFlush();
         } catch (e) {
             // Ignore malformed lines, keep the last good roster
         }
+    }
+
+    // Devices publish independently every couple seconds, so a busy room can burst several
+    // lines back to back; coalesce them into one accountsById rebuild instead of one each.
+    readonly property int flushIntervalMs: 250
+
+    function scheduleFlush(): void {
+        if (!flushTimer.running)
+            flushTimer.start();
+    }
+
+    Timer {
+        id: flushTimer
+        interval: root.flushIntervalMs
+        onTriggered: root.flush()
+    }
+
+    function flush(): void {
+        if (root._pendingMembers === null)
+            return;
+        const members = root._pendingMembers;
+        const photos = root._pendingPhotos;
+        root._pendingMembers = null;
+        root._pendingPhotos = null;
+        root.noteProgress(members);
+        root.noteKinds(members);
+        root.members = members;
+        root.photos = photos;
     }
 
     Process {
