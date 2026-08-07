@@ -171,7 +171,7 @@ Rectangle {
         }
 
         Rectangle { // A folded game line needs a hairline under the photo; a banner does not
-            visible: game.visible && game.showingCompact
+            visible: game.visible && game.compact
             Layout.fillWidth: true
             implicitHeight: 1
             color: Appearance.colors.colOutlineVariant

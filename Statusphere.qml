@@ -437,6 +437,17 @@ Singleton {
         });
     }
 
+    // The photo badge's vocabulary - Now, 5m, 2h - except past a day, where it falls back
+    // to a calendar date. That reads as nonsense for a duration, so days carry on as days.
+    function sessionFor(startedMs: real): string {
+        if (!(startedMs > 0))
+            return "";
+        const days = Math.floor((Date.now() - startedMs) / 86400000);
+        if (days >= 1)
+            return Translation.tr("%1d").arg(days);
+        return NotificationUtils.getFriendlyNotifTimeString(startedMs);
+    }
+
     function gameFor(device): string {
         if (!device?.game_status)
             return "";

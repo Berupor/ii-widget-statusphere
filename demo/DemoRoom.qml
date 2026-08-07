@@ -167,7 +167,16 @@ Item {
                     "_offline": true
                 }
             ],
-            "photos": []
+            // A photo, a game and music on one card: everything below the photo has
+            // to fold into a line, and each folded line needs its own hairline.
+            "photos": [
+                {
+                    "account_id": "acc-long",
+                    "path": root.cover("rdr2-hero.jpg"),
+                    "created_at": "2026-08-07T12:00:00Z",
+                    "expires_at": "2099-01-01T00:00:00Z"
+                }
+            ]
         }
     })
 
@@ -205,6 +214,11 @@ Item {
                 "name": "a game shows up on the device running it",
                 "got": root.scenario === "edge" ? Statusphere.gameDevices(Statusphere.accountsById["acc-nameless"]).length : Statusphere.gameFor(Statusphere.accountsById["acc-mira"]?.primary),
                 "want": root.scenario === "edge" ? 1 : "Red Dead Redemption 2"
+            },
+            {
+                "name": "a session reads like a photo's age, and keeps counting past a day",
+                "got": [Statusphere.sessionFor(0), Statusphere.sessionFor(Date.now() - 30000), Statusphere.sessionFor(Date.now() - 780000), Statusphere.sessionFor(Date.now() - 5040000), Statusphere.sessionFor(Date.now() - 359999000)],
+                "want": ["", "Now", "13m", "1h", "4d"]
             },
             {
                 "name": "the card names the game, so the status line stays quiet",
