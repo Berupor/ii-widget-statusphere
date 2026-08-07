@@ -116,9 +116,9 @@ Item {
                                 duration: chip.index * 35
                             }
                             NumberAnimation {
-                                duration: 240
-                                easing.type: Easing.OutBack
-                                easing.overshoot: 2.6
+                                duration: Appearance.animation.elementMoveSmall.duration
+                                easing.type: Appearance.animation.elementMoveSmall.type
+                                easing.bezierCurve: Appearance.animation.elementMoveSmall.bezierCurve
                             }
                         }
                     }
@@ -129,9 +129,9 @@ Item {
                                 duration: chip.index * 35
                             }
                             NumberAnimation {
-                                duration: 240
-                                easing.type: Easing.OutBack
-                                easing.overshoot: 2.6
+                                duration: Appearance.animation.elementMoveSmall.duration
+                                easing.type: Appearance.animation.elementMoveSmall.type
+                                easing.bezierCurve: Appearance.animation.elementMoveSmall.bezierCurve
                             }
                         }
                     }
