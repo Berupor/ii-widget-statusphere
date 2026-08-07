@@ -181,6 +181,13 @@ Rectangle {
                 anchors.fill: parent
                 spacing: 8
 
+                MaterialSymbol {
+                    Layout.alignment: Qt.AlignVCenter
+                    iconSize: Appearance.font.pixelSize.normal
+                    color: Appearance.colors.colSubtext
+                    text: "music_note"
+                }
+
                 StyledText {
                     Layout.fillWidth: true
                     elide: Text.ElideRight

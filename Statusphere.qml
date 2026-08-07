@@ -454,6 +454,28 @@ Singleton {
         return device.game_display || device.game_name || "";
     }
 
+    // Steam gives a start time where it has one and a running total where it doesn't
+    function gameStartedMsFor(device): real {
+        const at = Date.parse(device?.game_started_at ?? "");
+        if (!isNaN(at))
+            return at;
+        const secs = device?.game_session_seconds ?? 0;
+        return secs > 0 ? Date.now() - secs * 1000 : 0;
+    }
+
+    // The title belongs next to the person, not under their art: a stylised logo is
+    // already on the picture, and the status line is where every other activity is
+    // read. game_started_at does not move, so the label cannot drift; _now is what
+    // re-reads the clock between roster lines.
+    function gameLineFor(account): string {
+        const device = root.gameDevices(account)[0];
+        const name = root.gameFor(device);
+        if (!name)
+            return "";
+        const session = root._now > 0 ? root.sessionFor(root.gameStartedMsFor(device)) : "";
+        return session ? Translation.tr("Playing %1 · %2").arg(name).arg(session) : Translation.tr("Playing %1").arg(name);
+    }
+
     function statusFor(account): string {
         if (!account || account.offline)
             return "";
@@ -461,10 +483,10 @@ Singleton {
             return root.hiddenLineFor(account);
         if (root.isServer(account))
             return root.healthNoteFor(account) || Translation.tr("All good");
-        // The card names the game, and active_window while playing is that name again.
-        // With the card switched off there is nothing to defer to, so fall through.
+        // The game is said here and only here; the card below is the picture of it.
+        // With the card switched off active_window says the same thing, so fall through.
         if (root.opt("games") && root.gameDevices(account).length > 0)
-            return "";
+            return root.gameLineFor(account);
         const playing = root.musicDevices(account);
         if (playing.length > 1)
             return Translation.tr("Listening on %1 devices").arg(playing.length);

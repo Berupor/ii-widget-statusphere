@@ -27,6 +27,19 @@ Rectangle {
     readonly property bool expandable: root.devices.length > 1
     property bool expanded: false
 
+    // One picture slot per row, and the later event takes it: a photo just shared beats a
+    // session started this morning, and the other one waits behind the chip in the header.
+    readonly property bool gameHasArt: root.gaming.length > 0 && game.hasBanner
+    readonly property real photoAtMs: root.currentPhoto ? Date.parse(root.currentPhoto.created_at) : 0
+    readonly property real gameAtMs: Statusphere.gameStartedMsFor(root.gaming[0] ?? null)
+    readonly property bool bothPictures: root.hasPhoto && root.gameHasArt
+    property bool slotSwapped: false
+    readonly property bool showPhoto: root.hasPhoto && (!root.gameHasArt || ((root.photoAtMs >= root.gameAtMs) !== root.slotSwapped))
+    readonly property bool showGame: root.gameHasArt && !root.showPhoto
+
+    onBothPicturesChanged: if (!root.bothPictures)
+        root.slotSwapped = false
+
     onExpandableChanged: if (!root.expandable)
         root.expanded = false
 
@@ -135,11 +148,57 @@ Rectangle {
                 }
             }
 
+            Rectangle { // What the picture slot is not showing, and the way back to it
+                visible: root.bothPictures && !root.expanded
+                Layout.alignment: Qt.AlignVCenter
+                radius: Appearance.rounding.full
+                color: swapArea.containsMouse ? Appearance.colors.colLayer2Hover : Appearance.colors.colLayer2
+                implicitWidth: swapChip.implicitWidth + 14
+                implicitHeight: swapChip.implicitHeight + 6
+
+                Behavior on color {
+                    animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(this)
+                }
+
+                RowLayout {
+                    id: swapChip
+                    anchors.centerIn: parent
+                    spacing: 3
+
+                    MaterialSymbol {
+                        text: root.showPhoto ? "sports_esports" : "image"
+                        iconSize: Appearance.font.pixelSize.normal
+                        color: Appearance.colors.colSubtext
+                    }
+
+                    StyledText { // The game is already named up in the status line
+                        visible: text.length > 0
+                        font.pixelSize: Appearance.font.pixelSize.smaller
+                        color: Appearance.colors.colSubtext
+                        text: root.showPhoto ? "" : Statusphere.sessionFor(root.photoAtMs)
+                    }
+                }
+
+                MouseArea {
+                    id: swapArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.slotSwapped = !root.slotSwapped
+                }
+
+                StyledToolTip {
+                    extraVisibleCondition: false
+                    alternativeVisibleCondition: swapArea.containsMouse
+                    text: root.showPhoto ? Translation.tr("Show the game instead") : Translation.tr("Show the photo instead")
+                }
+            }
+
             Rectangle { // The status line only ever speaks for one device, so count them here
                 visible: !root.offline && root.expandable
                 Layout.alignment: Qt.AlignVCenter
                 radius: Appearance.rounding.full
-                color: Appearance.colors.colLayer1
+                color: Appearance.colors.colLayer2
                 implicitWidth: deviceChip.implicitWidth + 14
                 implicitHeight: deviceChip.implicitHeight + 6
 
@@ -166,27 +225,20 @@ Rectangle {
         PresencePhoto {
             Layout.fillWidth: true
             Layout.topMargin: 8
-            visible: root.hasPhoto && !root.expanded
+            visible: root.showPhoto && !root.expanded
             photo: root.currentPhoto
         }
 
-        Rectangle { // A folded game line needs a hairline under the photo; a banner does not
-            visible: game.visible && game.compact
-            Layout.fillWidth: true
-            implicitHeight: 1
-            color: Appearance.colors.colOutlineVariant
-        }
-
-        PresenceGame { // The game takes the space, and music folds away under it
+        PresenceGame {
             id: game
             Layout.fillWidth: true
-            visible: root.gaming.length > 0 && !root.expanded
-            compact: root.hasPhoto
+            Layout.topMargin: 8
+            visible: root.showGame && !root.expanded
             device: root.gaming[0] ?? null
         }
 
         Rectangle {
-            visible: music.visible && music.showingCompact && (root.hasPhoto || game.visible)
+            visible: music.visible && music.showingCompact && (root.showPhoto || root.showGame)
             Layout.fillWidth: true
             implicitHeight: 1
             color: Appearance.colors.colOutlineVariant
@@ -196,7 +248,7 @@ Rectangle {
             id: music
             Layout.fillWidth: true
             visible: root.playing.length > 0 && !root.expanded
-            compact: root.hasPhoto || game.visible
+            compact: root.showPhoto || root.showGame
             device: root.playing[0] ?? null
             stackedDevice: root.playing[1] ?? null
             stackedCount: root.playing.length - 1
@@ -204,7 +256,7 @@ Rectangle {
 
         ColumnLayout { // Expanded: the music once per track, then what each device is up to
             Layout.fillWidth: true
-            Layout.leftMargin: 52
+            Layout.leftMargin: avatar.implicitWidth + 12 // Under the name, not under the face
             visible: root.expanded
             spacing: 8
 

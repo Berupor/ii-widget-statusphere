@@ -221,9 +221,9 @@ Item {
                 "want": ["", "Now", "13m", "1h", "4d"]
             },
             {
-                "name": "the card names the game, so the status line stays quiet",
+                "name": "the status line names the game, so the card is only its picture",
                 "got": Statusphere.statusFor(Statusphere.accountsById[root.scenario === "edge" ? "acc-nameless" : "acc-mira"]),
-                "want": ""
+                "want": root.scenario === "edge" ? "Playing Cyberpunk 2077 · Now" : "Playing Red Dead Redemption 2 · 1h"
             },
             {
                 "name": "every row got drawn",
