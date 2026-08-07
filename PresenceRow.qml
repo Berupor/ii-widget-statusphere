@@ -20,6 +20,7 @@ Rectangle {
     readonly property bool canPick: root.isSelf && Statusphere.available && Statusphere.opt("incognito")
     readonly property var devices: root.account?.devices ?? []
     readonly property var playing: Statusphere.musicDevices(root.account)
+    readonly property var gaming: Statusphere.opt("games") ? Statusphere.gameDevices(root.account) : []
     readonly property var currentPhoto: Statusphere.currentPhotoFor(root.account)
     readonly property bool hasPhoto: Statusphere.opt("photos") && root.currentPhoto !== null
     readonly property bool canShare: root.isSelf && Statusphere.canShare
@@ -169,8 +170,23 @@ Rectangle {
             photo: root.currentPhoto
         }
 
-        Rectangle { // Only needed between the photo and the compact music line below it
-            visible: root.hasPhoto && music.visible && music.showingCompact
+        Rectangle { // A folded game line needs a hairline under the photo; a banner does not
+            visible: game.visible && game.showingCompact
+            Layout.fillWidth: true
+            implicitHeight: 1
+            color: Appearance.colors.colOutlineVariant
+        }
+
+        PresenceGame { // The game takes the space, and music folds away under it
+            id: game
+            Layout.fillWidth: true
+            visible: root.gaming.length > 0 && !root.expanded
+            compact: root.hasPhoto
+            device: root.gaming[0] ?? null
+        }
+
+        Rectangle {
+            visible: music.visible && music.showingCompact && (root.hasPhoto || game.visible)
             Layout.fillWidth: true
             implicitHeight: 1
             color: Appearance.colors.colOutlineVariant
@@ -180,7 +196,7 @@ Rectangle {
             id: music
             Layout.fillWidth: true
             visible: root.playing.length > 0 && !root.expanded
-            compact: root.hasPhoto
+            compact: root.hasPhoto || game.visible
             device: root.playing[0] ?? null
             stackedDevice: root.playing[1] ?? null
             stackedCount: root.playing.length - 1

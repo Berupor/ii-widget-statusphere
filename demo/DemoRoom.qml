@@ -1,4 +1,4 @@
-//@ probe statusphere -g 430x560 -s 2000
+//@ probe statusphere -g 430x700 -s 2000
 /**
  * The room drawn from made-up data: `ingest` takes the same json line the cli
  * prints, so nothing here is stubbed and the whole pipeline runs. `-p scenario=`
@@ -15,9 +15,9 @@ Item {
 
     property string scenario: "plain"
 
-    // Cover art out of demo/covers/, so a shot needs no network and stays the same
-    function cover(name) {
-        return String(Qt.resolvedUrl(`covers/${name}.png`));
+    // Art out of demo/covers/, so a shot needs no network and stays the same
+    function cover(file) {
+        return String(Qt.resolvedUrl(`covers/${file}`));
     }
 
     readonly property int now: 1780000000
@@ -39,11 +39,20 @@ Item {
                     "account_name": "Mira",
                     "last_seen": root.now,
                     "spotify_status": "playing",
-                    "spotify_track": "Sunlight Through Blinds",
-                    "spotify_artist": "Hoshimachi",
+                    "spotify_track": "Nightcall",
+                    "spotify_artist": "Kavinsky",
                     "spotify_position": 78,
-                    "spotify_length": 214,
-                    "spotify_art_url": root.cover("sunlight")
+                    "spotify_length": 258,
+                    "spotify_art_url": root.cover("nightcall.jpg"),
+                    "game_status": "playing",
+                    "game_source": "steam",
+                    "game_appid": "1174180",
+                    "game_name": "Red Dead Redemption 2",
+                    "game_display": "Red Dead Redemption 2",
+                    "game_hero_url": root.cover("rdr2-hero.jpg"),
+                    "game_header_url": root.cover("rdr2-header.jpg"),
+                    "game_logo_url": root.cover("rdr2-logo.png"),
+                    "game_session_seconds": 5040
                 },
                 {
                     "account_id": "acc-dan",
@@ -59,11 +68,11 @@ Item {
                     "account_name": "Dan",
                     "last_seen": root.now - 5,
                     "spotify_status": "paused",
-                    "spotify_track": "Nightcall",
-                    "spotify_artist": "Kavinsky",
+                    "spotify_track": "Teardrop",
+                    "spotify_artist": "Massive Attack",
                     "spotify_position": 12,
-                    "spotify_length": 258,
-                    "spotify_art_url": root.cover("nightcall")
+                    "spotify_length": 330,
+                    "spotify_art_url": root.cover("teardrop.jpg")
                 },
                 {
                     "account_id": "acc-lena",
@@ -85,12 +94,28 @@ Item {
                     "spotify_track": "A track title long enough to need eliding somewhere",
                     "spotify_artist": "An artist with an equally unreasonable name",
                     "spotify_length": 191,
-                    "spotify_position": 190 // A second left, and it never advances
+                    "spotify_position": 190, // A second left, and it never advances
+                    "game_status": "playing",
+                    "game_source": "steam",
+                    "game_appid": "2183900",
+                    "game_name": "Warhammer 40,000: Space Marine 2",
+                    "game_hero_url": root.cover("sm2-hero.jpg"),
+                    "game_header_url": root.cover("sm2-header.jpg"),
+                    "game_logo_url": root.cover("sm2-logo.png"),
+                    "game_session_seconds": 359999 // The widest the clock ever gets
                 },
                 {
                     "account_id": "acc-nameless",
                     "device_id": "dev-nameless",
-                    "last_seen": root.now
+                    "last_seen": root.now,
+                    "game_status": "playing",
+                    "game_source": "steam",
+                    "game_appid": "1091500",
+                    "game_name": "Cyberpunk 2077",
+                    // No hero for this one: the card has to walk down to the header
+                    "game_hero_url": root.cover("no-such-hero.jpg"),
+                    "game_header_url": root.cover("cp2077-header.jpg"),
+                    "game_session_seconds": 47
                 },
                 {
                     "account_id": "acc-box",
@@ -114,7 +139,12 @@ Item {
                     "device_id": "dev-many-1",
                     "device_name": "laptop",
                     "account_name": "Six Devices",
-                    "last_seen": root.now
+                    "last_seen": root.now,
+                    // Steam knows the name and nothing else: no banner, just the line
+                    "game_status": "playing",
+                    "game_source": "steam",
+                    "game_name": "A Game Whose Name Is Far Too Long To Fit On One Line",
+                    "game_session_seconds": 3600
                 },
                 {
                     "account_id": "acc-many",
@@ -170,6 +200,16 @@ Item {
                 "name": "the device playing music leads its account",
                 "got": root.scenario === "edge" ? (many?.primary?.device_id ?? "") : (Statusphere.accountsById["acc-dan"]?.primary?.device_id ?? ""),
                 "want": root.scenario === "edge" ? "dev-many-1" : "dev-dan-phone"
+            },
+            {
+                "name": "a game shows up on the device running it",
+                "got": root.scenario === "edge" ? Statusphere.gameDevices(Statusphere.accountsById["acc-nameless"]).length : Statusphere.gameFor(Statusphere.accountsById["acc-mira"]?.primary),
+                "want": root.scenario === "edge" ? 1 : "Red Dead Redemption 2"
+            },
+            {
+                "name": "the card names the game, so the status line stays quiet",
+                "got": Statusphere.statusFor(Statusphere.accountsById[root.scenario === "edge" ? "acc-nameless" : "acc-mira"]),
+                "want": ""
             },
             {
                 "name": "every row got drawn",

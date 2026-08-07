@@ -6,7 +6,7 @@ WidgetManifest {
     name: Translation.tr("Statusphere")
     description: Translation.tr("Who's around in your statusphere room")
     icon: "groups"
-    version: "1.0"
+    version: "1.1"
     author: "Berupor"
     minShellVersion: "1.0"
     available: Statusphere.available
@@ -16,6 +16,7 @@ WidgetManifest {
         { "key": "incognitoIndicator", "default": true },
         { "key": "serverMetrics", "default": true },
         { "key": "serverPingSeconds", "default": 60 },
+        { "key": "games", "default": true },
         { "key": "photos", "default": true },
         { "key": "photoMinHeight", "default": 100 },
         { "key": "photoMaxHeight", "default": 320 },

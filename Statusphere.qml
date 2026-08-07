@@ -78,11 +78,14 @@ Singleton {
     readonly property int staleGap: 45
 
     function deviceRank(device): int {
-        if (device.spotify_status === "playing" && !root.stalled(device))
+        // A game outranks music: music wanders onto a phone in a way a game never does
+        if (device.game_status === "playing")
             return 0;
-        if (device.spotify_status)
+        if (device.spotify_status === "playing" && !root.stalled(device))
             return 1;
-        return 2;
+        if (device.spotify_status)
+            return 2;
+        return 3;
     }
 
     // A client that keeps saying "playing" while its position sits still lost the Spotify Connect
@@ -420,6 +423,26 @@ Singleton {
         });
     }
 
+    // No Connect-style dedup to do here, only the guard against two machines in one title
+    function gameDevices(account): var {
+        const seen = new Set();
+        return (account?.devices ?? []).filter(d => {
+            if (!d.game_status || !d.game_name)
+                return false;
+            const key = d.game_appid || d.game_name;
+            if (seen.has(key))
+                return false;
+            seen.add(key);
+            return true;
+        });
+    }
+
+    function gameFor(device): string {
+        if (!device?.game_status)
+            return "";
+        return device.game_display || device.game_name || "";
+    }
+
     function statusFor(account): string {
         if (!account || account.offline)
             return "";
@@ -427,6 +450,10 @@ Singleton {
             return root.hiddenLineFor(account);
         if (root.isServer(account))
             return root.healthNoteFor(account) || Translation.tr("All good");
+        // The card names the game, and active_window while playing is that name again.
+        // With the card switched off there is nothing to defer to, so fall through.
+        if (root.opt("games") && root.gameDevices(account).length > 0)
+            return "";
         const playing = root.musicDevices(account);
         if (playing.length > 1)
             return Translation.tr("Listening on %1 devices").arg(playing.length);
