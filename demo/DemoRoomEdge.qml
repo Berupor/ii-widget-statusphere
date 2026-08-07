@@ -1,4 +1,4 @@
-//@ probe statusphere -g 430x620 -s 2000
+//@ probe statusphere -g 430x1180 -s 2000
 /** The same scene, fed the room where everything is too long, too many or broken. */
 import "."
 

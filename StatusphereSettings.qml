@@ -73,6 +73,20 @@ ColumnLayout {
     }
 
     ContentSubsection {
+        title: Translation.tr("Games")
+
+        ConfigSwitch {
+            buttonIcon: "sports_esports"
+            text: Translation.tr('What friends are playing')
+            checked: Statusphere.opt("games")
+            onCheckedChanged: setOption("games", checked)
+            StyledToolTip {
+                text: Translation.tr("A card with the game's own art from Steam, and how long they have been in it.\nIncognito hides games the way it hides windows, before anything leaves their machine")
+            }
+        }
+    }
+
+    ContentSubsection {
         title: Translation.tr("Photos")
 
         ConfigSwitch {
