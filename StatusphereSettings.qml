@@ -139,46 +139,39 @@ ColumnLayout {
     ContentSubsection {
         title: Translation.tr("Wallpaper card")
 
-        ConfigRow {
-            Layout.fillWidth: true
+        ConfigSwitch {
+            buttonIcon: "check"
+            text: Translation.tr("Enable")
+            checked: Statusphere.opt("wallpaperCard")
+            onCheckedChanged: setOption("wallpaperCard", checked)
+            StyledToolTip {
+                text: Translation.tr("Same rows as the left sidebar's presence tab, as a card on the wallpaper.\nNeeds the statusphere cli and a registered account")
+            }
+        }
 
-            ConfigSwitch {
-                Layout.fillWidth: false
-                buttonIcon: "check"
-                text: Translation.tr("Enable")
-                checked: Statusphere.opt("wallpaperCard")
-                onCheckedChanged: setOption("wallpaperCard", checked)
-                StyledToolTip {
-                    text: Translation.tr("Same rows as the left sidebar's presence tab, as a card on the wallpaper.\nNeeds the statusphere cli and a registered account")
-                }
+        ConfigSelectionArray { // Its own row, so Enable keeps the axis every other switch is on
+            Layout.fillWidth: true
+            currentValue: Statusphere.opt("wallpaperPlacement")
+            onSelected: newValue => {
+                setOption("wallpaperPlacement", newValue);
             }
-            Item {
-                Layout.fillWidth: true
-            }
-            ConfigSelectionArray {
-                Layout.fillWidth: false
-                currentValue: Statusphere.opt("wallpaperPlacement")
-                onSelected: newValue => {
-                    setOption("wallpaperPlacement", newValue);
-                }
-                options: [
-                    {
-                        displayName: Translation.tr("Draggable"),
-                        icon: "drag_pan",
-                        value: "free"
-                    },
-                    {
-                        displayName: Translation.tr("Least busy"),
-                        icon: "category",
-                        value: "leastBusy"
-                    },
-                    {
-                        displayName: Translation.tr("Most busy"),
-                        icon: "shapes",
-                        value: "mostBusy"
-                    },
-                ]
-            }
+            options: [
+                {
+                    displayName: Translation.tr("Draggable"),
+                    icon: "drag_pan",
+                    value: "free"
+                },
+                {
+                    displayName: Translation.tr("Least busy"),
+                    icon: "category",
+                    value: "leastBusy"
+                },
+                {
+                    displayName: Translation.tr("Most busy"),
+                    icon: "shapes",
+                    value: "mostBusy"
+                },
+            ]
         }
 
         ConfigSwitch {
