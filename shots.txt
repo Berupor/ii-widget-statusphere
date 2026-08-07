@@ -3,6 +3,6 @@
 # The room shot runs off demo/DemoRoom.qml, which feeds the widget made-up members
 # through the same `ingest` the cli talks to - no live account, nobody real.
 # The edge scene is not here on purpose: it is for looking at while working, and
-# `widget-shots.sh -x . -- "-f demo/DemoRoomEdge.qml -n edge -g 430x620"` draws it.
--f demo/DemoRoom.qml -n room -g 430x560
--f StatusphereSettings.qml -g 560x620
+# `widget-shots.sh -x . -- "-f demo/DemoRoomEdge.qml -n edge -g 430x1180"` draws it.
+-f demo/DemoRoom.qml -n room -g 430x700
+-f StatusphereSettings.qml -g 560x740
