@@ -51,7 +51,9 @@ ColumnLayout {
 
             Rectangle {
                 Layout.fillHeight: true
-                implicitWidth: height
+                // implicitWidth: height resolves before fillHeight does, and the disc
+                // comes out a 58x40 stadium
+                Layout.preferredWidth: pill.implicitHeight - pill.padding * 2
                 radius: Appearance.rounding.full
                 color: pill.active ? Appearance.colors.colPrimary : Appearance.colors.colLayer3
 
@@ -61,7 +63,7 @@ ColumnLayout {
 
                 MaterialSymbol {
                     anchors.centerIn: parent
-                    iconSize: 22
+                    iconSize: Appearance.font.pixelSize.huge
                     fill: pill.active ? 1 : 0
                     color: pill.active ? Appearance.colors.colOnPrimary : Appearance.colors.colOnLayer3
                     text: pill.buttonIcon

@@ -19,7 +19,7 @@ Rectangle {
 
     implicitHeight: root.naturalHeight > 0 ? Math.round(Math.max(root.minHeight, Math.min(root.maxHeight, root.naturalHeight))) : root.minHeight
     radius: Appearance.rounding.normal
-    color: Appearance.colors.colLayer1
+    color: Appearance.colors.colLayer2
 
     Behavior on implicitHeight {
         animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
@@ -59,7 +59,8 @@ Rectangle {
             margins: 8
         }
         radius: Appearance.rounding.full
-        color: Appearance.colors.colScrim
+        // colScrim is half black, which leaves white at 3.9:1 over a bright photo
+        color: Qt.rgba(0, 0, 0, 0.6)
         implicitWidth: timeLabel.implicitWidth + 12
         implicitHeight: timeLabel.implicitHeight + 6
 

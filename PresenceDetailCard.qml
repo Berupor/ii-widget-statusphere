@@ -72,7 +72,7 @@ ColumnLayout {
                         value: card.modelData.percent
                         valueBarHeight: 6
                         highlightColor: Appearance.colors.colPrimary
-                        trackColor: Appearance.colors.colLayer3
+                        trackColor: Appearance.colors.colSecondaryContainer
                     }
                 }
             }

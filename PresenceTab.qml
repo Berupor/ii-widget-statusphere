@@ -28,7 +28,7 @@ Item {
         visible: Statusphere.accountIds.length > 0
 
         StyledText {
-            Layout.leftMargin: 6
+            Layout.leftMargin: 12 // On the axis the rows' content starts at
             font.pixelSize: Appearance.font.pixelSize.smaller
             color: Appearance.colors.colSubtext
             text: Translation.tr("%1 of %2 online").arg(Statusphere.onlineCount).arg(Statusphere.memberCount)
