@@ -32,7 +32,7 @@ Item {
 
     SequentialAnimation {
         id: pop
-        NumberAnimation {
+        NumberAnimation { // Shorter than any token on purpose: a squash that reads has to beat the eye
             target: face
             property: "scale"
             to: 0.82
@@ -43,9 +43,9 @@ Item {
             target: face
             property: "scale"
             to: 1
-            duration: 400
-            easing.type: Easing.OutBack
-            easing.overshoot: 3.2
+            duration: Appearance.animation.clickBounce.duration
+            easing.type: Appearance.animation.clickBounce.type
+            easing.bezierCurve: Appearance.animation.clickBounce.bezierCurve
         }
     }
 
