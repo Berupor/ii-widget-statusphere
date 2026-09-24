@@ -829,7 +829,7 @@ Singleton {
         if (custom)
             return root.expandWildcardTiles(custom[surface], account);
         if (surface === "detail")
-            return root.expandWildcardTiles(CardLayouts.standardDetail, account);
+            return CardLayouts.standardDetailFor(root.detailFieldsFor(account));
         return [];
     }
 

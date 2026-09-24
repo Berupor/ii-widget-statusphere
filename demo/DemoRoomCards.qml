@@ -1,7 +1,7 @@
 //@ probe statusphere -g 430x900 -s 2000
 /**
- * The room drawn with owner-built card layouts: one member on the standard
- * layout (no _layout on its device, so it falls back to CardLayouts.standardDetail
+ * The room drawn with owner-built card layouts: members on the standard layout
+ * (no _layout on their device, so they fall back to CardLayouts.standardDetailFor
  * for the detail card and to PresenceRow's own picture/music stack for the row),
  * one per preset, and one fully custom layout exercising a MaterialShape
  * silhouette, a bar tile and a URL background, plus a tile kept (dimmed) and
@@ -14,6 +14,7 @@ import QtQuick
 
 Item {
     id: root
+    clip: true
 
     function cover(file) {
         return String(Qt.resolvedUrl(`covers/${file}`));
@@ -165,6 +166,80 @@ Item {
                     "spotify_position": 40,
                     "spotify_length": 200,
                     "spotify_art_url": root.cover("nightcall.jpg")
+                },
+                {
+                    "account_id": "acc-thinkpad",
+                    "device_id": "dev-thinkpad",
+                    "device_name": "thinkpad",
+                    "account_name": "Thinkpad",
+                    "last_seen": root.now,
+                    "cpu_percent": 8,
+                    "cpu_count": 8,
+                    "memory_used_mb": 6554,
+                    "memory_total_mb": 16384,
+                    "disk_used_percent": 18,
+                    "disk_free_gb": 781,
+                    "load_avg_1m": 1.97,
+                    "uptime_hours": 8,
+                    "spotify_status": "playing",
+                    "spotify_track": "Midnight City",
+                    "spotify_artist": "M83",
+                    "spotify_position": 90,
+                    "spotify_length": 243
+                },
+                {
+                    "account_id": "acc-std-server",
+                    "device_id": "dev-std-server",
+                    "device_name": "vps-plain",
+                    "account_name": "Plain Server",
+                    "_kind": "server",
+                    "last_seen": root.now,
+                    "cpu_percent": 3,
+                    "cpu_count": 2,
+                    "memory_used_mb": 900,
+                    "memory_total_mb": 2048,
+                    "disk_used_percent": 47,
+                    "disk_free_gb": 21,
+                    "load_avg_1m": 0.12,
+                    "uptime_hours": 400,
+                    "package_count": 412
+                },
+                {
+                    "account_id": "acc-std-desk",
+                    "device_id": "dev-std-desk",
+                    "device_name": "desk",
+                    "account_name": "Desk Dana",
+                    "last_seen": root.now,
+                    "cpu_percent": 23,
+                    "cpu_count": 16,
+                    "memory_used_mb": 12000,
+                    "memory_total_mb": 32000,
+                    "disk_used_percent": 64,
+                    "disk_free_gb": 330,
+                    "load_avg_1m": 2.4,
+                    "uptime_hours": 51,
+                    "package_count": 1650,
+                    "active_workspace": 2,
+                    "active_app": "firefox",
+                    "active_window": "Statusphere - pull requests - Mozilla Firefox"
+                },
+                {
+                    "account_id": "acc-std-busy",
+                    "device_id": "dev-std-busy",
+                    "device_name": "work",
+                    "account_name": "Busy Ben",
+                    "last_seen": root.now,
+                    "cpu_percent": 51,
+                    "cpu_count": 8,
+                    "memory_used_mb": 7000,
+                    "memory_total_mb": 16000,
+                    "disk_used_percent": 80,
+                    "disk_free_gb": 90,
+                    "load_avg_1m": 3.1,
+                    "uptime_hours": 3,
+                    "active_app": "busy",
+                    "custom_fields": ["mood"],
+                    "mood": "heads down"
                 },
                 {
                     "account_id": "acc-music",
@@ -353,8 +428,35 @@ Item {
             ]
         })
 
+    readonly property var standardAccounts: ["acc-std", "acc-thinkpad", "acc-std-server", "acc-std-desk", "acc-std-busy"]
+
+    function standardGrid(accountId) {
+        return standardCards.itemAt(root.standardAccounts.indexOf(accountId))?.children[0] ?? null;
+    }
+
     function checks() {
+        const grids = root.standardAccounts.map(id => root.standardGrid(id));
         return [
+            {
+                "name": "the standard detail card packs without holes for every field mix",
+                "got": grids.map(g => g ? CardLayouts.emptyCells(g.placed) : -1),
+                "want": root.standardAccounts.map(() => 0)
+            },
+            {
+                "name": "the standard detail card shows every field it was given",
+                "got": grids.map(g => g ? g.placed.length === g.tiles.length : false),
+                "want": root.standardAccounts.map(() => true)
+            },
+            {
+                "name": "no wide tile of the standard detail card holds a single number",
+                "got": grids.reduce((wide, g) => wide.concat(g ? g.placed.filter(p => p.rows === 1 && p.cols > 1 && p.tile.form !== "text").map(p => p.tile.field) : []), []),
+                "want": []
+            },
+            {
+                "name": "a laptop reporting only metrics gets two full rows",
+                "got": root.standardGrid("acc-thinkpad")?.rowsUsed,
+                "want": 2
+            },
             {
                 "name": "no layout on the snapshot falls back to the standard detail tiles",
                 "got": Statusphere.surfaceTiles(Statusphere.accountsById["acc-std"], "detail").some(t => t.field === "cpu"),
@@ -443,9 +545,34 @@ Item {
 
     Component.onCompleted: Statusphere.ingest(JSON.stringify(root.room))
 
+    // Which part the shot frames, the other one sits just outside it.
+    // `-p framed=thinkpad` shoots the standard card with its details open.
+    property string framed: "room"
+
     PresenceTab {
         id: tab
-        anchors.fill: parent
+        x: root.framed === "room" ? 0 : root.width
+        width: root.width
+        height: root.height
+    }
+
+    PresenceRow {
+        x: root.framed === "thinkpad" ? 0 : root.width
+        width: root.width
+        modelData: "acc-thinkpad"
+        showDetails: true
+    }
+
+    Repeater {
+        id: standardCards
+        model: root.standardAccounts
+
+        delegate: PresenceDetailCard {
+            required property string modelData
+            visible: false
+            width: 400
+            account: Statusphere.accountsById[modelData]
+        }
     }
 
     Repeater {

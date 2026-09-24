@@ -4,6 +4,7 @@ import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
 import QtQuick
+import "CardLayouts.js" as CardLayouts
 
 /** Owner-built tile grid: always 4 columns, cell size follows the viewer's width. */
 Item {
@@ -13,92 +14,18 @@ Item {
     property int maxRows: 2
     property bool thumbnail: false
 
-    readonly property int columns: 4
+    readonly property int columns: CardLayouts.columns
     readonly property real spacing: 8
     readonly property real cellSize: (root.width - (root.columns - 1) * root.spacing) / root.columns
 
-    function tileSpan(sizeKey): var {
-        switch (sizeKey) {
-        case "2x1":
-            return {
-                "cols": 2,
-                "rows": 1
-            };
-        case "2x2":
-            return {
-                "cols": 2,
-                "rows": 2
-            };
-        case "4x1":
-            return {
-                "cols": 4,
-                "rows": 1
-            };
-        default:
-            return {
-                "cols": 1,
-                "rows": 1
-            };
-        }
-    }
-
-    function fits(occupied, col, row, cols, rows): bool {
-        if (col + cols > root.columns || row + rows > root.maxRows)
-            return false;
-        for (let r = row; r < row + rows; r++) {
-            for (let c = col; c < col + cols; c++) {
-                if (occupied[r]?.[c])
-                    return false;
-            }
-        }
-        return true;
-    }
-
-    function occupy(occupied, col, row, cols, rows): void {
-        for (let r = row; r < row + rows; r++) {
-            if (!occupied[r])
-                occupied[r] = [];
-            for (let c = col; c < col + cols; c++)
-                occupied[r][c] = true;
-        }
-    }
-
-    // First-fit top-left packing: a tile with nowhere left to go is dropped
-    // rather than overflowing maxRows, so a full grid degrades instead of clipping.
-    function pack(tiles): var {
-        const occupied = [];
-        const placed = [];
-        (tiles ?? []).forEach((t, i) => {
-            if (t.onMissing === "hide" && !Statusphere.tileHasData(root.account, t))
-                return;
-            const span = root.tileSpan(t.size);
-            let spot = null;
-            for (let r = 0; r + span.rows <= root.maxRows && !spot; r++) {
-                for (let c = 0; c + span.cols <= root.columns && !spot; c++) {
-                    if (root.fits(occupied, c, r, span.cols, span.rows))
-                        spot = {
-                            "col": c,
-                            "row": r
-                        };
-                }
-            }
-            if (!spot)
-                return;
-            root.occupy(occupied, spot.col, spot.row, span.cols, span.rows);
-            placed.push({
-                "tile": t,
-                "index": i,
-                "col": spot.col,
-                "row": spot.row,
-                "cols": span.cols,
-                "rows": span.rows
-            });
-        });
-        return placed;
-    }
-
-    readonly property var placed: root.pack(root.tiles)
-    readonly property int rowsUsed: root.placed.reduce((max, p) => Math.max(max, p.row + p.rows), 0)
+    readonly property var shownTiles: (root.tiles ?? []).map((tile, index) => ({
+                "tile": tile,
+                "index": index
+            })).filter(t => t.tile.onMissing !== "hide" || Statusphere.tileHasData(root.account, t.tile))
+    readonly property var placed: CardLayouts.pack(root.shownTiles.map(t => t.tile), root.maxRows).map(p => Object.assign({}, p, {
+                "index": root.shownTiles[p.index].index
+            }))
+    readonly property int rowsUsed: CardLayouts.rowsUsed(root.placed)
 
     // The editor picks a tile out of the grid it is previewing; everyone else leaves this alone.
     property bool selectable: false

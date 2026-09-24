@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import qs.services
 import QtQuick
 import QtQuick.Layouts
+import "CardLayouts.js" as CardLayouts
 
 /** Right-click-expanded details: the account's detail-surface tile grid, custom or standard. */
 Item {
@@ -21,6 +22,6 @@ Item {
         }
         account: root.account
         tiles: root.tiles
-        maxRows: 4
+        maxRows: CardLayouts.detailRows
     }
 }

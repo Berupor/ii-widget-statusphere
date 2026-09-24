@@ -973,7 +973,7 @@ ColumnLayout {
                     margins: 8
                 }
                 account: root.previewAccount
-                maxRows: root.editSurface === "row" ? 2 : 4
+                maxRows: root.editSurface === "row" ? 2 : CardLayouts.detailRows
                 tiles: root.previewTiles
                 selectable: true
                 reorderable: true

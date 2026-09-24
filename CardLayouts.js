@@ -3,9 +3,9 @@
 // Tile: { type, field, device, form, size, shape, color, background, onMissing }.
 // type: scalar | music | game | photo. music/game read form for a sub-variant: music
 // is cover (default, full embed) | vinyl (spinning cover, ring progress) | wave
-// (visualizer strip); game is banner (default, full embed) | timer (icon and session
+// (progress line); game is banner (default, full embed) | timer (icon and session
 // line). field/form apply to scalar only, "*" expands to every detail field the
-// standard layout does not already cover. Scalar forms: ring, bar, number, text, big
+// layout does not already name. Scalar forms: ring, bar, number, text, big
 // (large centred value, a sticker), clock (big value, meant for a pre-rendered
 // "HH:MM" custom field), weather (temperature pulled out of the value, the rest as a
 // caption). size is one of 1x1, 2x1, 2x2, 4x1. shape names a MaterialShape.Shape,
@@ -27,35 +27,145 @@ function tile(props) {
     }, props);
 }
 
-const standardDetail = [
-    tile({
+const columns = 4;
+const detailRows = 4;
+const shortValueLength = 8;
+const wideTextFields = ["active_window"];
+
+const spans = {
+    "1x1": {
+        "cols": 1,
+        "rows": 1
+    },
+    "2x1": {
+        "cols": 2,
+        "rows": 1
+    },
+    "2x2": {
+        "cols": 2,
+        "rows": 2
+    },
+    "4x1": {
+        "cols": 4,
+        "rows": 1
+    }
+};
+
+function spanOf(size) {
+    return spans[size] ?? spans["1x1"];
+}
+
+// First-fit top-left packing into a columns-wide grid: a tile with nowhere left to go
+// is dropped rather than overflowing maxRows, so a full grid degrades instead of
+// clipping. index points back into tiles.
+function pack(tiles, maxRows) {
+    const occupied = [];
+    const free = (col, row, span) => {
+        for (let r = row; r < row + span.rows; r++) {
+            for (let c = col; c < col + span.cols; c++) {
+                if (occupied[r]?.[c])
+                    return false;
+            }
+        }
+        return true;
+    };
+    const placed = [];
+    tiles.forEach((t, index) => {
+        const span = spanOf(t.size);
+        let spot = null;
+        for (let row = 0; row + span.rows <= maxRows && !spot; row++) {
+            for (let col = 0; col + span.cols <= columns && !spot; col++) {
+                if (free(col, row, span))
+                    spot = {
+                        "col": col,
+                        "row": row
+                    };
+            }
+        }
+        if (!spot)
+            return;
+        for (let r = spot.row; r < spot.row + span.rows; r++) {
+            occupied[r] = occupied[r] ?? [];
+            for (let c = spot.col; c < spot.col + span.cols; c++)
+                occupied[r][c] = true;
+        }
+        placed.push(Object.assign({
+            "tile": t,
+            "index": index
+        }, spot, span));
+    });
+    return placed;
+}
+
+function rowsUsed(placed) {
+    return placed.reduce((max, p) => Math.max(max, p.row + p.rows), 0);
+}
+
+function emptyCells(placed) {
+    return rowsUsed(placed) * columns - placed.reduce((sum, p) => sum + p.cols * p.rows, 0);
+}
+
+const gaugeColors = ["primaryContainer", "tertiaryContainer"];
+
+function standardTileFor(field, gaugeIndex) {
+    if (field.percent !== null && field.percent !== undefined)
+        return tile({
+            "type": "scalar",
+            "field": field.key,
+            "form": "ring",
+            "size": "1x1",
+            "color": gaugeColors[gaugeIndex % gaugeColors.length]
+        });
+    const wide = wideTextFields.includes(field.key) || String(field.value).length > shortValueLength;
+    return tile({
         "type": "scalar",
-        "field": "cpu",
-        "form": "bar",
-        "size": "2x1",
-        "color": "primary"
-    }),
-    tile({
-        "type": "scalar",
-        "field": "mem",
-        "form": "bar",
-        "size": "2x1",
-        "color": "secondary"
-    }),
-    tile({
-        "type": "scalar",
-        "field": "disk",
-        "form": "bar",
-        "size": "2x1",
-        "color": "tertiary"
-    }),
-    tile({
-        "type": "scalar",
-        "field": "*",
-        "form": "text",
-        "size": "4x1"
-    })
-];
+        "field": field.key,
+        "form": wide ? "text" : "number",
+        "size": wide ? "2x1" : "1x1"
+    });
+}
+
+// Rings first, then number tiles, grow to 2x2 heroes; the first text can take the whole
+// row. Big tiles lead so the small ones fill in around them.
+function grown(tiles, heroes, widenText) {
+    const heroTiles = tiles.filter(t => t.form === "ring").concat(tiles.filter(t => t.form === "number")).slice(0, heroes);
+    const text = widenText ? tiles.find(t => t.size === "2x1") : null;
+    const out = tiles.map(t => heroTiles.includes(t) ? Object.assign({}, t, {
+                "size": "2x2"
+            }) : t === text ? Object.assign({}, t, {
+                "size": "4x1"
+            }) : t);
+    return ["2x2", "2x1", "1x1", "4x1"].reduce((sorted, size) => sorted.concat(out.filter(t => t.size === size)), []);
+}
+
+function scoresBelow(a, b) {
+    const i = a.findIndex((v, k) => v !== b[k]);
+    return i >= 0 && a[i] < b[i];
+}
+
+// The fallback detail card for a device with no _layout of its own: rings for
+// percentages, number tiles for short values, text for long ones. Of the ways to grow
+// a few of them, the one that packs with the fewest holes wins, then the one that drops
+// the fewest tiles, then the one that changes the least. fields is
+// Statusphere.detailFieldsFor(account).
+function standardDetailFor(fields) {
+    let gauges = 0;
+    const tiles = fields.map(f => standardTileFor(f, f.percent !== null && f.percent !== undefined ? gauges++ : 0));
+    let best = null;
+    for (const widenText of [false, true]) {
+        for (let heroes = 0; heroes <= 3; heroes++) {
+            const candidate = grown(tiles, heroes, widenText);
+            const placed = pack(candidate, detailRows);
+            const score = [emptyCells(placed), candidate.length - placed.length, heroes + (widenText ? 1 : 0)];
+            if (!best || scoresBelow(score, best.score))
+                best = {
+                    "tiles": candidate,
+                    "score": score
+                };
+        }
+    }
+    return best?.tiles ?? [];
+}
 
 // A friend's pack: self-expression, not a system monitor. Music, game and photo carry
 // the personality, active_app/active_window/package_count read what the cli already
