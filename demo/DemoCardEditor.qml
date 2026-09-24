@@ -1,4 +1,4 @@
-//@ probe statusphere -g 480x900 -s 10000
+//@ probe statusphere -g 480x900 -s 12000
 /**
  * The settings page end to end, through the controls an owner touches: two tabs,
  * the Room tab free of editor controls, the tile gallery, the tile sheet and the
