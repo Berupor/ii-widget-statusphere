@@ -55,6 +55,8 @@ Rectangle {
     ]
     readonly property string plainBackground: "none"
     readonly property string defaultLiveBackground: CardLayouts.typeOf(root.tile)?.reads ?? "photo"
+    // photo/picture tiles paint their own art over any background, so the background pickers below have no visible effect on them.
+    readonly property bool backgroundHidden: (CardLayouts.typeOf(root.tile)?.art ?? "") !== ""
     readonly property var repeatOptions: Templates.repeatChoices.map(seconds => ({
                 "displayName": root.durationLabel(seconds),
                 "value": seconds
@@ -70,6 +72,11 @@ Rectangle {
 
     function commitAnswer() {
         root.editor.setAnswer(root.fieldKey, root.kindId, answerField.text);
+    }
+
+    function focusAnswer() {
+        if (root.ownField && answerField.visible)
+            answerField.forceActiveFocus();
     }
 
     function commitRepeat(seconds) {
@@ -384,11 +391,13 @@ Rectangle {
             }
 
             ContentSubsectionLabel {
+                visible: !root.backgroundHidden
                 text: Translation.tr("Background")
             }
 
             ConfigSelectionArray {
                 Layout.fillWidth: true
+                visible: !root.backgroundHidden
                 currentValue: root.tile?.background?.kind ?? root.plainBackground
                 onSelected: newValue => root.editor.updateSelectedTile({
                     "background": newValue === root.plainBackground ? undefined : {
@@ -418,7 +427,7 @@ Rectangle {
             ConfigSelectionArray {
                 id: liveBackgroundChoice
                 Layout.fillWidth: true
-                visible: root.tile?.background?.kind === "live"
+                visible: !root.backgroundHidden && root.tile?.background?.kind === "live"
                 currentValue: root.tile?.background?.value ?? ""
                 options: root.liveBackgroundOptions
                 onSelected: newValue => root.editor.updateSelectedTile({
@@ -432,7 +441,7 @@ Rectangle {
             MaterialTextField {
                 id: backgroundUrlField
                 Layout.fillWidth: true
-                visible: root.tile?.background?.kind === "url"
+                visible: !root.backgroundHidden && root.tile?.background?.kind === "url"
                 placeholderText: Translation.tr("Image URL")
                 onEditingFinished: root.editor.updateSelectedTile({
                     "background": {
