@@ -174,8 +174,8 @@ Item {
                     "last_seen": root.now,
                     "_layout": {
                         "updated_at": root.now,
-                        "row": CardLayouts.presets.music.row,
-                        "detail": CardLayouts.presets.music.detail
+                        "row": CardLayouts.presets.musicHead.row,
+                        "detail": CardLayouts.presets.musicHead.detail
                     },
                     "cpu_percent": 22,
                     "memory_used_mb": 4000,
@@ -185,7 +185,11 @@ Item {
                     "spotify_artist": "Preset Artist",
                     "spotify_position": 90,
                     "spotify_length": 240,
-                    "spotify_art_url": root.cover("teardrop.jpg")
+                    "spotify_art_url": root.cover("teardrop.jpg"),
+                    "custom_fields": ["mood", "quote", "genre"],
+                    "mood": "🎧",
+                    "quote": "Turn it up",
+                    "genre": "Synthwave"
                 },
                 {
                     "account_id": "acc-hardware",
@@ -196,8 +200,8 @@ Item {
                     "last_seen": root.now,
                     "_layout": {
                         "updated_at": root.now,
-                        "row": CardLayouts.presets.hardware.row,
-                        "detail": CardLayouts.presets.hardware.detail
+                        "row": CardLayouts.presets.coder.row,
+                        "detail": CardLayouts.presets.coder.detail
                     },
                     "cpu_percent": 63,
                     "cpu_history": [12, 18, 22, 30, 44, 51, 47, 60, 55, 63, 58, 63],
@@ -205,7 +209,14 @@ Item {
                     "memory_used_mb": 11000,
                     "memory_total_mb": 16000,
                     "disk_used_percent": 47,
-                    "disk_free_gb": 210
+                    "disk_free_gb": 210,
+                    "active_workspace": 3,
+                    "custom_fields": ["project", "commits", "focus", "workspace", "note"],
+                    "project": "statusphere · nvim",
+                    "commits": "4",
+                    "commits_history": [1, 3, 0, 2, 5, 4, 2],
+                    "focus": "72%",
+                    "note": "Shipping the card editor"
                 },
                 {
                     "account_id": "acc-gamer",
@@ -215,8 +226,8 @@ Item {
                     "last_seen": root.now,
                     "_layout": {
                         "updated_at": root.now,
-                        "row": CardLayouts.presets.gamer.row,
-                        "detail": CardLayouts.presets.gamer.detail
+                        "row": CardLayouts.presets.nightOwl.row,
+                        "detail": CardLayouts.presets.nightOwl.detail
                     },
                     "cpu_percent": 71,
                     "memory_used_mb": 9000,
@@ -229,7 +240,12 @@ Item {
                     "game_hero_url": root.cover("rdr2-hero.jpg"),
                     "game_header_url": root.cover("rdr2-header.jpg"),
                     "game_logo_url": root.cover("rdr2-logo.png"),
-                    "game_session_seconds": 2400
+                    "game_session_seconds": 2400,
+                    "custom_fields": ["active_hours", "local_time", "mood"],
+                    "active_hours": "5",
+                    "active_hours_history": [0, 1, 4, 6, 3, 2, 5, 6, 4, 1, 0, 0],
+                    "local_time": "02:30",
+                    "mood": "🌙"
                 },
                 {
                     "account_id": "acc-custom",
@@ -276,6 +292,17 @@ Item {
                         "detail": []
                     },
                     "cpu_percent": 12
+                },
+                {
+                    "account_id": "acc-probe",
+                    "device_id": "dev-probe",
+                    "device_name": "probe",
+                    "account_name": "Probe",
+                    "last_seen": root.now,
+                    "custom_fields": ["local_time_day", "local_time_night", "weather_test"],
+                    "local_time_day": "13:15",
+                    "local_time_night": "02:30",
+                    "weather_test": "9° Rain · Lisbon, PT"
                 }
             ],
             "photos": [
@@ -314,6 +341,31 @@ Item {
                 "name": "every row got drawn",
                 "got": rows.count === Statusphere.memberCount && tab.height > 0,
                 "want": true
+            },
+            {
+                "name": "a tile's text takes the on-role of its background role, not a hardcoded one",
+                "got": contentColorProbe.contentColor,
+                "want": Appearance.colors.colOnSecondaryContainer
+            },
+            {
+                "name": "an auto-shaped clock reads sun by day",
+                "got": clockDayProbe.resolvedShape,
+                "want": "Sunny"
+            },
+            {
+                "name": "an auto-shaped clock reads circle by night",
+                "got": clockNightProbe.resolvedShape,
+                "want": "Circle"
+            },
+            {
+                "name": "a weather tile pulls the temperature out of the value",
+                "got": weatherProbe.numberDisplayValue,
+                "want": "9°"
+            },
+            {
+                "name": "a music tile's vinyl and wave forms are not full-bleed, like a scalar tile",
+                "got": vinylProbe.fullBleed || waveProbe.fullBleed,
+                "want": false
             }
         ];
     }
@@ -381,5 +433,125 @@ Item {
                 "onMissing": "dim"
             }
         ]
+    }
+
+    CardTile {
+        id: contentColorProbe
+        visible: false
+        account: Statusphere.accountsById["acc-std"]
+        tile: ({
+                "type": "scalar",
+                "field": "cpu",
+                "device": null,
+                "form": "ring",
+                "size": "1x1",
+                "shape": "default",
+                "color": "secondaryContainer",
+                "background": {
+                    "kind": "color",
+                    "value": "secondaryContainer"
+                },
+                "onMissing": "hide"
+            })
+    }
+
+    CardTile {
+        id: clockDayProbe
+        visible: false
+        account: Statusphere.accountsById["acc-probe"]
+        tile: ({
+                "type": "scalar",
+                "field": "local_time_day",
+                "device": null,
+                "form": "clock",
+                "size": "1x1",
+                "shape": "auto",
+                "color": "tertiaryContainer",
+                "background": {
+                    "kind": "color",
+                    "value": "tertiaryContainer"
+                },
+                "onMissing": "hide"
+            })
+    }
+
+    CardTile {
+        id: clockNightProbe
+        visible: false
+        account: Statusphere.accountsById["acc-probe"]
+        tile: ({
+                "type": "scalar",
+                "field": "local_time_night",
+                "device": null,
+                "form": "clock",
+                "size": "1x1",
+                "shape": "auto",
+                "color": "tertiaryContainer",
+                "background": {
+                    "kind": "color",
+                    "value": "tertiaryContainer"
+                },
+                "onMissing": "hide"
+            })
+    }
+
+    CardTile {
+        id: weatherProbe
+        visible: false
+        account: Statusphere.accountsById["acc-probe"]
+        tile: ({
+                "type": "scalar",
+                "field": "weather_test",
+                "device": null,
+                "form": "weather",
+                "size": "1x1",
+                "shape": "auto",
+                "color": "primaryContainer",
+                "background": {
+                    "kind": "color",
+                    "value": "primaryContainer"
+                },
+                "onMissing": "hide"
+            })
+    }
+
+    CardTile {
+        id: vinylProbe
+        visible: false
+        account: Statusphere.accountsById["acc-music"]
+        tile: ({
+                "type": "music",
+                "field": "",
+                "device": null,
+                "form": "vinyl",
+                "size": "2x2",
+                "shape": "default",
+                "color": "primaryContainer",
+                "background": {
+                    "kind": "color",
+                    "value": "primaryContainer"
+                },
+                "onMissing": "hide"
+            })
+    }
+
+    CardTile {
+        id: waveProbe
+        visible: false
+        account: Statusphere.accountsById["acc-music"]
+        tile: ({
+                "type": "music",
+                "field": "",
+                "device": null,
+                "form": "wave",
+                "size": "2x1",
+                "shape": "default",
+                "color": "secondaryContainer",
+                "background": {
+                    "kind": "color",
+                    "value": "secondaryContainer"
+                },
+                "onMissing": "hide"
+            })
     }
 }

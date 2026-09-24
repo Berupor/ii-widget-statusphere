@@ -47,7 +47,7 @@ Item {
         }
     }
 
-    function onRoleColor(role: string): color {
+    function contentRoleColor(role: string): color {
         switch (role) {
         case "primary":
             return Appearance.colors.colOnPrimary;
@@ -71,14 +71,73 @@ Item {
     }
 
     readonly property color tint: root.roleColor(root.tile.color)
-    readonly property color onTint: root.onRoleColor(root.tile.color)
-    readonly property bool composite: root.tile.type === "music" || root.tile.type === "game" || root.tile.type === "photo"
-    readonly property bool shaped: !root.composite && root.tile.shape !== "default"
+    readonly property color contentColor: root.contentRoleColor(root.tile.color)
+
+    // "cover"/"banner" paint their own full-bleed background (PresenceMusic/PresenceGame
+    // already do), everything else - including the vinyl/wave/timer sub-forms - takes the
+    // tile's own silhouette and colour like a scalar tile.
+    readonly property string musicForm: root.tile.form || "cover"
+    readonly property string gameForm: root.tile.form || "banner"
+    readonly property bool fullBleed: (root.tile.type === "music" && root.musicForm === "cover") || (root.tile.type === "game" && root.gameForm === "banner") || root.tile.type === "photo"
+
+    readonly property int clockHour: {
+        const m = root.valueText.match(/^(\d{1,2}):/);
+        return m ? parseInt(m[1], 10) : -1;
+    }
+
+    function weatherShapeName(): string {
+        const v = root.valueText.toLowerCase();
+        if (/storm|thunder/.test(v))
+            return "SoftBurst";
+        if (/snow/.test(v))
+            return "Cookie9Sided";
+        if (/rain|cloud/.test(v))
+            return "Cookie6Sided";
+        if (/clear|sun/.test(v))
+            return "Sunny";
+        return "Circle";
+    }
+
+    // "auto" lets a form pick its own silhouette instead of the layout naming one up front:
+    // a clock's day/night, a weather tile's condition.
+    readonly property string resolvedShape: {
+        if (root.tile.shape !== "auto")
+            return root.tile.shape;
+        if (root.tile.form === "clock")
+            return (root.clockHour >= 6 && root.clockHour < 19) ? "Sunny" : "Circle";
+        if (root.tile.form === "weather")
+            return root.weatherShapeName();
+        return "Circle";
+    }
+
+    readonly property var weatherTempMatch: root.valueText.match(/-?\d+°/)
+    readonly property string numberDisplayValue: root.tile.form === "weather" && root.weatherTempMatch ? root.weatherTempMatch[0] : root.valueText
+    readonly property string numberDisplayLabel: {
+        if (root.tile.form !== "weather")
+            return root.labelText;
+        const stripped = root.valueText.replace(root.weatherTempMatch ? root.weatherTempMatch[0] : "", "");
+        return stripped.replace(/^[\s·,-]+|[\s·,-]+$/g, "");
+    }
+
+    // A deterministic squiggle per track, not a real spectrum - there is no audio data on
+    // the wire, so the wave strip is a decoration that at least changes with the song.
+    function waveSeed(device): var {
+        const key = Statusphere.trackKey(device) || "silence";
+        let seed = 0;
+        for (let i = 0; i < key.length; i++)
+            seed = (seed * 31 + key.charCodeAt(i)) >>> 0;
+        const points = [];
+        for (let i = 0; i < 24; i++) {
+            seed = (seed * 1103515245 + 12345) >>> 0;
+            points.push(200 + (seed % 800));
+        }
+        return points;
+    }
 
     readonly property bool backgroundIsLocal: root.tile.background?.kind === "live" && root.tile.background?.value === "photo"
     readonly property string backgroundSource: {
         const bg = root.tile.background;
-        if (root.composite || !bg || bg.kind === "color")
+        if (root.fullBleed || !bg || bg.kind === "color")
             return "";
         if (bg.kind === "url")
             return bg.value;
@@ -93,9 +152,11 @@ Item {
         return "";
     }
 
+    readonly property bool shaped: !root.fullBleed && root.resolvedShape !== "default"
+
     Rectangle {
         id: silhouette
-        visible: !root.composite && !root.shaped
+        visible: !root.fullBleed && !root.shaped
         anchors.fill: parent
         radius: Appearance.rounding.normal
         color: root.backgroundSource ? Appearance.colors.colLayer2 : root.tint
@@ -155,6 +216,8 @@ Item {
             return MaterialShape.Shape.Heart;
         case "Sunny":
             return MaterialShape.Shape.Sunny;
+        case "SoftBurst":
+            return MaterialShape.Shape.SoftBurst;
         default:
             return MaterialShape.Shape.Circle;
         }
@@ -164,26 +227,147 @@ Item {
         visible: root.shaped
         anchors.centerIn: parent
         implicitSize: Math.min(parent.width, parent.height)
-        shape: root.silhouetteShape(root.tile.shape)
+        shape: root.silhouetteShape(root.resolvedShape)
         color: root.tint
     }
 
     Item {
         id: content
         anchors.fill: parent
-        anchors.margins: root.composite ? 0 : 10
-        clip: root.composite
+        anchors.margins: root.fullBleed ? 0 : 10
+        clip: root.fullBleed
 
         PresenceMusic {
             anchors.fill: parent
-            visible: root.tile.type === "music"
+            visible: root.tile.type === "music" && root.musicForm === "cover"
             device: Statusphere.musicDevices(root.account)[0] ?? null
+        }
+
+        Item {
+            id: vinylForm
+            anchors.fill: parent
+            visible: root.tile.type === "music" && root.musicForm === "vinyl"
+
+            readonly property var musicDevice: Statusphere.musicDevices(root.account)[0] ?? null
+            readonly property real progress: (vinylForm.musicDevice?.spotify_length ?? 0) > 0 ? (vinylForm.musicDevice.spotify_position ?? 0) / vinylForm.musicDevice.spotify_length : 0
+
+            CircularProgress {
+                anchors.centerIn: parent
+                implicitSize: Math.round(Math.min(vinylForm.width, vinylForm.height))
+                lineWidth: Math.max(3, implicitSize * 0.06)
+                value: vinylForm.progress
+                colPrimary: root.contentColor
+                colSecondary: ColorUtils.transparentize(root.contentColor, 0.75)
+            }
+
+            Item {
+                id: cover
+                anchors.centerIn: parent
+                width: Math.round(Math.min(vinylForm.width, vinylForm.height) * 0.68)
+                height: cover.width
+
+                layer.enabled: true
+                layer.effect: OpacityMask {
+                    maskSource: Rectangle {
+                        width: cover.width
+                        height: cover.height
+                        radius: cover.width / 2
+                    }
+                }
+
+                PresenceArt {
+                    anchors.fill: parent
+                    source: vinylForm.musicDevice?.spotify_art_url ?? ""
+                }
+
+                RotationAnimation on rotation {
+                    running: vinylForm.musicDevice?.spotify_status === "playing"
+                    loops: Animation.Infinite
+                    from: 0
+                    to: 360
+                    duration: 9000
+                }
+            }
+        }
+
+        ColumnLayout {
+            id: waveForm
+            anchors.fill: parent
+            visible: root.tile.type === "music" && root.musicForm === "wave"
+            spacing: 6
+
+            readonly property var musicDevice: Statusphere.musicDevices(root.account)[0] ?? null
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+
+                PresenceArt {
+                    Layout.preferredWidth: 28
+                    Layout.preferredHeight: 28
+                    source: waveForm.musicDevice?.spotify_art_url ?? ""
+                }
+                StyledText {
+                    Layout.fillWidth: true
+                    elide: Text.ElideRight
+                    text: Statusphere.trackFor(waveForm.musicDevice)
+                    color: root.contentColor
+                    font.pixelSize: Appearance.font.pixelSize.smaller
+                }
+            }
+
+            Item {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+
+                WaveVisualizer {
+                    anchors.fill: parent
+                    color: root.contentColor
+                    live: waveForm.musicDevice?.spotify_status === "playing"
+                    points: root.waveSeed(waveForm.musicDevice)
+                }
+            }
         }
 
         PresenceGame {
             anchors.fill: parent
-            visible: root.tile.type === "game"
+            visible: root.tile.type === "game" && root.gameForm === "banner"
             device: Statusphere.gameDevices(root.account)[0] ?? null
+        }
+
+        RowLayout {
+            id: gameTimer
+            anchors.verticalCenter: parent.verticalCenter
+            width: parent.width
+            visible: root.tile.type === "game" && root.gameForm === "timer"
+            spacing: 8
+
+            readonly property var gameDevice: Statusphere.gameDevices(root.account)[0] ?? null
+
+            MaterialSymbol {
+                text: "sports_esports"
+                iconSize: Appearance.font.pixelSize.large
+                color: root.contentColor
+            }
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 0
+
+                StyledText {
+                    Layout.fillWidth: true
+                    elide: Text.ElideRight
+                    text: Statusphere.gameFor(gameTimer.gameDevice) || "-"
+                    color: root.contentColor
+                    font.pixelSize: Appearance.font.pixelSize.small
+                }
+                StyledText {
+                    Layout.fillWidth: true
+                    elide: Text.ElideRight
+                    text: gameTimer.gameDevice ? Statusphere.sessionFor(Statusphere.gameStartedMsFor(gameTimer.gameDevice)) : ""
+                    color: root.contentColor
+                    font.pixelSize: Appearance.font.pixelSize.smaller
+                }
+            }
         }
 
         PresencePhoto {
@@ -198,14 +382,28 @@ Item {
             implicitSize: Math.round(Math.min(content.width, content.height))
             lineWidth: Math.max(3, implicitSize * 0.08)
             value: root.hasData ? root.percent / 100 : 0
-            colPrimary: root.onTint
-            colSecondary: ColorUtils.transparentize(root.onTint, 0.75)
+            colPrimary: root.contentColor
+            colSecondary: ColorUtils.transparentize(root.contentColor, 0.75)
 
-            StyledText {
+            Column {
                 anchors.centerIn: parent
-                text: root.hasData ? Math.round(root.percent) + "%" : "-"
-                color: root.onTint
-                font.pixelSize: Appearance.font.pixelSize.small
+                spacing: 0
+
+                StyledText {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: root.hasData ? Math.round(root.percent) + "%" : "-"
+                    color: root.contentColor
+                    font.pixelSize: Appearance.font.pixelSize.small
+                }
+                StyledText {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: Math.round(Math.min(content.width, content.height) * 0.7)
+                    horizontalAlignment: Text.AlignHCenter
+                    elide: Text.ElideRight
+                    text: root.labelText
+                    color: root.contentColor
+                    font.pixelSize: Appearance.font.pixelSize.smallest
+                }
             }
         }
 
@@ -220,14 +418,14 @@ Item {
                 elide: Text.ElideRight
                 text: root.labelText
                 font.pixelSize: Appearance.font.pixelSize.smaller
-                color: root.onTint
+                color: root.contentColor
             }
             StyledText {
                 Layout.fillWidth: true
                 elide: Text.ElideRight
                 text: root.hasData ? Math.round(root.percent) + "%" : "-"
                 font.pixelSize: Appearance.font.pixelSize.huge
-                color: root.onTint
+                color: root.contentColor
             }
             StyledProgressBar {
                 Layout.fillWidth: true
@@ -235,41 +433,121 @@ Item {
                 to: 100
                 value: root.hasData ? root.percent : 0
                 valueBarHeight: 6
-                highlightColor: root.onTint
-                trackColor: ColorUtils.transparentize(root.onTint, 0.75)
+                highlightColor: root.contentColor
+                trackColor: ColorUtils.transparentize(root.contentColor, 0.75)
             }
         }
 
         ColumnLayout {
-            visible: root.tile.type === "scalar" && root.tile.form === "number"
+            visible: root.tile.type === "scalar" && (root.tile.form === "number" || root.tile.form === "weather")
             anchors.centerIn: parent
             spacing: 2
 
             StyledText {
                 Layout.alignment: Qt.AlignHCenter
-                text: root.valueText
+                text: root.hasData ? root.numberDisplayValue : "-"
                 font.pixelSize: Appearance.font.pixelSize.huge
-                color: root.onTint
+                color: root.contentColor
             }
             StyledText {
                 Layout.alignment: Qt.AlignHCenter
                 elide: Text.ElideRight
-                text: root.labelText
+                text: root.numberDisplayLabel
                 font.pixelSize: Appearance.font.pixelSize.smallest
-                color: root.onTint
+                color: root.contentColor
             }
         }
 
-        Graph {
-            id: graph
+        StyledText {
+            visible: root.tile.type === "scalar" && (root.tile.form === "big" || root.tile.form === "clock")
+            anchors.fill: parent
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            wrapMode: Text.Wrap
+            maximumLineCount: 3
+            elide: Text.ElideRight
+            fontSizeMode: Text.Fit
+            minimumPixelSize: Appearance.font.pixelSize.smallest
+            text: root.hasData ? root.valueText : "-"
+            font.pixelSize: Appearance.font.pixelSize.huge
+            color: root.contentColor
+        }
+
+        ColumnLayout {
             visible: root.tile.type === "scalar" && root.tile.form === "graph"
             anchors.fill: parent
+            spacing: 2
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 6
+
+                StyledText {
+                    Layout.fillWidth: true
+                    elide: Text.ElideRight
+                    text: root.labelText
+                    font.pixelSize: Appearance.font.pixelSize.smaller
+                    color: root.contentColor
+                }
+                StyledText {
+                    text: root.hasData ? root.valueText : "-"
+                    font.pixelSize: Appearance.font.pixelSize.smaller
+                    color: root.contentColor
+                }
+            }
+
+            Graph {
+                id: graph
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+
+                readonly property var raw: Statusphere.graphValuesFor(root.device, root.tile.field)
+                readonly property real lo: raw.length > 0 ? Math.min(...raw) : 0
+                readonly property real hi: raw.length > 0 ? Math.max(...raw) : 1
+                values: graph.raw.map(v => graph.hi > graph.lo ? (v - graph.lo) / (graph.hi - graph.lo) : 0.5)
+                color: root.contentColor
+            }
+        }
+
+        ColumnLayout {
+            id: heatmap
+            visible: root.tile.type === "scalar" && root.tile.form === "heatmap"
+            anchors.fill: parent
+            spacing: 4
 
             readonly property var raw: Statusphere.graphValuesFor(root.device, root.tile.field)
-            readonly property real lo: raw.length > 0 ? Math.min(...raw) : 0
-            readonly property real hi: raw.length > 0 ? Math.max(...raw) : 1
-            values: graph.raw.map(v => graph.hi > graph.lo ? (v - graph.lo) / (graph.hi - graph.lo) : 0.5)
-            color: root.onTint
+            readonly property real hi: heatmap.raw.length > 0 ? Math.max(1, ...heatmap.raw) : 1
+            readonly property int cols: Math.min(7, Math.max(1, heatmap.raw.length))
+
+            StyledText {
+                Layout.fillWidth: true
+                elide: Text.ElideRight
+                text: root.labelText
+                font.pixelSize: Appearance.font.pixelSize.smaller
+                color: root.contentColor
+            }
+
+            Grid {
+                id: dots
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                columns: heatmap.cols
+                spacing: 4
+
+                Repeater {
+                    model: heatmap.raw
+
+                    delegate: Rectangle {
+                        id: dot
+                        required property real modelData
+                        width: (dots.width - (heatmap.cols - 1) * dots.spacing) / heatmap.cols
+                        height: dot.width
+                        radius: 3
+                        color: root.contentColor
+                        opacity: 0.15 + 0.75 * (dot.modelData / heatmap.hi)
+                    }
+                }
+            }
         }
 
         RowLayout {
@@ -281,20 +559,20 @@ Item {
             MaterialSymbol {
                 text: Statusphere.iconForField(root.tile.field)
                 iconSize: Appearance.font.pixelSize.normal
-                color: root.onTint
+                color: root.contentColor
             }
             StyledText {
                 Layout.fillWidth: true
                 elide: Text.ElideRight
                 text: root.labelText
                 font.pixelSize: Appearance.font.pixelSize.small
-                color: root.onTint
+                color: root.contentColor
             }
             StyledText {
                 horizontalAlignment: Text.AlignRight
                 text: root.valueText
                 font.pixelSize: Appearance.font.pixelSize.small
-                color: root.onTint
+                color: root.contentColor
             }
         }
     }

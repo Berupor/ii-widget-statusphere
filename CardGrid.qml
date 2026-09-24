@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import qs.services
+import qs.modules.common
 import QtQuick
 
 /** Owner-built tile grid: always 4 columns, cell size follows the viewer's width. */
@@ -65,9 +66,9 @@ Item {
     function pack(tiles): var {
         const occupied = [];
         const placed = [];
-        for (const t of tiles ?? []) {
+        (tiles ?? []).forEach((t, i) => {
             if (t.onMissing === "hide" && !Statusphere.tileHasData(root.account, t))
-                continue;
+                return;
             const span = root.tileSpan(t.size);
             let spot = null;
             for (let r = 0; r + span.rows <= root.maxRows && !spot; r++) {
@@ -80,21 +81,27 @@ Item {
                 }
             }
             if (!spot)
-                continue;
+                return;
             root.occupy(occupied, spot.col, spot.row, span.cols, span.rows);
             placed.push({
                 "tile": t,
+                "index": i,
                 "col": spot.col,
                 "row": spot.row,
                 "cols": span.cols,
                 "rows": span.rows
             });
-        }
+        });
         return placed;
     }
 
     readonly property var placed: root.pack(root.tiles)
     readonly property int rowsUsed: root.placed.reduce((max, p) => Math.max(max, p.row + p.rows), 0)
+
+    // The editor picks a tile out of the grid it is previewing; everyone else leaves this alone.
+    property bool selectable: false
+    property int selectedIndex: -1
+    signal tileClicked(int index)
 
     implicitHeight: root.rowsUsed > 0 ? root.rowsUsed * root.cellSize + (root.rowsUsed - 1) * root.spacing : 0
 
@@ -111,6 +118,23 @@ Item {
             y: cardTile.modelData.row * (root.cellSize + root.spacing)
             width: cardTile.modelData.cols * root.cellSize + (cardTile.modelData.cols - 1) * root.spacing
             height: cardTile.modelData.rows * root.cellSize + (cardTile.modelData.rows - 1) * root.spacing
+
+            Rectangle {
+                visible: root.selectable && root.selectedIndex === cardTile.modelData.index
+                anchors.fill: parent
+                anchors.margins: -2
+                radius: Appearance.rounding.normal + 2
+                color: "transparent"
+                border.width: 2
+                border.color: Appearance.colors.colPrimary
+            }
+
+            MouseArea {
+                visible: root.selectable
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.tileClicked(cardTile.modelData.index)
+            }
         }
     }
 }

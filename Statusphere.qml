@@ -580,6 +580,10 @@ Singleton {
             return "storage";
         case "gpu":
             return "deployed_code";
+        case "project":
+            return "terminal";
+        case "workspace":
+            return "desktop_windows";
         default:
             return "monitoring";
         }
@@ -674,12 +678,18 @@ Singleton {
             fields.push({
                 "key": key,
                 "icon": root.iconForField(key),
-                "label": key,
+                "label": root.labelForKey(key),
                 "value": raw,
                 "percent": root.percentForField(key, raw, device)
             });
         }
         return fields;
+    }
+
+    // custom.json keys are snake_case by convention (matches nativeFieldKeys), a tile's
+    // label is read, so title-case it instead of printing the key verbatim.
+    function labelForKey(key: string): string {
+        return key.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
     }
 
     function detailFieldsFor(account): var {
