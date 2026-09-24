@@ -72,7 +72,32 @@ Item {
             ]
         })
 
+    // A generic visual-tree walk, for pinning what a tile actually renders with
+    // instead of just the data that went in.
+    function findAll(item, pred, out) {
+        if (pred(item))
+            out.push(item);
+        for (const c of item.children ?? [])
+            root.findAll(c, pred, out);
+        return out;
+    }
+
     function checks() {
+        const captionTexts = root.findAll(root, it => it.wrapMode !== undefined && it.text !== undefined, []);
+        // A tooltip mirrors the same string in an untouched Text alongside the tile's
+        // own - only the maximumLineCount: 3 one is the tile, so require no copy wraps
+        // mid-word and at least one wraps at word boundaries.
+        const captionsOk = ["Somewhere new", "Refactoring the tile grid"].every(text => {
+            const copies = captionTexts.filter(t => t.text === text);
+            return copies.length > 0 && copies.every(t => t.wrapMode !== Text.Wrap) && copies.some(t => t.wrapMode === Text.WordWrap);
+        });
+
+        const heatmaps = root.findAll(root, it => it.packing !== undefined, []);
+        const commitsDots = heatmaps.find(h => h.count === 7);
+
+        const grids = root.findAll(root, it => it.rowsUsed !== undefined && it.placed !== undefined, []);
+        const packedSolid = grids.every(g => g.placed.reduce((sum, p) => sum + p.cols * p.rows, 0) === g.rowsUsed * g.columns);
+
         return [
             {
                 "name": "the traveler pack counts as a custom layout",
@@ -87,6 +112,29 @@ Item {
             {
                 "name": "both rows drew their detail card open",
                 "got": nomadRow.height > 200 && turingRow.height > 200,
+                "want": true
+            },
+            {
+                "name": "a caption tile wraps at word boundaries, not mid-word",
+                "got": captionsOk,
+                "want": true
+            },
+            {
+                "name": "no pack row is left with an empty grid cell",
+                "got": grids.length > 0 && packedSolid,
+                "want": true
+            },
+            {
+                "name": "the commits heatmap sizes its dots to fill the tile, not a fixed square grid",
+                "got": commitsDots ? Math.max(commitsDots.packing.size * commitsDots.cols / commitsDots.width, commitsDots.packing.size * commitsDots.rows / commitsDots.height) > 0.85 : false,
+                "want": true
+            },
+            {
+                "name": "no pack tile uses the error role",
+                "got": CardLayouts.names().every(n => {
+                    const p = CardLayouts.get(n);
+                    return [...p.row, ...p.detail].every(t => t.color !== "error" && (t.background?.value ?? "") !== "error");
+                }),
                 "want": true
             }
         ];

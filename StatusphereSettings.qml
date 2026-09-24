@@ -54,13 +54,17 @@ ColumnLayout {
             "game_display": "Cyberpunk 2077",
             "game_header_url": String(Qt.resolvedUrl("demo/covers/cp2077-header.jpg")),
             "game_session_seconds": 5400,
-            "custom_fields": ["active_hours", "local_time", "mood", "quote", "genre", "region", "trip_day", "caption", "project", "commits", "focus", "workspace", "note"],
+            "custom_fields": ["active_hours", "local_time", "mood", "quote", "genre", "top_artist", "streak", "listening", "region", "trip_day", "caption", "project", "commits", "focus", "workspace", "note"],
             "active_hours": "6",
             "active_hours_history": [0, 1, 3, 6, 5, 2, 4, 6, 3, 1, 0, 0],
             "local_time": "23:14",
             "mood": "calm",
             "quote": "turn it up",
             "genre": "synthwave",
+            "top_artist": "Robyn",
+            "streak": "9",
+            "listening": "31",
+            "listening_history": [10, 16, 22, 28, 19, 31, 14],
             "region": "kyoto",
             "trip_day": "4",
             "caption": "temple steps",
@@ -72,9 +76,15 @@ ColumnLayout {
             "note": "heads down"
         })
     readonly property var demoAccount: ({
+            "id": "demo-owner",
             "primary": root.demoDevice,
             "devices": [root.demoDevice],
-            "offline": false
+            "offline": false,
+            "_photo": {
+                "path": String(Qt.resolvedUrl("demo/covers/teardrop.jpg")),
+                "created_at": "2026-09-20T12:00:00Z",
+                "expires_at": "2099-01-01T00:00:00Z"
+            }
         })
     readonly property var editTiles: root.editSurface === "row" ? root.editRow : root.editDetail
     readonly property var selectedTile: (root.selectedIndex >= 0 && root.selectedIndex < root.editTiles.length) ? root.editTiles[root.selectedIndex] : null
@@ -274,6 +284,22 @@ ColumnLayout {
                     "icon": f.icon,
                     "value": `scalar:${f.key}`
                 }));
+        // A field the layout already names stays a chip even where the device isn't
+        // reporting it this second - live data lags, and this is edited offline too.
+        const known = new Set(options.map(o => o.value));
+        for (const t of root.editTiles) {
+            if (t.type !== "scalar" || !t.field || t.field === "*")
+                continue;
+            const value = `scalar:${t.field}`;
+            if (known.has(value))
+                continue;
+            known.add(value);
+            options.push({
+                "displayName": Statusphere.labelForKey(t.field),
+                "icon": Statusphere.iconForField(t.field),
+                "value": value
+            });
+        }
         options.push({
             "displayName": Translation.tr("Music"),
             "icon": "music_note",
@@ -579,7 +605,7 @@ ColumnLayout {
 
     component ColorSwatches: Row {
         id: swatchesRoot
-        spacing: 6
+        spacing: 4
         required property var options
         property string current: ""
         signal picked(string role)
@@ -608,8 +634,8 @@ ColumnLayout {
             delegate: Rectangle {
                 id: swatch
                 required property string modelData
-                width: 26
-                height: 26
+                width: 20
+                height: 20
                 radius: height / 2
                 color: swatchesRoot.roleColor(swatch.modelData)
                 border.width: swatchesRoot.current === swatch.modelData ? 3 : 1
@@ -632,7 +658,7 @@ ColumnLayout {
     // the same case added here to get a preview instead of falling back to a circle.
     component ShapeGrid: Flow {
         id: shapeGrid
-        spacing: 6
+        spacing: 4
         required property var options
         property string current: ""
         signal picked(string name)
@@ -673,8 +699,8 @@ ColumnLayout {
             delegate: Rectangle {
                 id: shapeSwatch
                 required property string modelData
-                width: 40
-                height: 40
+                width: 30
+                height: 30
                 radius: Appearance.rounding.small
                 color: shapeGrid.current === shapeSwatch.modelData ? Appearance.colors.colSecondaryContainer : Appearance.colors.colLayer2
                 border.width: shapeGrid.current === shapeSwatch.modelData ? 2 : 0
@@ -684,15 +710,15 @@ ColumnLayout {
                     visible: shapeSwatch.modelData === "auto"
                     anchors.centerIn: parent
                     text: "auto_awesome"
-                    iconSize: Appearance.font.pixelSize.large
+                    iconSize: Appearance.font.pixelSize.normal
                     color: Appearance.colors.colOnLayer2
                 }
 
                 Rectangle {
                     visible: shapeSwatch.modelData === "default"
                     anchors.centerIn: parent
-                    width: 20
-                    height: 20
+                    width: 15
+                    height: 15
                     radius: Appearance.rounding.small
                     color: "transparent"
                     border.width: 2
@@ -702,7 +728,7 @@ ColumnLayout {
                 MaterialShape {
                     visible: shapeSwatch.modelData !== "default" && shapeSwatch.modelData !== "auto"
                     anchors.centerIn: parent
-                    implicitSize: 20
+                    implicitSize: 15
                     shape: shapeGrid.shapeEnum(shapeSwatch.modelData)
                     color: Appearance.colors.colOnLayer2
                 }
@@ -742,8 +768,8 @@ ColumnLayout {
                     spacing: 4
 
                     Rectangle {
-                        implicitWidth: 150
-                        implicitHeight: 76
+                        implicitWidth: 112
+                        implicitHeight: 58
                         radius: Appearance.rounding.small
                         color: Appearance.colors.colLayer2
                         border.width: presetDelegate.isSelected ? 2 : 1
@@ -752,7 +778,7 @@ ColumnLayout {
 
                         CardGrid {
                             anchors.fill: parent
-                            anchors.margins: 6
+                            anchors.margins: 4
                             account: root.demoAccount
                             maxRows: 2
                             tiles: root.previewSafe(CardLayouts.get(presetDelegate.modelData)?.row ?? [])
@@ -850,16 +876,12 @@ ColumnLayout {
 
         ColumnLayout {
             Layout.fillWidth: true
-            Layout.topMargin: 8
+            Layout.topMargin: 4
             visible: root.selectedTile !== null
-            spacing: 10
+            spacing: 6
 
             ContentSubsectionLabel {
-                text: Translation.tr("Selected tile")
-            }
-
-            ContentSubsectionLabel {
-                text: Translation.tr("Source")
+                text: Translation.tr("Selected tile - source")
             }
 
             ConfigSelectionArray {
