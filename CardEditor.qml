@@ -243,6 +243,14 @@ ColumnLayout {
 
     readonly property var galleryGroups: [
         {
+            "title": Translation.tr("Live"),
+            "entries": ["weather", "clock", "commits", "battery"].map(id => root.galleryEntryFor(root.ownerKind(id)))
+        },
+        {
+            "title": Translation.tr("Your own"),
+            "entries": ["text", "command"].map(id => root.galleryEntryFor(root.ownerKind(id)))
+        },
+        {
             "title": Translation.tr("Activity"),
             "entries": [
                 {
@@ -402,14 +410,6 @@ ColumnLayout {
                     }
                 }
             ]
-        },
-        {
-            "title": Translation.tr("Live"),
-            "entries": ["weather", "clock", "commits", "battery"].map(id => root.galleryEntryFor(root.ownerKind(id)))
-        },
-        {
-            "title": Translation.tr("Your own"),
-            "entries": ["text", "command"].map(id => root.galleryEntryFor(root.ownerKind(id)))
         }
     ]
 
