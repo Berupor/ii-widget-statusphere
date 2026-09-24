@@ -6,6 +6,7 @@ import qs.modules.common.widgets
 import qs.services
 import QtQuick
 import QtQuick.Layouts
+import "CardLayouts.js" as CardLayouts
 
 Rectangle {
     id: root
@@ -267,7 +268,7 @@ Rectangle {
             visible: root.customLayout && root.rowTiles.length > 0 && !root.expanded
             account: root.account
             tiles: root.rowTiles
-            maxRows: 2
+            maxRows: CardLayouts.rowRows
         }
 
         ColumnLayout { // Expanded: the music once per track, then what each device is up to

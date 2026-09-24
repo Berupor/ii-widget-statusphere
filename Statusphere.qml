@@ -784,45 +784,26 @@ Singleton {
         return Array.isArray(root.layoutFor(account)?.[surface]);
     }
 
-    readonly property var validTileTypes: ["scalar", "music", "game", "photo", "picture"]
-    readonly property var validSizes: ["1x1", "2x1", "2x2", "4x1"]
-    readonly property var validScalarForms: ["ring", "bar", "number", "text", "big", "clock", "weather"]
-    readonly property var validMusicForms: ["cover", "vinyl", "wave"]
-    readonly property var validGameForms: ["banner", "timer"]
-
     // A layout.json can be hand-edited, come from a stale client, or once have held a
-    // form the pilot dropped: an unrecognised type/size gets the tile dropped rather
+    // form the pilot dropped: an unrecognised type/size/form gets the tile dropped rather
     // than mis-rendered, and a retired history form (graph/bars/heatmap) falls back to
     // a plain number instead of a blank tile.
-    function pictureUrlOf(tile): string {
-        const url = tile?.url;
-        return typeof url === "string" && /^https:\/\/\S+$/.test(url) ? url : "";
-    }
-
     function sanitizeTile(t): var {
-        if (!t || typeof t !== "object" || Array.isArray(t) || !root.validTileTypes.includes(t.type))
+        const type = (t && typeof t === "object" && !Array.isArray(t)) ? CardLayouts.typeOf(t) : null;
+        if (!type)
             return null;
-        if (t.size !== undefined && !root.validSizes.includes(t.size))
+        if (t.size !== undefined && !CardLayouts.sizes.includes(t.size))
             return null;
-        if (t.type === "scalar") {
-            if (typeof t.field !== "string" || t.field.length === 0)
-                return null;
-            if (["graph", "bars", "heatmap"].includes(t.form))
-                return Object.assign({}, t, {
-                    "form": "number"
-                });
-            if (t.form !== undefined && !root.validScalarForms.includes(t.form))
-                return null;
-        } else if (t.type === "music" && t.form !== undefined && !root.validMusicForms.includes(t.form)) {
+        if (type.needsField && (typeof t.field !== "string" || t.field.length === 0))
             return null;
-        } else if (t.type === "game" && t.form !== undefined && !root.validGameForms.includes(t.form)) {
-            return null;
-        } else if (t.type === "picture") {
+        if (type.needsField && ["graph", "bars", "heatmap"].includes(t.form))
             return Object.assign({}, t, {
-                "url": root.pictureUrlOf(t)
+                "form": "number"
             });
-        }
-        return t;
+        const forms = Object.keys(type.forms);
+        if (forms.length > 0 && t.form !== undefined && !forms.includes(t.form))
+            return null;
+        return type.sanitize ? type.sanitize(t) : t;
     }
 
     // A "*" field expands to every detail field the layout does not already name,
@@ -860,18 +841,7 @@ Singleton {
     }
 
     function tileHasData(account, tile): bool {
-        switch (tile.type) {
-        case "music":
-            return root.musicDevices(account).length > 0;
-        case "game":
-            return root.gameDevices(account).length > 0;
-        case "photo":
-            return root.currentPhotoFor(account) !== null;
-        case "picture":
-            return root.pictureUrlOf(tile) !== "";
-        default:
-            return root.fieldFor(root.deviceForTile(account, tile), tile.field) !== null;
-        }
+        return CardLayouts.typeOf(tile)?.hasData(root, account, tile) ?? false;
     }
 
     // The cli's stderr is a raw Go error (eg. "failed to connect: WebSocket dial: expected

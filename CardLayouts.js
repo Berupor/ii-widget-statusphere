@@ -1,22 +1,182 @@
 .pragma library
 
-// Tile: { type, field, device, form, size, shape, color, background, onMissing }.
-// type: scalar | music | game | photo. music/game read form for a sub-variant: music
-// is cover (default, full embed) | vinyl (spinning cover, ring progress) | wave
-// (progress line); game is banner (default, full embed) | timer (icon and session
-// line). field/form apply to scalar only, "*" expands to every detail field the
-// layout does not already name. Scalar forms: ring, bar, number, text, big
-// (large centred value, a sticker), clock (big value, meant for a pre-rendered
-// "HH:MM" custom field), weather (temperature pulled out of the value, the rest as a
-// caption). size is one of 1x1, 2x1, 2x2, 4x1. shape names a MaterialShape.Shape,
-// "default" for a rounded rect, or "auto" to let a clock/weather tile pick day/night
-// or condition itself. color is a palette role (primary/secondary/tertiary/error,
-// plus their Container variants). background is { kind: color | live | url, value }.
+// Every tile type and its forms. A form's file is the component CardTile loads for it;
+// fullBleed paints its own background instead of the tile's silhouette and colour, and
+// is the only kind a pack thumbnail draws. autoShape picks the silhouette when a tile's
+// shape is "auto", from the value it shows. A type with no forms draws nothing but art.
+const tileTypes = {
+    "scalar": {
+        "label": "",
+        "needsField": true,
+        "defaultForm": "text",
+        "forms": {
+            "ring": {
+                "label": "Ring",
+                "file": "TileRing.qml"
+            },
+            "bar": {
+                "label": "Bar",
+                "file": "TileBar.qml"
+            },
+            "number": {
+                "label": "Number",
+                "file": "TileNumber.qml"
+            },
+            "text": {
+                "label": "Text",
+                "file": "TileText.qml"
+            },
+            "big": {
+                "label": "Sticker",
+                "file": "TileSticker.qml"
+            },
+            "clock": {
+                "label": "Clock",
+                "file": "TileClock.qml",
+                "autoShape": clockShape
+            },
+            "weather": {
+                "label": "Weather",
+                "file": "TileWeather.qml",
+                "autoShape": weatherShape
+            }
+        },
+        "hasData": (data, account, t) => data.fieldFor(data.deviceForTile(account, t), t.field) !== null
+    },
+    "music": {
+        "label": "Music",
+        "reads": "music",
+        "defaultForm": "cover",
+        "forms": {
+            "cover": {
+                "label": "Cover",
+                "file": "TileCover.qml",
+                "fullBleed": true
+            },
+            "vinyl": {
+                "label": "Vinyl",
+                "file": "TileVinyl.qml"
+            },
+            "wave": {
+                "label": "Wave",
+                "file": "TileWave.qml"
+            }
+        },
+        "hasData": (data, account) => data.musicDevices(account).length > 0
+    },
+    "game": {
+        "label": "Game",
+        "reads": "game",
+        "defaultForm": "banner",
+        "forms": {
+            "banner": {
+                "label": "Banner",
+                "file": "TileBanner.qml",
+                "fullBleed": true
+            },
+            "timer": {
+                "label": "Session",
+                "file": "TileTimer.qml"
+            }
+        },
+        "hasData": (data, account) => data.gameDevices(account).length > 0
+    },
+    "photo": {
+        "label": "Photo",
+        "art": "photo",
+        "defaultForm": "",
+        "forms": {},
+        "hasData": (data, account) => data.currentPhotoFor(account) !== null
+    },
+    "picture": {
+        "label": "Picture",
+        "art": "picture",
+        "defaultForm": "",
+        "forms": {},
+        "sanitize": t => Object.assign({}, t, {
+            "url": pictureUrlOf(t)
+        }),
+        "hasData": (data, account, t) => pictureUrlOf(t) !== ""
+    }
+};
+
+const noForm = {
+    "label": "",
+    "file": "",
+    "fullBleed": true
+};
+
+function typeOf(t) {
+    return tileTypes[t?.type] ?? null;
+}
+
+function formOf(t) {
+    const type = typeOf(t);
+    if (!type)
+        return noForm;
+    return type.forms[t.form] ?? type.forms[type.defaultForm] ?? noForm;
+}
+
+function formNamesOf(typeName) {
+    return Object.keys(tileTypes[typeName]?.forms ?? {});
+}
+
+function pictureUrlOf(t) {
+    const url = t?.url;
+    return typeof url === "string" && /^https:\/\/\S+$/.test(url) ? url : "";
+}
+
+function clockShape(value) {
+    const m = String(value).match(/^(\d{1,2}):/);
+    const hour = m ? parseInt(m[1], 10) : -1;
+    return hour >= 6 && hour < 19 ? "Sunny" : "Circle";
+}
+
+function weatherShape(value) {
+    const v = String(value).toLowerCase();
+    if (/storm|thunder/.test(v))
+        return "SoftBurst";
+    if (/snow/.test(v))
+        return "Cookie9Sided";
+    if (/rain|cloud/.test(v))
+        return "Cookie6Sided";
+    if (/clear|sun/.test(v))
+        return "Sunny";
+    return "Circle";
+}
+
+// Names out of MaterialShape.Shape; "default" is the rounded rect, "auto" defers to the form.
+const shapes = ["Circle", "Pill", "Arch", "SemiCircle", "Diamond", "Pentagon", "Cookie4Sided", "Cookie6Sided", "Cookie9Sided", "Clover4Leaf", "Heart", "Sunny", "SoftBurst"];
+const shapeChoices = ["default", "auto"].concat(shapes);
+
+function resolvedShape(t, value) {
+    if (t.shape !== "auto")
+        return shapes.includes(t.shape) || t.shape === "default" ? t.shape : "Circle";
+    return formOf(t).autoShape?.(value) ?? "Circle";
+}
+
+// Palette role -> [fill, content on it], keys of Appearance.colors.
+const colorRoles = {
+    "primary": ["colPrimary", "colOnPrimary"],
+    "secondary": ["colSecondary", "colOnSecondary"],
+    "tertiary": ["colTertiary", "colOnTertiary"],
+    "error": ["colError", "colOnError"],
+    "primaryContainer": ["colPrimaryContainer", "colOnPrimaryContainer"],
+    "secondaryContainer": ["colSecondaryContainer", "colOnSecondaryContainer"],
+    "tertiaryContainer": ["colTertiaryContainer", "colOnTertiaryContainer"],
+    "errorContainer": ["colErrorContainer", "colOnErrorContainer"]
+};
+const unknownColorRole = ["colLayer2", "colOnLayer2"];
+
+function colorKeysOf(role) {
+    return colorRoles[role] ?? unknownColorRole;
+}
+
 function tile(props) {
     return Object.assign({
         field: "",
         device: null,
-        form: "text",
+        form: tileTypes[props.type]?.defaultForm ?? "",
         shape: "default",
         color: "secondaryContainer",
         background: {
@@ -30,27 +190,33 @@ function tile(props) {
 const columns = 4;
 const rowRows = 2;
 const detailRows = 4;
+const gap = 8;
 const shortValueLength = 8;
 const wideTextFields = ["active_window"];
 
 const spans = {
     "1x1": {
         "cols": 1,
-        "rows": 1
+        "rows": 1,
+        "icon": "crop_square"
     },
     "2x1": {
         "cols": 2,
-        "rows": 1
+        "rows": 1,
+        "icon": "crop_landscape"
     },
     "2x2": {
         "cols": 2,
-        "rows": 2
+        "rows": 2,
+        "icon": "grid_on"
     },
     "4x1": {
         "cols": 4,
-        "rows": 1
+        "rows": 1,
+        "icon": "view_agenda"
     }
 };
+const sizes = Object.keys(spans);
 
 function spanOf(size) {
     return spans[size] ?? spans["1x1"];
@@ -92,8 +258,10 @@ function pack(tiles, maxRows) {
         }
         placed.push(Object.assign({
             "tile": t,
-            "index": index
-        }, spot, span));
+            "index": index,
+            "cols": span.cols,
+            "rows": span.rows
+        }, spot));
     });
     return placed;
 }
@@ -126,6 +294,8 @@ function standardTileFor(field, gaugeIndex) {
     });
 }
 
+const heroesFirst = ["2x2", "2x1", "1x1", "4x1"];
+
 // Rings first, then number tiles, grow to 2x2 heroes; the first text can take the whole
 // row. Big tiles lead so the small ones fill in around them.
 function grown(tiles, heroes, widenText) {
@@ -136,7 +306,7 @@ function grown(tiles, heroes, widenText) {
             }) : t === text ? Object.assign({}, t, {
                 "size": "4x1"
             }) : t);
-    return ["2x2", "2x1", "1x1", "4x1"].reduce((sorted, size) => sorted.concat(out.filter(t => t.size === size)), []);
+    return heroesFirst.reduce((sorted, size) => sorted.concat(out.filter(t => t.size === size)), []);
 }
 
 function scoresBelow(a, b) {

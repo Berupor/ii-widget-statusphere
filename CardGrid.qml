@@ -11,11 +11,11 @@ Item {
     id: root
     required property var account
     required property var tiles
-    property int maxRows: 2
+    property int maxRows: CardLayouts.rowRows
     property bool thumbnail: false
 
     readonly property int columns: CardLayouts.columns
-    readonly property real spacing: 8
+    readonly property real spacing: CardLayouts.gap
     readonly property real cellSize: (root.width - (root.columns - 1) * root.spacing) / root.columns
 
     readonly property var shownTiles: (root.tiles ?? []).map((tile, index) => ({

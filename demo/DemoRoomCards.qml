@@ -10,6 +10,7 @@
 import ".."
 import "../CardLayouts.js" as CardLayouts
 import qs.modules.common
+import qs.modules.common.widgets
 import Quickshell
 import QtQuick
 
@@ -607,6 +608,42 @@ Item {
         return out;
     }
 
+    function tilesIn(item) {
+        return root.findAll(item, it => it.tile !== undefined && it.hasArt !== undefined, []);
+    }
+
+    function vinylCover(tile) {
+        return root.findAll(tile, it => Array.from(it.children ?? []).some(c => c.cacheFilePath !== undefined) && it.layer.enabled, [])[0] ?? null;
+    }
+
+    function shownVinyls() {
+        return root.tilesIn(tab).filter(t => t.tile.form === "vinyl" && t.visible).concat([vinylProbe]);
+    }
+
+    // Rotation read a second apart: a spinning cover has moved, a paused one has not
+    property var earlyRotations: []
+
+    Timer {
+        running: true
+        interval: 1000
+        onTriggered: root.earlyRotations = root.shownVinyls().map(t => root.vinylCover(t)?.rotation ?? null)
+    }
+
+    function spun() {
+        return root.shownVinyls().map((t, i) => {
+            const now = root.vinylCover(t)?.rotation ?? null;
+            return now !== null && root.earlyRotations[i] !== null && now !== root.earlyRotations[i];
+        });
+    }
+
+    function waving(tile) {
+        return root.findAll(tile, it => it.animateWave !== undefined && it.valueBarHeight !== undefined, []).map(b => b.wavy && b.animateWave);
+    }
+
+    function detailCardsIn(row) {
+        return root.findAll(row, it => it.tiles !== undefined && it.account !== undefined && it.maxRows === undefined, []).length;
+    }
+
     function pictureTiles() {
         return root.findAll(picturesRow, it => it.tile !== undefined && it.hasArt !== undefined && it.visible, []);
     }
@@ -720,7 +757,7 @@ Item {
                 }),
                 "want": Object.keys(root.maskedTiles).map(key => {
                     const t = root.pictureTile(root.maskedTiles[key]);
-                    return [key, !t ? "no tile" : t.resolvedShape === "default" ? `radius ${Appearance.rounding.large}` : t.silhouetteShape(t.resolvedShape)];
+                    return [key, !t ? "no tile" : t.tile.shape === "default" ? `radius ${Appearance.rounding.large}` : MaterialShape.Shape[t.tile.shape]];
                 })
             },
             {
@@ -784,9 +821,32 @@ Item {
                 "want": "Circle"
             },
             {
-                "name": "a weather tile pulls the temperature out of the value",
-                "got": weatherProbe.numberDisplayValue,
-                "want": "9°"
+                "name": "a weather tile pulls the temperature out of the value and captions it with the city",
+                "got": root.findAll(weatherProbe, it => it.text !== undefined && it.font !== undefined, []).map(it => it.text),
+                "want": ["Lisbon, PT", "9°"]
+            },
+            {
+                "name": "a ring tile builds only its ring: no music, game or cover art behind it",
+                "got": (() => {
+                    const ring = root.tilesIn(thinkpadRow).find(t => t.tile.form === "ring");
+                    return ring ? root.findAll(ring, it => it.stackedCount !== undefined || it.bannerUrls !== undefined || it.cacheFilePath !== undefined, []).length : -1;
+                })(),
+                "want": 0
+            },
+            {
+                "name": "a vinyl tile spins while its friend plays and it is on screen, a hidden one stands still",
+                "got": root.spun(),
+                "want": [true, false]
+            },
+            {
+                "name": "a hidden wave tile of a playing friend does not animate its wave",
+                "got": root.waving(waveProbe),
+                "want": [false]
+            },
+            {
+                "name": "a row builds its detail card only while the details are open",
+                "got": [root.detailCardsIn(detailOnlyRowProbe), root.detailCardsIn(emptyRowProbe), root.detailCardsIn(thinkpadRow)],
+                "want": [0, 0, 1]
             },
             {
                 "name": "a music tile's vinyl and wave forms are not full-bleed, like a scalar tile",
@@ -873,6 +933,7 @@ Item {
     }
 
     PresenceRow {
+        id: thinkpadRow
         x: root.framed === "thinkpad" ? 0 : root.width
         width: root.width
         modelData: "acc-thinkpad"

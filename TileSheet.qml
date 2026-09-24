@@ -6,6 +6,7 @@ import Quickshell.Io
 import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
+import "CardLayouts.js" as CardLayouts
 
 Rectangle {
     id: root
@@ -27,30 +28,13 @@ Rectangle {
     property bool testFailed: false
     property string testedKey: ""
 
-    readonly property var colorOptions: ["primary", "secondary", "tertiary", "primaryContainer", "secondaryContainer", "tertiaryContainer"]
-    readonly property var shapeOptions: ["default", "auto", "Circle", "Pill", "Arch", "SemiCircle", "Diamond", "Pentagon", "Cookie4Sided", "Cookie6Sided", "Cookie9Sided", "Clover4Leaf", "Heart", "Sunny", "SoftBurst"]
-    readonly property var sizeOptions: [
-        {
-            "displayName": "1x1",
-            "icon": "crop_square",
-            "value": "1x1"
-        },
-        {
-            "displayName": "2x1",
-            "icon": "crop_landscape",
-            "value": "2x1"
-        },
-        {
-            "displayName": "2x2",
-            "icon": "grid_on",
-            "value": "2x2"
-        },
-        {
-            "displayName": "4x1",
-            "icon": "view_agenda",
-            "value": "4x1"
-        }
-    ]
+    readonly property var colorOptions: Object.keys(CardLayouts.colorRoles)
+    readonly property var shapeOptions: CardLayouts.shapeChoices
+    readonly property var sizeOptions: CardLayouts.sizes.map(size => ({
+                "displayName": size,
+                "icon": CardLayouts.spans[size].icon,
+                "value": size
+            }))
     readonly property var liveBackgroundOptions: [
         {
             "displayName": Translation.tr("Photo"),
@@ -68,7 +52,7 @@ Rectangle {
             "value": "game"
         }
     ]
-    readonly property string defaultLiveBackground: ["music", "game"].includes(root.tile?.type) ? root.tile.type : "photo"
+    readonly property string defaultLiveBackground: CardLayouts.typeOf(root.tile)?.reads ?? "photo"
     readonly property var repeatOptions: [
         {
             "displayName": Translation.tr("30s"),
@@ -534,25 +518,6 @@ Rectangle {
         property string current: ""
         signal picked(string role)
 
-        function roleColor(role: string): color {
-            switch (role) {
-            case "primary":
-                return Appearance.colors.colPrimary;
-            case "secondary":
-                return Appearance.colors.colSecondary;
-            case "tertiary":
-                return Appearance.colors.colTertiary;
-            case "primaryContainer":
-                return Appearance.colors.colPrimaryContainer;
-            case "secondaryContainer":
-                return Appearance.colors.colSecondaryContainer;
-            case "tertiaryContainer":
-                return Appearance.colors.colTertiaryContainer;
-            default:
-                return Appearance.colors.colLayer2;
-            }
-        }
-
         Repeater {
             model: swatchesRoot.options
             delegate: Rectangle {
@@ -561,7 +526,7 @@ Rectangle {
                 width: 20
                 height: 20
                 radius: height / 2
-                color: swatchesRoot.roleColor(swatch.modelData)
+                color: Appearance.colors[CardLayouts.colorKeysOf(swatch.modelData)[0]]
                 border.width: swatchesRoot.current === swatch.modelData ? 3 : 1
                 border.color: swatchesRoot.current === swatch.modelData ? Appearance.colors.colOnLayer1 : Appearance.colors.colOutlineVariant
 
@@ -582,45 +547,12 @@ Rectangle {
         }
     }
 
-    // Silhouette names mirror CardTile.qml's silhouetteShape() - a name added there needs
-    // the same case added here to get a preview instead of falling back to a circle.
     component ShapeGrid: Flow {
         id: shapeGrid
         spacing: 4
         required property var options
         property string current: ""
         signal picked(string name)
-
-        function shapeEnum(name: string): int {
-            switch (name) {
-            case "Pill":
-                return MaterialShape.Shape.Pill;
-            case "Arch":
-                return MaterialShape.Shape.Arch;
-            case "SemiCircle":
-                return MaterialShape.Shape.SemiCircle;
-            case "Diamond":
-                return MaterialShape.Shape.Diamond;
-            case "Pentagon":
-                return MaterialShape.Shape.Pentagon;
-            case "Cookie4Sided":
-                return MaterialShape.Shape.Cookie4Sided;
-            case "Cookie6Sided":
-                return MaterialShape.Shape.Cookie6Sided;
-            case "Cookie9Sided":
-                return MaterialShape.Shape.Cookie9Sided;
-            case "Clover4Leaf":
-                return MaterialShape.Shape.Clover4Leaf;
-            case "Heart":
-                return MaterialShape.Shape.Heart;
-            case "Sunny":
-                return MaterialShape.Shape.Sunny;
-            case "SoftBurst":
-                return MaterialShape.Shape.SoftBurst;
-            default:
-                return MaterialShape.Shape.Circle;
-            }
-        }
 
         Repeater {
             model: shapeGrid.options
@@ -657,7 +589,7 @@ Rectangle {
                     visible: shapeSwatch.modelData !== "default" && shapeSwatch.modelData !== "auto"
                     anchors.centerIn: parent
                     implicitSize: 15
-                    shape: shapeGrid.shapeEnum(shapeSwatch.modelData)
+                    shape: MaterialShape.Shape[shapeSwatch.modelData] ?? MaterialShape.Shape.Circle
                     color: Appearance.colors.colOnLayer2
                 }
 

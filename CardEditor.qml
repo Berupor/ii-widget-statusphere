@@ -442,25 +442,10 @@ ColumnLayout {
         return null;
     }
 
-    readonly property var formNames: ({
-            "ring": Translation.tr("Ring"),
-            "bar": Translation.tr("Bar"),
-            "number": Translation.tr("Number"),
-            "text": Translation.tr("Text"),
-            "big": Translation.tr("Sticker"),
-            "clock": Translation.tr("Clock"),
-            "weather": Translation.tr("Weather"),
-            "cover": Translation.tr("Cover"),
-            "vinyl": Translation.tr("Vinyl"),
-            "wave": Translation.tr("Wave"),
-            "banner": Translation.tr("Banner"),
-            "timer": Translation.tr("Session")
-        })
-
-    function formOptionsFor(type) {
-        const forms = type === "music" ? Statusphere.validMusicForms : type === "game" ? Statusphere.validGameForms : type === "scalar" ? Statusphere.validScalarForms : [];
-        return forms.map(f => ({
-                    "displayName": root.formNames[f] ?? f,
+    function formOptionsFor(typeName) {
+        const forms = CardLayouts.tileTypes[typeName]?.forms ?? {};
+        return Object.keys(forms).map(f => ({
+                    "displayName": Translation.tr(forms[f].label),
                     "value": f
                 }));
     }
@@ -468,18 +453,10 @@ ColumnLayout {
     function tileTitle(tile) {
         if (!tile)
             return "";
-        switch (tile.type) {
-        case "music":
-            return Translation.tr("Music");
-        case "game":
-            return Translation.tr("Game");
-        case "photo":
-            return Translation.tr("Photo");
-        case "picture":
-            return Translation.tr("Picture");
-        default:
-            return tile.field === "*" ? Translation.tr("Everything else") : Statusphere.labelForKey(tile.field);
-        }
+        const label = CardLayouts.typeOf(tile)?.label ?? "";
+        if (label)
+            return Translation.tr(label);
+        return tile.field === "*" ? Translation.tr("Everything else") : Statusphere.labelForKey(tile.field);
     }
 
     // Forces every tile to stay on screen and clickable in the editor, even one that would
@@ -585,10 +562,9 @@ ColumnLayout {
         };
     }
 
-    readonly property var kindByForm: ({
-            "weather": "weather",
-            "clock": "clock"
-        })
+    readonly property var kindByForm: root.ownerKinds.filter(k => k.tile?.form === k.id).reduce((byForm, k) => Object.assign(byForm, {
+                [k.id]: k.id
+            }), {})
 
     // A field with no custom.json entry yet: a weather or clock form says which template it
     // wants, anything else starts out as the owner's own text.
@@ -1076,7 +1052,7 @@ ColumnLayout {
         visible: root.galleryOpen
         spacing: 2
 
-        readonly property real gap: 8
+        readonly property real gap: CardLayouts.gap
         readonly property real labelGap: 4
         readonly property int miniColumns: 6
         readonly property real cardCell: (gallery.width - (CardLayouts.columns - 1) * gallery.gap) / CardLayouts.columns
