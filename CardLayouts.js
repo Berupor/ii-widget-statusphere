@@ -141,9 +141,25 @@ const presets = {
                 "size": "1x1",
                 "color": "tertiaryContainer",
                 "onMissing": "hide"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "quote",
+                "form": "big",
+                "size": "1x1",
+                "color": "secondaryContainer",
+                "onMissing": "hide"
             })
         ],
         "detail": [
+            tile({
+                "type": "scalar",
+                "field": "listening",
+                "form": "heatmap",
+                "size": "2x2",
+                "color": "tertiaryContainer",
+                "onMissing": "hide"
+            }),
             tile({
                 "type": "scalar",
                 "field": "quote",
@@ -157,14 +173,6 @@ const presets = {
                 "field": "genre",
                 "form": "text",
                 "size": "2x1",
-                "onMissing": "hide"
-            }),
-            tile({
-                "type": "scalar",
-                "field": "listening",
-                "form": "heatmap",
-                "size": "2x2",
-                "color": "tertiaryContainer",
                 "onMissing": "hide"
             })
         ]
@@ -203,6 +211,14 @@ const presets = {
                 "form": "big",
                 "size": "1x1",
                 "color": "tertiary",
+                "onMissing": "hide"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "trip_day",
+                "form": "number",
+                "size": "1x1",
+                "color": "secondaryContainer",
                 "onMissing": "hide"
             })
         ],
@@ -253,10 +269,25 @@ const presets = {
             }),
             tile({
                 "type": "scalar",
+                "field": "focus",
+                "form": "ring",
+                "size": "1x1",
+                "color": "tertiaryContainer",
+                "onMissing": "hide"
+            }),
+            tile({
+                "type": "scalar",
                 "field": "commits",
                 "form": "heatmap",
                 "size": "2x1",
                 "color": "secondaryContainer",
+                "onMissing": "hide"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "workspace",
+                "form": "text",
+                "size": "2x1",
                 "onMissing": "hide"
             })
         ],
