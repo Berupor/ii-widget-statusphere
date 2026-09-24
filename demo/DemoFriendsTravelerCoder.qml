@@ -160,6 +160,11 @@ Item {
                     return new Set(fields).size === fields.length;
                 }),
                 "want": true
+            },
+            {
+                "name": "Turing's header status does not repeat active_window (row tile) or active_app (detail tile)",
+                "got": Statusphere.statusFor(Statusphere.accountsById["acc-turing"], turingRow.visibleSurfaces),
+                "want": "Online"
             }
         ];
     }

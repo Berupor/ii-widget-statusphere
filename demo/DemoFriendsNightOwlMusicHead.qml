@@ -84,9 +84,24 @@ Item {
         return out;
     }
 
+    // CardTile keeps every form as an always-live sibling and toggles visible per branch,
+    // so a property scan needs the ancestor chain checked too, not just the item's own flag.
+    function isShown(item) {
+        for (let n = item; n && n !== root; n = n.parent) {
+            if (n.visible === false)
+                return false;
+        }
+        return true;
+    }
+
     function checks() {
         const grids = root.findAll(root, it => it.rowsUsed !== undefined && it.placed !== undefined, []);
         const packedSolid = grids.every(g => g.placed.reduce((sum, p) => sum + p.cols * p.rows, 0) === g.rowsUsed * g.columns);
+
+        const waveVisualizers = root.findAll(root, it => it.maxVisualizerValue !== undefined, []);
+        const waveBars = root.findAll(root, it => it.wavy !== undefined && it.waveFrequency !== undefined && root.isShown(it), []);
+        const nyxDevice = Statusphere.musicDevices(Statusphere.accountsById["acc-nyx"])[0];
+        const expectedProgress = nyxDevice.spotify_position / nyxDevice.spotify_length;
 
         return [
             {
@@ -108,6 +123,26 @@ Item {
                 "name": "no pack row is left with an empty grid cell",
                 "got": grids.length > 0 && packedSolid,
                 "want": true
+            },
+            {
+                "name": "the wave form draws a wavy progress line, not a blurred visualizer",
+                "got": waveVisualizers.length === 0 && waveBars.length === 1 && waveBars[0].wavy === true,
+                "want": true
+            },
+            {
+                "name": "the wave form's progress line reflects spotify_position/spotify_length",
+                "got": Math.abs(waveBars[0].value - expectedProgress) < 0.001,
+                "want": true
+            },
+            {
+                "name": "Nyx's header status does not repeat the active_window field her detail tile shows",
+                "got": Statusphere.statusFor(Statusphere.accountsById["acc-nyx"], nyxRow.visibleSurfaces),
+                "want": ""
+            },
+            {
+                "name": "without the visible surfaces, the default status would have repeated that field",
+                "got": Statusphere.statusFor(Statusphere.accountsById["acc-nyx"], []),
+                "want": "mpv - late_night_mix.mkv"
             }
         ];
     }
