@@ -1007,7 +1007,7 @@ ColumnLayout {
         readonly property var packs: CardLayouts.packsFor(root.editSurface)
         readonly property int maxRows: CardLayouts.rowsFor(root.editSurface)
         readonly property int thumbRows: Math.max(1, ...packList.packs.map(p => CardLayouts.rowsUsed(CardLayouts.pack(p.tiles, packList.maxRows))))
-        readonly property real thumbWidth: (packList.width - (packList.packs.length - 1) * packList.spacing) / packList.packs.length
+        readonly property real thumbWidth: Math.floor((packList.width - (packList.packs.length - 1) * packList.spacing) / packList.packs.length)
         readonly property real thumbPadding: 4
 
         Repeater {
