@@ -11,12 +11,14 @@
  * Save is ever clicked.
  */
 import ".."
+import "../CardLayouts.js" as CardLayouts
 import qs.modules.common
 import Quickshell.Io
 import QtQuick
 
 Item {
     id: root
+    clip: true
     readonly property string layoutPath: `${Directories.config}/statusphere/layout.json`
     readonly property string customFieldsPath: `${Directories.config}/statusphere/custom.json`
 
@@ -51,8 +53,19 @@ Item {
             ]
         })
 
+    // Which editor the shot frames, the other one sits just outside it: both stay visible
+    // so their checks see what a user would. `-p shownEditor=empty` shoots the empty one.
+    property string shownEditor: "selected"
+
     StatusphereSettings {
         id: editor
+        x: root.shownEditor === "selected" ? 0 : root.width
+        width: 400
+    }
+
+    StatusphereSettings {
+        id: emptyEditor
+        x: root.shownEditor === "empty" ? 0 : root.width
         width: 400
     }
 
@@ -154,7 +167,38 @@ Item {
         return out;
     }
 
+    function findAllData(item, pred, out) {
+        if (!item)
+            return out;
+        if (pred(item))
+            out.push(item);
+        const kids = item.data ?? item.children;
+        for (let i = 0; i < (kids?.length ?? 0); i++)
+            root.findAllData(kids[i], pred, out);
+        return out;
+    }
+
+    function tooltipsShown(item) {
+        return root.findAllData(item, it => it.internalVisibleCondition !== undefined && it.visible, []).length;
+    }
+
+    function pickers(item) {
+        return root.findAllData(item, it => it.picked !== undefined && it.options !== undefined, []);
+    }
+
+    function presetLabels(item) {
+        const names = CardLayouts.names().map(n => CardLayouts.get(n).name);
+        return root.findAllData(item, it => it.text !== undefined && names.includes(it.text), []);
+    }
+
+    function thumbnails(item) {
+        return root.findAllData(item, it => it.thumbnail === true && it.placed !== undefined, []);
+    }
+
     function checks() {
+        emptyEditor.editRow = [];
+        emptyEditor.editDetail = [];
+        emptyEditor.selectedIndex = -1;
         let saved = {};
         try {
             saved = JSON.parse(check.text());
@@ -191,7 +235,35 @@ Item {
         editor.editRow = [editor.editRow[editor.editRow.length - 1]]; // "gone_missing", alone
         editor.selectedIndex = 0;
 
+        const labels = root.presetLabels(emptyEditor);
+        const thumbs = root.thumbnails(emptyEditor);
+
         return [
+            {
+                "name": "no tooltip shows without hover, with or without a selected tile",
+                "got": [root.tooltipsShown(editor), root.tooltipsShown(emptyEditor)],
+                "want": [0, 0]
+            },
+            {
+                "name": "with no tile selected the shape and colour pickers are hidden",
+                "got": root.pickers(emptyEditor).map(p => p.visible),
+                "want": [false, false, false]
+            },
+            {
+                "name": "a selected tile shows its shape and colour pickers",
+                "got": root.pickers(editor).filter(p => p.visible).length >= 2,
+                "want": true
+            },
+            {
+                "name": "every preset has its name shown inside the page",
+                "got": labels.filter(l => l.visible && l.mapToItem(emptyEditor, 0, 0).x + l.width <= emptyEditor.width).length,
+                "want": CardLayouts.names().length
+            },
+            {
+                "name": "every preset thumbnail fills both of its rows",
+                "got": thumbs.map(t => t.rowsUsed === t.maxRows && CardLayouts.emptyCells(t.placed) === 0),
+                "want": CardLayouts.names().map(() => true)
+            },
             {
                 "name": "Save my card writes the row tiles to layout.json",
                 "got": (saved.row ?? []).length,

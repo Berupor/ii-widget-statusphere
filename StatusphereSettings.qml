@@ -771,12 +771,16 @@ ColumnLayout {
                 border.color: swatchesRoot.current === swatch.modelData ? Appearance.colors.colOnLayer1 : Appearance.colors.colOutlineVariant
 
                 MouseArea {
+                    id: swatchArea
                     anchors.fill: parent
+                    hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: swatchesRoot.picked(swatch.modelData)
                 }
 
                 StyledToolTip {
+                    extraVisibleCondition: false
+                    alternativeVisibleCondition: swatchArea.containsMouse
                     text: swatch.modelData
                 }
             }
@@ -863,12 +867,16 @@ ColumnLayout {
                 }
 
                 MouseArea {
+                    id: shapeSwatchArea
                     anchors.fill: parent
+                    hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: shapeGrid.picked(shapeSwatch.modelData)
                 }
 
                 StyledToolTip {
+                    extraVisibleCondition: false
+                    alternativeVisibleCondition: shapeSwatchArea.containsMouse
                     text: shapeSwatch.modelData
                 }
             }
@@ -893,6 +901,7 @@ ColumnLayout {
                 delegate: ColumnLayout {
                     id: presetDelegate
                     required property string modelData
+                    readonly property var preset: CardLayouts.get(presetDelegate.modelData)
                     readonly property bool isSelected: root.selectedPresetName === presetDelegate.modelData
                     spacing: 4
 
@@ -911,7 +920,7 @@ ColumnLayout {
                             account: root.demoAccount
                             maxRows: 2
                             thumbnail: true
-                            tiles: root.previewSafe(CardLayouts.get(presetDelegate.modelData)?.row ?? [])
+                            tiles: root.previewSafe(presetDelegate.preset.row.concat(presetDelegate.preset.detail))
                         }
 
                         MouseArea {
@@ -923,7 +932,7 @@ ColumnLayout {
 
                     StyledText {
                         Layout.alignment: Qt.AlignHCenter
-                        text: CardLayouts.get(presetDelegate.modelData)?.name ?? presetDelegate.modelData
+                        text: presetDelegate.preset.name
                         font.pixelSize: Appearance.font.pixelSize.smaller
                         font.weight: presetDelegate.isSelected ? Font.Medium : Font.Normal
                         color: presetDelegate.isSelected ? Appearance.colors.colPrimary : Appearance.colors.colSubtext
