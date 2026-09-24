@@ -240,7 +240,17 @@ ColumnLayout {
         },
         {
             "title": Translation.tr("Your own"),
-            "entries": ["text", "command"].map(id => root.galleryEntryFor(root.ownerKind(id)))
+            "entries": ["text", "command"].map(id => root.galleryEntryFor(root.ownerKind(id))).concat([
+                {
+                    "id": "picture",
+                    "label": Translation.tr("Picture"),
+                    "tile": {
+                        "type": "picture",
+                        "url": "",
+                        "size": "2x2"
+                    }
+                }
+            ])
         },
         {
             "title": Translation.tr("Activity"),
@@ -465,6 +475,8 @@ ColumnLayout {
             return Translation.tr("Game");
         case "photo":
             return Translation.tr("Photo");
+        case "picture":
+            return Translation.tr("Picture");
         default:
             return tile.field === "*" ? Translation.tr("Everything else") : Statusphere.labelForKey(tile.field);
         }

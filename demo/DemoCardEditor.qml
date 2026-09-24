@@ -1,10 +1,10 @@
-//@ probe statusphere -g 480x900 -s 8000
+//@ probe statusphere -g 480x900 -s 10000
 /**
  * The settings page end to end, through the controls an owner touches: two tabs,
  * the Room tab free of editor controls, the tile gallery, the tile sheet and the
  * files autosave writes. Starts from a layout.json and a custom.json already on
  * disk, one field in them written by hand, the way a cli user set it up before
- * the editor existed. `-p shot=room|card|gallery|sheet|packs-row|packs-detail`
+ * the editor existed. `-p shot=room|card|gallery|sheet|picture|packs-row|packs-detail`
  * picks what the frame shows.
  */
 import ".."
@@ -100,6 +100,12 @@ Item {
 
     function answerField() {
         return root.first(root.sheet, it => it.placeholderText !== undefined && it.placeholderText === (root.sheet.kind?.hint ?? "-"));
+    }
+
+    readonly property string pictureUrl: "https://upload.wikimedia.org/wikipedia/commons/3/3f/JPEG_example_flower.jpg"
+
+    function pictureUrlField() {
+        return root.first(root.sheet, it => it.visible && it.placeholderText === "Picture URL, https://");
     }
 
     function commitText(field, text) {
@@ -351,6 +357,39 @@ Item {
                 const preview = root.first(root.editor, it => it.reorderable === true);
                 root.note("emptyDetailHintClear", hint.mapToItem(null, 0, 0).y >= preview.mapToItem(null, 0, preview.height).y && hint.mapToItem(null, 0, hint.height).y <= hint.parent.mapToItem(null, 0, hint.parent.height).y);
                 root.note("emptyDetailPreviewTiles", root.first(root.editor, it => it.reorderable === true)?.tiles.length ?? 0);
+                root.editor.addFromGallery("picture");
+                root.note("pictureAdded", root.editor.editDetail.map(t => t.type));
+                root.note("pictureSheetTexts", root.visibleTexts(root.sheet));
+                root.commitText(root.pictureUrlField(), root.pictureUrl);
+            }
+        }
+        PauseAnimation {
+            duration: 800
+        }
+        ScriptAction {
+            script: {
+                root.note("layoutAfterPicture", root.readJson(layoutView));
+                root.editor.removeTileAt(0);
+                root.sheet.moreOpen = true;
+                root.note("photoBackgroundPerShape", root.sheet.shapeOptions.map(shape => {
+                    root.editor.addFromGallery("window");
+                    root.first(root.sheet, it => it.picked !== undefined && it.options?.[0] === "default").picked(shape);
+                    root.first(root.sheet, it => it.selected !== undefined && it.options?.some(o => o.value === "url")).selected("live");
+                    const liveChoice = root.first(root.sheet, it => it.selected !== undefined && it.options?.[0]?.value === "photo");
+                    const usable = liveChoice !== null && liveChoice.visible && liveChoice.enabled;
+                    liveChoice?.selected("photo");
+                    return [shape, usable];
+                }));
+            }
+        }
+        PauseAnimation {
+            duration: 800
+        }
+        ScriptAction {
+            script: {
+                root.note("layoutAfterShapes", root.readJson(layoutView));
+                root.editor.selectedIndex = -1;
+                root.editor.setSurfaceTiles([]);
                 root.editor.selectSurface("row");
             }
         }
@@ -462,6 +501,10 @@ Item {
         else if (root.shot === "packs-row" || root.shot === "packs-detail") {
             root.editor.selectSurface(root.shot === "packs-row" ? "row" : "detail");
             root.editor.packsOpen = true;
+        } else if (root.shot === "picture") {
+            root.editor.selectSurface("detail");
+            root.editor.addFromGallery("picture");
+            root.commitText(root.pictureUrlField(), root.pictureUrl);
         } else if (root.shot === "sheet") {
             root.editor.selectTile(root.tileIndex("output"));
             root.sheet.moreOpen = false;
@@ -505,8 +548,28 @@ Item {
             },
             {
                 "name": "the gallery names tiles by what they are",
-                "got": ["Music - vinyl", "CPU ring", "Active window", "Photo", "Game"].filter(l => (s.galleryTexts ?? []).includes(l)),
-                "want": ["Music - vinyl", "CPU ring", "Active window", "Photo", "Game"]
+                "got": ["Music - vinyl", "CPU ring", "Active window", "Photo", "Picture", "Game"].filter(l => (s.galleryTexts ?? []).includes(l)),
+                "want": ["Music - vinyl", "CPU ring", "Active window", "Photo", "Picture", "Game"]
+            },
+            {
+                "name": "the Picture template adds a picture tile whose sheet asks for a URL and offers no kind",
+                "got": [s.pictureAdded, (s.pictureSheetTexts ?? []).includes("Kind")],
+                "want": [["picture"], false]
+            },
+            {
+                "name": "a URL typed into a picture's sheet is autosaved on the tile",
+                "got": (s.layoutAfterPicture?.detail ?? []).map(t => [t.type, t.url]),
+                "want": [["picture", root.pictureUrl]]
+            },
+            {
+                "name": "a photo background can be picked in the sheet with every shape",
+                "got": s.photoBackgroundPerShape,
+                "want": root.sheet?.shapeOptions.map(shape => [shape, true])
+            },
+            {
+                "name": "every shape is saved together with its photo background",
+                "got": (s.layoutAfterShapes?.detail ?? []).map(t => [t.shape, t.background?.kind, t.background?.value]),
+                "want": root.sheet?.shapeOptions.map(shape => [shape, "live", "photo"])
             },
             {
                 "name": "the gallery opens with only Live expanded",

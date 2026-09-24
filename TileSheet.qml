@@ -51,6 +51,24 @@ Rectangle {
             "value": "4x1"
         }
     ]
+    readonly property var liveBackgroundOptions: [
+        {
+            "displayName": Translation.tr("Photo"),
+            "icon": "photo_camera",
+            "value": "photo"
+        },
+        {
+            "displayName": Translation.tr("Music"),
+            "icon": "music_note",
+            "value": "music"
+        },
+        {
+            "displayName": Translation.tr("Game"),
+            "icon": "sports_esports",
+            "value": "game"
+        }
+    ]
+    readonly property string defaultLiveBackground: ["music", "game"].includes(root.tile?.type) ? root.tile.type : "photo"
     readonly property var repeatOptions: [
         {
             "displayName": Translation.tr("30s"),
@@ -308,14 +326,31 @@ Rectangle {
             }
         }
 
+        MaterialTextField {
+            id: pictureUrlField
+            Layout.fillWidth: true
+            visible: root.tile?.type === "picture"
+            placeholderText: Translation.tr("Picture URL, https://")
+            onEditingFinished: root.editor.updateSelectedTile({
+                "url": pictureUrlField.text.trim()
+            })
+
+            Binding {
+                target: pictureUrlField
+                property: "text"
+                value: root.tile?.url ?? ""
+            }
+        }
+
         ContentSubsectionLabel {
-            visible: root.tile?.type !== "photo"
+            visible: kindChoice.options.length > 0
             text: Translation.tr("Kind")
         }
 
         ConfigSelectionArray {
+            id: kindChoice
             Layout.fillWidth: true
-            visible: root.tile?.type !== "photo"
+            visible: kindChoice.options.length > 0
             currentValue: root.tile?.form ?? ""
             options: root.editor.formOptionsFor(root.tile?.type ?? "")
             onSelected: newValue => root.editor.updateSelectedTile({
@@ -382,7 +417,7 @@ Rectangle {
                 onSelected: newValue => root.editor.updateSelectedTile({
                     "background": {
                         "kind": newValue,
-                        "value": newValue === "live" ? (root.tile?.type === "scalar" ? "" : root.tile?.type) : ""
+                        "value": newValue === "live" ? root.defaultLiveBackground : ""
                     }
                 })
                 options: [
@@ -402,6 +437,20 @@ Rectangle {
                         "value": "url"
                     }
                 ]
+            }
+
+            ConfigSelectionArray {
+                id: liveBackgroundChoice
+                Layout.fillWidth: true
+                visible: root.tile?.background?.kind === "live"
+                currentValue: root.tile?.background?.value ?? ""
+                options: root.liveBackgroundOptions
+                onSelected: newValue => root.editor.updateSelectedTile({
+                    "background": {
+                        "kind": "live",
+                        "value": newValue
+                    }
+                })
             }
 
             ColorSwatches {
