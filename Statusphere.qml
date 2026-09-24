@@ -615,7 +615,7 @@ Singleton {
 
     // Metrics the cli collects itself, so custom.json does not have to shell out
     // for them. A custom field of the same name loses to these.
-    readonly property var nativeFieldKeys: ["cpu", "mem", "ram", "memory", "disk"]
+    readonly property var nativeFieldKeys: ["cpu", "mem", "ram", "memory", "disk", "active_app", "active_window", "package_count"]
 
     function systemFieldsFor(device): var {
         const fields = [];
@@ -677,6 +677,30 @@ Singleton {
                 "icon": "desktop_windows",
                 "label": Translation.tr("Workspace"),
                 "value": String(device.active_workspace),
+                "percent": null
+            });
+        if (device.active_window)
+            fields.push({
+                "key": "active_window",
+                "icon": "web_asset",
+                "label": Translation.tr("Window"),
+                "value": device.active_window,
+                "percent": null
+            });
+        if (device.active_app)
+            fields.push({
+                "key": "active_app",
+                "icon": "apps",
+                "label": Translation.tr("App"),
+                "value": device.active_app,
+                "percent": null
+            });
+        if (device.package_count !== undefined)
+            fields.push({
+                "key": "package_count",
+                "icon": "inventory_2",
+                "label": Translation.tr("Packages"),
+                "value": String(device.package_count),
                 "percent": null
             });
         for (const key of (device.custom_fields ?? [])) {

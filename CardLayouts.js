@@ -58,57 +58,48 @@ const standardDetail = [
 ];
 
 // A friend's pack: self-expression, not a system monitor. Music, game and photo carry
-// the personality; the six fields the cli always sends (cpu, mem, disk, load, uptime,
-// workspace) are the only scalars a pack can lean on, since nothing else is guaranteed
-// to arrive without the friend hand-writing a custom.json. Picked in the editor later -
-// kept in one place so it lands there unchanged.
+// the personality, active_app/active_window/package_count read what the cli already
+// collects about the machine's own use, and a custom.json field (mood, quote, a hand-
+// rolled local clock) reaches for whatever the friend shells out for - onMissing "hide"
+// or "dim" lets a pack name a field before it exists. System metrics (cpu/mem/disk/
+// load/uptime/workspace) stay a small accent, at most one or two a pack, some none at
+// all. Picked in the editor later - kept in one place so it lands there unchanged.
 const presets = {
+    // Late, not necessarily gaming: what's playing and what's open right now, plus how
+    // long the machine's been up as the one hint of the hour.
     "nightOwl": {
         "name": "Night Owl",
         "row": [
             tile({
-                "type": "game",
-                "form": "banner",
+                "type": "music",
+                "form": "wave",
                 "size": "4x1",
-                "shape": "default",
                 "color": "primary",
-                "background": {
-                    "kind": "live",
-                    "value": "game"
-                },
                 "onMissing": "hide"
             })
         ],
         "detail": [
             tile({
-                "type": "game",
-                "form": "timer",
+                "type": "scalar",
+                "field": "active_window",
+                "form": "text",
                 "size": "2x1",
-                "color": "primaryContainer",
                 "onMissing": "hide"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "mood",
+                "form": "big",
+                "size": "1x1",
+                "color": "primaryContainer",
+                "onMissing": "dim"
             }),
             tile({
                 "type": "scalar",
                 "field": "uptime",
-                "form": "ring",
-                "size": "2x2",
-                "color": "secondaryContainer",
-                "onMissing": "hide"
-            }),
-            tile({
-                "type": "scalar",
-                "field": "load",
                 "form": "number",
                 "size": "1x1",
                 "color": "tertiaryContainer",
-                "onMissing": "hide"
-            }),
-            tile({
-                "type": "scalar",
-                "field": "workspace",
-                "form": "big",
-                "size": "1x1",
-                "color": "primary",
                 "onMissing": "hide"
             })
         ]
@@ -128,14 +119,14 @@ const presets = {
             }),
             tile({
                 "type": "scalar",
-                "field": "mem",
+                "field": "top_artist",
                 "form": "text",
                 "size": "2x1",
                 "onMissing": "hide"
             }),
             tile({
                 "type": "scalar",
-                "field": "cpu",
+                "field": "streak",
                 "form": "number",
                 "size": "1x1",
                 "color": "tertiaryContainer",
@@ -143,7 +134,7 @@ const presets = {
             }),
             tile({
                 "type": "scalar",
-                "field": "disk",
+                "field": "quote",
                 "form": "big",
                 "size": "1x1",
                 "color": "secondaryContainer",
@@ -153,15 +144,15 @@ const presets = {
         "detail": [
             tile({
                 "type": "scalar",
-                "field": "load",
-                "form": "ring",
+                "field": "listening",
+                "form": "number",
                 "size": "2x2",
                 "color": "tertiaryContainer",
                 "onMissing": "hide"
             }),
             tile({
                 "type": "scalar",
-                "field": "uptime",
+                "field": "playlist",
                 "form": "big",
                 "size": "2x1",
                 "color": "secondaryContainer",
@@ -169,7 +160,7 @@ const presets = {
             }),
             tile({
                 "type": "scalar",
-                "field": "workspace",
+                "field": "genre",
                 "form": "text",
                 "size": "2x1",
                 "onMissing": "hide"
@@ -188,23 +179,25 @@ const presets = {
             }),
             tile({
                 "type": "scalar",
-                "field": "cpu",
-                "form": "ring",
+                "field": "local_time",
+                "form": "clock",
                 "size": "1x1",
+                "shape": "auto",
                 "color": "tertiaryContainer",
                 "onMissing": "hide"
             }),
             tile({
                 "type": "scalar",
-                "field": "load",
-                "form": "number",
+                "field": "weather",
+                "form": "weather",
                 "size": "1x1",
+                "shape": "auto",
                 "color": "primaryContainer",
                 "onMissing": "hide"
             }),
             tile({
                 "type": "scalar",
-                "field": "mem",
+                "field": "flag",
                 "form": "big",
                 "size": "1x1",
                 "color": "tertiary",
@@ -212,7 +205,7 @@ const presets = {
             }),
             tile({
                 "type": "scalar",
-                "field": "uptime",
+                "field": "trip_day",
                 "form": "number",
                 "size": "1x1",
                 "color": "secondaryContainer",
@@ -222,27 +215,37 @@ const presets = {
         "detail": [
             tile({
                 "type": "scalar",
-                "field": "disk",
+                "field": "region",
                 "form": "text",
                 "size": "2x1",
                 "onMissing": "hide"
             }),
             tile({
                 "type": "scalar",
-                "field": "workspace",
+                "field": "distance",
+                "form": "number",
+                "size": "1x1",
+                "color": "secondaryContainer",
+                "onMissing": "hide"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "caption",
                 "form": "big",
-                "size": "2x1",
+                "size": "1x1",
                 "color": "tertiaryContainer",
                 "onMissing": "hide"
             })
         ]
     },
+    // What the machine is for: what's open, where, how many packages it carries - cpu
+    // and mem stay a one-tile-each accent, not the point.
     "coder": {
         "name": "Coder",
         "row": [
             tile({
                 "type": "scalar",
-                "field": "disk",
+                "field": "active_window",
                 "form": "text",
                 "size": "2x1",
                 "onMissing": "hide"
@@ -267,25 +270,24 @@ const presets = {
         "detail": [
             tile({
                 "type": "scalar",
-                "field": "mem",
-                "form": "ring",
-                "size": "1x1",
-                "color": "tertiaryContainer",
-                "onMissing": "hide"
-            }),
-            tile({
-                "type": "scalar",
-                "field": "uptime",
+                "field": "active_app",
                 "form": "text",
                 "size": "2x1",
                 "onMissing": "hide"
             }),
             tile({
                 "type": "scalar",
-                "field": "load",
-                "form": "big",
+                "field": "package_count",
+                "form": "number",
                 "size": "1x1",
-                "color": "primaryContainer",
+                "onMissing": "hide"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "mem",
+                "form": "ring",
+                "size": "1x1",
+                "color": "tertiaryContainer",
                 "onMissing": "hide"
             })
         ]
@@ -295,7 +297,7 @@ const presets = {
         "row": [
             tile({
                 "type": "scalar",
-                "field": "uptime",
+                "field": "quote",
                 "form": "big",
                 "size": "2x1",
                 "color": "secondaryContainer",
@@ -303,15 +305,16 @@ const presets = {
             }),
             tile({
                 "type": "scalar",
-                "field": "cpu",
-                "form": "number",
+                "field": "local_time",
+                "form": "clock",
                 "size": "1x1",
+                "shape": "auto",
                 "color": "tertiaryContainer",
                 "onMissing": "hide"
             }),
             tile({
                 "type": "scalar",
-                "field": "load",
+                "field": "since",
                 "form": "number",
                 "size": "1x1",
                 "color": "primaryContainer",
@@ -321,7 +324,7 @@ const presets = {
         "detail": [
             tile({
                 "type": "scalar",
-                "field": "mem",
+                "field": "mood",
                 "form": "text",
                 "size": "4x1",
                 "onMissing": "hide"

@@ -490,7 +490,7 @@ Item {
         }
 
         StyledText {
-            visible: root.tile.type === "scalar" && (root.tile.form === "big" || root.tile.form === "clock") && !root.thumbnail
+            visible: root.tile.type === "scalar" && root.tile.form === "clock" && !root.thumbnail
             anchors.fill: parent
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
@@ -502,6 +502,39 @@ Item {
             text: root.hasData ? root.valueText : "-"
             font.pixelSize: Appearance.font.pixelSize.huge
             color: root.contentColor
+        }
+
+        // "big" is a value tile like any other - a bare number or word with no label
+        // reads as decoration, not data, so it keeps the same small caption the
+        // number/weather forms show above their value.
+        ColumnLayout {
+            visible: root.tile.type === "scalar" && root.tile.form === "big" && !root.thumbnail
+            anchors.fill: parent
+            spacing: 2
+
+            StyledText {
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
+                text: root.labelText
+                font.pixelSize: Appearance.font.pixelSize.smallest
+                color: root.mutedContentColor
+            }
+            StyledText {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                wrapMode: Text.WordWrap
+                maximumLineCount: 3
+                elide: Text.ElideRight
+                fontSizeMode: Text.Fit
+                minimumPixelSize: Appearance.font.pixelSize.smallest
+                animateChange: true
+                text: root.hasData ? root.valueText : "-"
+                font.pixelSize: Appearance.font.pixelSize.huge
+                color: root.contentColor
+            }
         }
 
         ColumnLayout {
