@@ -466,12 +466,6 @@ Item {
                                 "field": "mem",
                                 "form": "number",
                                 "size": "99x99"
-                            },
-                            {
-                                "type": "scalar",
-                                "field": "disk",
-                                "form": "heatmap",
-                                "size": "2x1"
                             }
                         ]
                     }
@@ -786,9 +780,9 @@ Item {
                 "want": true
             },
             {
-                "name": "a preset applied to a device counts as a custom layout",
-                "got": Statusphere.hasCustomLayout(Statusphere.accountsById["acc-music"]),
-                "want": true
+                "name": "a preset applied to a device owns its row and detail",
+                "got": ["row", "detail"].map(surface => Statusphere.ownsSurface(Statusphere.accountsById["acc-music"], surface)),
+                "want": [true, true]
             },
             {
                 "name": "the most recently changed device layout wins across an account's devices",
@@ -875,11 +869,6 @@ Item {
                 "name": "an unknown tile size is dropped",
                 "got": Statusphere.surfaceTiles(Statusphere.accountsById["acc-bad-tiles"], "detail").every(t => t.field !== "mem"),
                 "want": true
-            },
-            {
-                "name": "a retired history form falls back to number instead of vanishing",
-                "got": Statusphere.surfaceTiles(Statusphere.accountsById["acc-bad-tiles"], "detail").find(t => t.field === "disk")?.form,
-                "want": "number"
             },
             {
                 "name": "a non-object _layout value is ignored, not a crash",

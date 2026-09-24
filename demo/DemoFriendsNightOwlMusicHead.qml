@@ -113,14 +113,14 @@ Item {
 
         return [
             {
-                "name": "the night owl pack counts as a custom layout",
-                "got": Statusphere.hasCustomLayout(Statusphere.accountsById["acc-nyx"]),
-                "want": true
+                "name": "the night owl pack owns its row and detail",
+                "got": ["row", "detail"].map(surface => Statusphere.ownsSurface(Statusphere.accountsById["acc-nyx"], surface)),
+                "want": [true, true]
             },
             {
-                "name": "a music head row with a minimal detail counts as a custom layout",
-                "got": Statusphere.hasCustomLayout(Statusphere.accountsById["acc-echo"]),
-                "want": true
+                "name": "a music head row with a minimal detail owns its row and detail",
+                "got": ["row", "detail"].map(surface => Statusphere.ownsSurface(Statusphere.accountsById["acc-echo"], surface)),
+                "want": [true, true]
             },
             {
                 "name": "both rows drew their detail card open",

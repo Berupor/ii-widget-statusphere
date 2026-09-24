@@ -117,14 +117,14 @@ Item {
 
         return [
             {
-                "name": "the traveler pack counts as a custom layout",
-                "got": Statusphere.hasCustomLayout(Statusphere.accountsById["acc-nomad"]),
-                "want": true
+                "name": "the traveler pack owns its row and detail",
+                "got": ["row", "detail"].map(surface => Statusphere.ownsSurface(Statusphere.accountsById["acc-nomad"], surface)),
+                "want": [true, true]
             },
             {
-                "name": "the coder pack counts as a custom layout",
-                "got": Statusphere.hasCustomLayout(Statusphere.accountsById["acc-turing"]),
-                "want": true
+                "name": "the coder pack owns its row and detail",
+                "got": ["row", "detail"].map(surface => Statusphere.ownsSurface(Statusphere.accountsById["acc-turing"], surface)),
+                "want": [true, true]
             },
             {
                 "name": "both rows drew their detail card open",

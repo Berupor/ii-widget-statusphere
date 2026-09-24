@@ -763,20 +763,16 @@ Singleton {
 
     // A device's own layout is a snapshot field like any other, prefixed the way
     // _kind/_health are: it never leaves this machine unless the owner published it.
-    // updated_at is a unix-seconds number, stamped by saveMyLayout in the editor.
+    // updated_at is a unix-seconds number, stamped by the editor on every save.
     function layoutFor(account): var {
         let best = null;
         const devices = Array.isArray(account?.devices) ? account.devices : [];
         for (const d of devices) {
-            const l = d?._layout;
+            const l = d?.[CardLayouts.layoutKey];
             if (l && typeof l === "object" && (best === null || (l.updated_at ?? 0) > (best.updated_at ?? 0)))
                 best = l;
         }
         return best;
-    }
-
-    function hasCustomLayout(account): bool {
-        return root.layoutFor(account) !== null;
     }
 
     // row: [] is a deliberate "header only" choice, distinct from no row key at all,
@@ -786,10 +782,8 @@ Singleton {
         return Array.isArray(root.layoutFor(account)?.[surface]);
     }
 
-    // A layout.json can be hand-edited, come from a stale client, or once have held a
-    // form the pilot dropped: an unrecognised type/size/form gets the tile dropped rather
-    // than mis-rendered, and a retired history form (graph/bars/heatmap) falls back to
-    // a plain number instead of a blank tile.
+    // A layout.json can be hand-edited or come from a stale client: an unrecognised
+    // type/size/form gets the tile dropped rather than mis-rendered.
     function sanitizeTile(t): var {
         const type = (t && typeof t === "object" && !Array.isArray(t)) ? CardLayouts.typeOf(t) : null;
         if (!type)
@@ -798,10 +792,6 @@ Singleton {
             return null;
         if (type.needsField && (typeof t.field !== "string" || t.field.length === 0))
             return null;
-        if (type.needsField && ["graph", "bars", "heatmap"].includes(t.form))
-            return Object.assign({}, t, {
-                "form": "number"
-            });
         const forms = Object.keys(type.forms);
         if (forms.length > 0 && t.form !== undefined && !forms.includes(t.form))
             return null;

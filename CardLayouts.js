@@ -187,6 +187,11 @@ function tile(props) {
     }, props);
 }
 
+// Keep in agreement with the Go client: layout.FileName, custom fileName, presence.KeyLayout.
+const layoutFileName = "layout.json";
+const customFileName = "custom.json";
+const layoutKey = "_layout";
+
 const columns = 4;
 const rowRows = 2;
 const detailRows = 4;

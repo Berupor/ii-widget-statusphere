@@ -57,9 +57,9 @@ Item {
 
         return [
             {
-                "name": "the minimal pack counts as a custom layout",
-                "got": Statusphere.hasCustomLayout(Statusphere.accountsById["acc-ren"]),
-                "want": true
+                "name": "the minimal pack owns its row and detail",
+                "got": ["row", "detail"].map(surface => Statusphere.ownsSurface(Statusphere.accountsById["acc-ren"], surface)),
+                "want": [true, true]
             },
             {
                 "name": "the row drew its detail card open",

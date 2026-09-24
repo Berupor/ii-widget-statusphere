@@ -898,7 +898,7 @@ ColumnLayout {
 
     FileView {
         id: layoutFile
-        path: `${Directories.config}/statusphere/layout.json`
+        path: `${Directories.config}/statusphere/${CardLayouts.layoutFileName}`
         printErrors: false
         onLoaded: root.loadMyLayout()
         onLoadFailed: root.loadMyLayout()
@@ -906,7 +906,7 @@ ColumnLayout {
 
     FileView {
         id: customFieldsFile
-        path: `${Directories.config}/statusphere/custom.json`
+        path: `${Directories.config}/statusphere/${CardLayouts.customFileName}`
         printErrors: false
         onLoaded: root.loadMyCustomFields()
         onLoadFailed: root.loadMyCustomFields()
