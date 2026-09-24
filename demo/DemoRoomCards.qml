@@ -4,7 +4,7 @@
  * layout (no _layout on its device, so it falls back to CardLayouts.standardDetail
  * for the detail card and to PresenceRow's own picture/music stack for the row),
  * one per preset, and one fully custom layout exercising a MaterialShape
- * silhouette, a graph tile and a URL background, plus a tile kept (dimmed) and
+ * silhouette, a bar tile and a URL background, plus a tile kept (dimmed) and
  * one hidden when its field has no data.
  */
 import ".."
@@ -26,7 +26,7 @@ Item {
             "type": "scalar",
             "field": "cpu",
             "device": null,
-            "form": "graph",
+            "form": "bar",
             "size": "4x1",
             "shape": "default",
             "color": "primary",
@@ -180,19 +180,18 @@ Item {
                     "cpu_percent": 22,
                     "memory_used_mb": 4000,
                     "memory_total_mb": 16000,
+                    "disk_used_percent": 39,
+                    "disk_free_gb": 150,
+                    "load_avg_1m": 0.9,
+                    "cpu_count": 8,
+                    "uptime_hours": 14,
+                    "active_workspace": 1,
                     "spotify_status": "playing",
                     "spotify_track": "Preset Track",
                     "spotify_artist": "Preset Artist",
                     "spotify_position": 90,
                     "spotify_length": 240,
-                    "spotify_art_url": root.cover("teardrop.jpg"),
-                    "custom_fields": ["top_artist", "streak", "quote", "genre", "listening"],
-                    "top_artist": "Preset Artist",
-                    "streak": "9",
-                    "quote": "Turn it up",
-                    "genre": "Synthwave",
-                    "listening": "31",
-                    "listening_history": [10, 14, 20, 26, 18, 31, 12]
+                    "spotify_art_url": root.cover("teardrop.jpg")
                 },
                 {
                     "account_id": "acc-hardware",
@@ -207,20 +206,14 @@ Item {
                         "detail": CardLayouts.presets.coder.detail
                     },
                     "cpu_percent": 63,
-                    "cpu_history": [12, 18, 22, 30, 44, 51, 47, 60, 55, 63, 58, 63],
                     "cpu_count": 8,
                     "memory_used_mb": 11000,
                     "memory_total_mb": 16000,
                     "disk_used_percent": 47,
                     "disk_free_gb": 210,
+                    "load_avg_1m": 2.8,
                     "active_workspace": 3,
-                    "uptime_hours": 6,
-                    "custom_fields": ["project", "commits", "focus", "workspace", "note"],
-                    "project": "statusphere · nvim",
-                    "commits": "4",
-                    "commits_history": [1, 3, 0, 2, 5, 4, 2],
-                    "focus": "72%",
-                    "note": "Shipping the card editor"
+                    "uptime_hours": 6
                 },
                 {
                     "account_id": "acc-gamer",
@@ -245,11 +238,10 @@ Item {
                     "game_header_url": root.cover("rdr2-header.jpg"),
                     "game_logo_url": root.cover("rdr2-logo.png"),
                     "game_session_seconds": 2400,
-                    "custom_fields": ["active_hours", "local_time", "mood"],
-                    "active_hours": "5",
-                    "active_hours_history": [0, 1, 4, 6, 3, 2, 5, 6, 4, 1, 0, 0],
-                    "local_time": "02:30",
-                    "mood": "🌙"
+                    "load_avg_1m": 4.1,
+                    "cpu_count": 16,
+                    "uptime_hours": 31,
+                    "active_workspace": 5
                 },
                 {
                     "account_id": "acc-custom",
@@ -263,7 +255,6 @@ Item {
                         "detail": root.customDetail
                     },
                     "cpu_percent": 38,
-                    "cpu_history": [5, 9, 14, 12, 20, 25, 22, 30, 28, 35, 33, 38],
                     "memory_used_mb": 6000,
                     "memory_total_mb": 16000,
                     "custom_fields": ["region"],
@@ -307,6 +298,59 @@ Item {
                     "local_time_day": "13:15",
                     "local_time_night": "02:30",
                     "weather_test": "9° Rain · Lisbon, PT"
+                },
+                {
+                    "account_id": "acc-empty-layout",
+                    "device_id": "dev-empty-layout",
+                    "device_name": "empty",
+                    "account_name": "Empty Layout",
+                    "last_seen": root.now,
+                    "_layout": {
+                        "updated_at": root.now
+                    }
+                },
+                {
+                    "account_id": "acc-bad-tiles",
+                    "device_id": "dev-bad-tiles",
+                    "device_name": "malformed",
+                    "account_name": "Bad Tiles",
+                    "last_seen": root.now,
+                    "_layout": {
+                        "updated_at": root.now,
+                        "row": "not-an-array",
+                        "detail": [
+                            {
+                                "type": "bogus",
+                                "field": "x"
+                            },
+                            {
+                                "type": "scalar",
+                                "field": "cpu",
+                                "form": "bar",
+                                "size": "2x1"
+                            },
+                            {
+                                "type": "scalar",
+                                "field": "mem",
+                                "form": "number",
+                                "size": "99x99"
+                            },
+                            {
+                                "type": "scalar",
+                                "field": "disk",
+                                "form": "heatmap",
+                                "size": "2x1"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "account_id": "acc-bad-layout-value",
+                    "device_id": "dev-bad-layout-value",
+                    "device_name": "string-layout",
+                    "account_name": "Bad Layout Value",
+                    "last_seen": root.now,
+                    "_layout": "not-an-object"
                 }
             ],
             "photos": [
@@ -370,6 +414,39 @@ Item {
                 "name": "a music tile's vinyl and wave forms are not full-bleed, like a scalar tile",
                 "got": vinylProbe.fullBleed || waveProbe.fullBleed,
                 "want": false
+            },
+            {
+                "name": "a layout with no row/detail keys falls back to empty tiles, not a crash",
+                "got": Statusphere.surfaceTiles(Statusphere.accountsById["acc-empty-layout"], "row").length === 0 && Statusphere.surfaceTiles(Statusphere.accountsById["acc-empty-layout"], "detail").length === 0,
+                "want": true
+            },
+            {
+                "name": "a tile list that is not an array falls back to empty, not a crash",
+                "got": Statusphere.surfaceTiles(Statusphere.accountsById["acc-bad-tiles"], "row").length === 0,
+                "want": true
+            },
+            {
+                "name": "an unknown tile type is dropped, a valid tile next to it is kept",
+                "got": (() => {
+                    const tiles = Statusphere.surfaceTiles(Statusphere.accountsById["acc-bad-tiles"], "detail");
+                    return tiles.every(t => t.type !== "bogus") && tiles.some(t => t.field === "cpu");
+                })(),
+                "want": true
+            },
+            {
+                "name": "an unknown tile size is dropped",
+                "got": Statusphere.surfaceTiles(Statusphere.accountsById["acc-bad-tiles"], "detail").every(t => t.field !== "mem"),
+                "want": true
+            },
+            {
+                "name": "a retired history form falls back to number instead of vanishing",
+                "got": Statusphere.surfaceTiles(Statusphere.accountsById["acc-bad-tiles"], "detail").find(t => t.field === "disk")?.form,
+                "want": "number"
+            },
+            {
+                "name": "a non-object _layout value is ignored, not a crash",
+                "got": Statusphere.layoutFor(Statusphere.accountsById["acc-bad-layout-value"]),
+                "want": null
             }
         ];
     }
