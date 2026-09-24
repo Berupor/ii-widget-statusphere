@@ -351,7 +351,7 @@ Item {
                 root.editor.selectedIndex = root.tileIndex("weather");
                 root.note("handEditedWeather", [root.sheet.kindId, root.answerField()?.text ?? null]);
                 root.editor.selectTile(root.tileIndex("output"));
-                root.commitText(root.answerField(), "echo hello");
+                root.commitText(root.answerField(), "echo focused");
                 root.sheet.runTest();
             }
         }
@@ -361,8 +361,8 @@ Item {
         ScriptAction {
             script: {
                 root.note("customAfterCommand", root.readJson(customView));
-                root.note("testOutput", root.visibleTexts(root.sheet).includes("hello"));
-                root.note("previewShowsTested", root.visibleTexts(root.first(root.editor, it => it.reorderable === true)).includes("hello"));
+                root.note("testOutput", root.visibleTexts(root.sheet).includes("focused"));
+                root.note("previewShowsTested", root.visibleTexts(root.first(root.editor, it => it.reorderable === true)).includes("focused"));
                 root.editor.removeTileAt(root.tileIndex("weather"));
                 root.editor.removeTileAt(root.tileIndex(root.handField));
                 root.editor.reorderTile(0, 2);
@@ -728,7 +728,7 @@ Item {
                 "name": "Your command writes its cmd with a repeat_seconds",
                 "got": s.customAfterCommand?.output,
                 "want": {
-                    "cmd": "echo hello",
+                    "cmd": "echo focused",
                     "repeat_seconds": 60
                 }
             },

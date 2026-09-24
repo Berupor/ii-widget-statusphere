@@ -5,9 +5,9 @@ shared. Client for [statusphere](https://github.com/MAX1T1A/statusphere), and th
 widget living outside the shell tree - a trial run of the extensions mechanism in the
 [illogical-impulse extensions fork](https://github.com/Berupor/dots-hyprland-extensions).
 
-| The room | Its settings |
-|---|---|
-| ![The room tab](docs/room.png) | ![Settings](docs/StatusphereSettings.png) |
+| The room | Its settings | One card, close up |
+|---|---|---|
+| ![Music, a game, a window, one gone incognito](docs/room.png) | ![Picking a pack](docs/StatusphereSettings.png) | ![A night owl's card](docs/friendCard.png) |
 
 Nobody in that room is real: the scenes in `demo/` feed the widget made-up members
 through the same `ingest` the cli talks to.
