@@ -54,7 +54,7 @@ ColumnLayout {
             "game_display": "Cyberpunk 2077",
             "game_header_url": String(Qt.resolvedUrl("demo/covers/cp2077-header.jpg")),
             "game_session_seconds": 5400,
-            "custom_fields": ["active_hours", "local_time", "mood", "quote", "genre", "top_artist", "streak", "listening", "region", "trip_day", "caption", "project", "commits", "focus", "workspace", "note"],
+            "custom_fields": ["active_hours", "local_time", "mood", "quote", "genre", "top_artist", "streak", "listening", "playlist", "region", "trip_day", "caption", "distance", "project", "commits", "focus", "workspace", "note", "language", "since"],
             "active_hours": "6",
             "active_hours_history": [0, 1, 3, 6, 5, 2, 4, 6, 3, 1, 0, 0],
             "local_time": "23:14",
@@ -65,15 +65,19 @@ ColumnLayout {
             "streak": "9",
             "listening": "31",
             "listening_history": [10, 16, 22, 28, 19, 31, 14],
+            "playlist": "Neon Drive",
             "region": "kyoto",
             "trip_day": "4",
             "caption": "temple steps",
+            "distance": "1240 km",
             "project": "editor",
             "commits": "9",
             "commits_history": [1, 3, 2, 4, 5, 3, 2, 4, 6, 3, 2, 1],
             "focus": "72%",
             "workspace": "3: editor",
-            "note": "heads down"
+            "note": "heads down",
+            "language": "TypeScript",
+            "since": "3d"
         })
     readonly property var demoAccount: ({
             "id": "demo-owner",
@@ -781,6 +785,7 @@ ColumnLayout {
                             anchors.margins: 4
                             account: root.demoAccount
                             maxRows: 2
+                            thumbnail: true
                             tiles: root.previewSafe(CardLayouts.get(presetDelegate.modelData)?.row ?? [])
                         }
 
@@ -854,23 +859,20 @@ ColumnLayout {
             }
         }
 
-        ContentSubsectionLabel {
-            text: Translation.tr("Add a tile")
-        }
-
-        Flow {
+        StyledComboBox {
+            id: addTileBox
             Layout.fillWidth: true
-            spacing: 6
-
-            Repeater {
-                model: root.catalog
-
-                delegate: RippleButtonWithIcon {
-                    required property var modelData
-                    materialIcon: modelData.icon
-                    mainText: modelData.label
-                    onClicked: root.addTile(Object.assign({}, modelData.tile))
-                }
+            buttonIcon: "add"
+            displayText: Translation.tr("Add a tile")
+            textRole: "displayName"
+            currentIndex: -1
+            model: root.catalog.map(c => ({
+                        "displayName": c.label,
+                        "icon": c.icon
+                    }))
+            onActivated: index => {
+                root.addTile(Object.assign({}, root.catalog[index].tile));
+                addTileBox.currentIndex = -1;
             }
         }
 
@@ -917,32 +919,45 @@ ColumnLayout {
                 }
             }
 
-            ContentSubsectionLabel {
-                text: Translation.tr("Form")
-                visible: root.selectedTile?.type !== "photo"
-            }
-
-            ConfigSelectionArray {
+            ConfigRow {
                 Layout.fillWidth: true
-                visible: root.selectedTile?.type !== "photo"
-                currentValue: root.selectedTile?.form ?? ""
-                onSelected: newValue => root.updateSelectedTile({
-                    "form": newValue
-                })
-                options: root.formOptionsFor(root.selectedTile?.type ?? "scalar")
-            }
 
-            ContentSubsectionLabel {
-                text: Translation.tr("Size")
-            }
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    visible: root.selectedTile?.type !== "photo"
+                    spacing: 4
 
-            ConfigSelectionArray {
-                Layout.fillWidth: true
-                currentValue: root.selectedTile?.size ?? ""
-                onSelected: newValue => root.updateSelectedTile({
-                    "size": newValue
-                })
-                options: root.sizeChipOptions
+                    ContentSubsectionLabel {
+                        text: Translation.tr("Form")
+                    }
+
+                    ConfigSelectionArray {
+                        Layout.fillWidth: true
+                        currentValue: root.selectedTile?.form ?? ""
+                        onSelected: newValue => root.updateSelectedTile({
+                            "form": newValue
+                        })
+                        options: root.formOptionsFor(root.selectedTile?.type ?? "scalar")
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 4
+
+                    ContentSubsectionLabel {
+                        text: Translation.tr("Size")
+                    }
+
+                    ConfigSelectionArray {
+                        Layout.fillWidth: true
+                        currentValue: root.selectedTile?.size ?? ""
+                        onSelected: newValue => root.updateSelectedTile({
+                            "size": newValue
+                        })
+                        options: root.sizeChipOptions
+                    }
+                }
             }
 
             ContentSubsectionLabel {
