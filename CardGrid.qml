@@ -6,7 +6,6 @@ import qs.modules.common.widgets
 import QtQuick
 import "CardLayouts.js" as CardLayouts
 
-/** Owner-built tile grid: always 4 columns, cell size follows the viewer's width. */
 Item {
     id: root
     required property var account
@@ -27,7 +26,6 @@ Item {
             }))
     readonly property int rowsUsed: CardLayouts.rowsUsed(root.placed)
 
-    // The editor picks a tile out of the grid it is previewing; everyone else leaves this alone.
     property bool selectable: false
     property int selectedIndex: -1
     signal tileClicked(int index)

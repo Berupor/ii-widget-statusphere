@@ -37,8 +37,6 @@ ColumnLayout {
         }
     }
 
-    // Plausible values for every field a pack or gallery tile can name, so a thumbnail
-    // reads at a glance instead of showing "-" for data this machine has none of.
     readonly property var demoDevice: Object.assign({
             "cpu_percent": 42,
             "memory_used_mb": 6144,
@@ -101,9 +99,7 @@ ColumnLayout {
         return tile.field === "*" ? Translation.tr("Everything else") : Statusphere.labelForKey(tile.field);
     }
 
-    // Forces every tile to stay on screen and clickable in the editor, even one that would
-    // normally hide for missing data - the layout being edited is not necessarily live yet.
-    function previewSafe(tiles) {
+    function dimmedInsteadOfHidden(tiles) {
         return tiles.map(t => t.onMissing === "hide" ? Object.assign({}, t, {
                     "onMissing": "dim"
                 }) : t);
@@ -113,7 +109,7 @@ ColumnLayout {
 
     readonly property var previewTiles: {
         const tiles = root.editSurface === "detail" ? CardLayouts.fallbackDetail(root.editTiles, Statusphere.detailFieldsFor(root.previewAccount)) : root.editTiles;
-        return root.previewSafe(tiles);
+        return root.dimmedInsteadOfHidden(tiles);
     }
 
     function accountWith(device, photo) {
@@ -135,9 +131,7 @@ ColumnLayout {
         });
     }
 
-    // A value the owner typed or tested has nowhere to live in selfAccount until the cli
-    // picks custom.json up, so the preview overlays it onto a copy of the owner's device.
-    readonly property var knownValues: {
+    readonly property var unpublishedValues: {
         const values = {};
         for (const key of Object.keys(root.customEntries)) {
             const text = Templates.textOf(root.customEntries[key]);
@@ -166,10 +160,10 @@ ColumnLayout {
     readonly property var freshPreviewAccount: {
         const account = root.ownerAccount;
         if (!account)
-            return root.accountWith(root.withValues({}, root.knownValues), null);
+            return root.accountWith(root.withValues({}, root.unpublishedValues), null);
         return Object.assign({}, account, {
-            "primary": root.withValues(account.primary, root.knownValues),
-            "devices": (account.devices ?? []).map(d => root.withValues(d, root.knownValues))
+            "primary": root.withValues(account.primary, root.unpublishedValues),
+            "devices": (account.devices ?? []).map(d => root.withValues(d, root.unpublishedValues))
         });
     }
 
@@ -218,8 +212,6 @@ ColumnLayout {
         };
     }
 
-    // A field with no custom.json entry yet: a weather or clock form says which template it
-    // wants, anything else starts out as the owner's own text.
     function kindFromForm(key) {
         const tile = root.allTiles.find(t => t.type === "scalar" && t.field === key);
         return Templates.kindByForm[tile?.form] ?? "text";
@@ -317,10 +309,10 @@ ColumnLayout {
         store.removeEntry(key);
     }
 
-    // A "*" tile shows every field the layout does not name, so while one is on the card
-    // no custom.json key is unused.
+    readonly property bool showsEveryField: root.allTiles.some(t => t.field === "*")
+
     function dropUnusedEntries() {
-        if (root.allTiles.some(t => t.field === "*"))
+        if (root.showsEveryField)
             return;
         const used = new Set(root.allTiles.filter(t => t.type === "scalar").map(t => t.field));
         for (const key of Object.keys(root.customEntries))
@@ -435,8 +427,6 @@ ColumnLayout {
         root.setSurfaceTiles(tiles);
     }
 
-    // Drop onto another tile's slot inserts before it; everything from there on shifts
-    // over by one, same as pulling a card out of a hand and sliding it back in elsewhere.
     function reorderTile(from, to) {
         if (!root.editTiles[from] || from === to)
             return;
@@ -580,7 +570,7 @@ ColumnLayout {
                         account: root.demoAccount
                         maxRows: packList.maxRows
                         thumbnail: true
-                        tiles: root.previewSafe(packDelegate.modelData.tiles)
+                        tiles: root.dimmedInsteadOfHidden(packDelegate.modelData.tiles)
                     }
 
                     MouseArea {

@@ -8,7 +8,6 @@ import QtQuick.Window
 import Qt5Compat.GraphicalEffects
 import "CardLayouts.js" as CardLayouts
 
-/** One grid cell: a silhouette plus the tile's form, loaded alone out of CardLayouts.tileTypes. */
 Item {
     id: root
     required property var account
@@ -167,7 +166,8 @@ Item {
             }
         }
 
-        Rectangle { // A form's own text needs to read over whatever art landed underneath it
+        Rectangle {
+            id: textScrim
             visible: root.backgroundSource.length > 0
             anchors.fill: parent
             color: Appearance.colors.colScrim
