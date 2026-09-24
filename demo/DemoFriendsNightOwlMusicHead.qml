@@ -146,6 +146,20 @@ Item {
                 "name": "Nyx's header says the game her detail card pictures, not the window her row tile shows",
                 "got": Statusphere.statusFor(Statusphere.accountsById["acc-nyx"], nyxRow.visibleSurfaces),
                 "want": "Playing Cyberpunk 2077 · 2h"
+            },
+            {
+                "name": "sessionFor reads elapsed time, not the calendar day it crossed - pinned just past a manufactured local midnight, not whenever the harness happens to run",
+                "got": (() => {
+                    const midnight = new Date();
+                    midnight.setHours(24, 0, 11, 0); // Rolls over to tomorrow 00:00:11 local
+                    const pinned = midnight.getTime();
+                    const before = Statusphere._now;
+                    Statusphere._now = pinned;
+                    const result = [Statusphere.sessionFor(pinned - 13 * 60000), Statusphere.sessionFor(pinned - 25 * 3600000)];
+                    Statusphere._now = before;
+                    return result;
+                })(),
+                "want": ["13m", "1d"]
             }
         ];
     }

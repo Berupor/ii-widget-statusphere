@@ -217,8 +217,14 @@ Item {
                 "want": root.scenario === "edge" ? 1 : "Red Dead Redemption 2"
             },
             {
+                // Offsets from Statusphere._now, the same instant sessionFor reads
+                // internally - not Date.now(), which can have drifted from it since
+                // the singleton last refreshed and flip a floor-minute boundary.
                 "name": "a session reads like a photo's age, and keeps counting past a day",
-                "got": [Statusphere.sessionFor(0), Statusphere.sessionFor(Date.now() - 30000), Statusphere.sessionFor(Date.now() - 780000), Statusphere.sessionFor(Date.now() - 5040000), Statusphere.sessionFor(Date.now() - 359999000)],
+                "got": (() => {
+                    const now = Statusphere._now;
+                    return [Statusphere.sessionFor(0), Statusphere.sessionFor(now - 30000), Statusphere.sessionFor(now - 780000), Statusphere.sessionFor(now - 5040000), Statusphere.sessionFor(now - 359999000)];
+                })(),
                 "want": ["", "Now", "13m", "1h", "4d"]
             },
             {

@@ -468,15 +468,22 @@ Singleton {
         });
     }
 
-    // The photo badge's vocabulary - Now, 5m, 2h - except past a day, where it falls back
-    // to a calendar date. That reads as nonsense for a duration, so days carry on as days.
+    // The photo badge's vocabulary - Now, 5m, 2h, and a day count once a full day has
+    // elapsed. Elapsed, not calendar-day: a session started 13 minutes ago at 23:58
+    // reads "13m", not "Yesterday", so it never depends on when the clock is read.
     function sessionFor(startedMs: real): string {
         if (!(startedMs > 0))
             return "";
-        const days = Math.floor((Date.now() - startedMs) / 86400000);
+        const elapsedMs = root._now - startedMs;
+        const days = Math.floor(elapsedMs / 86400000);
         if (days >= 1)
             return Translation.tr("%1d").arg(days);
-        return NotificationUtils.getFriendlyNotifTimeString(startedMs);
+        if (elapsedMs < 60000)
+            return Translation.tr("Now");
+        const hours = Math.floor(elapsedMs / 3600000);
+        if (hours >= 1)
+            return Translation.tr("%1h").arg(hours);
+        return Translation.tr("%1m").arg(Math.floor(elapsedMs / 60000));
     }
 
     function gameFor(device): string {
@@ -491,7 +498,7 @@ Singleton {
         if (!isNaN(at))
             return at;
         const secs = device?.game_session_seconds ?? 0;
-        return secs > 0 ? Date.now() - secs * 1000 : 0;
+        return secs > 0 ? root._now - secs * 1000 : 0;
     }
 
     // The title belongs next to the person, not under their art: a stylised logo is
@@ -540,7 +547,7 @@ Singleton {
         if (p?.spotify_status)
             return "";
         if (root.awayFor(account))
-            return Translation.tr("Away · %1").arg(root.sessionFor(Date.now() - (p?.idle_seconds ?? 0) * 1000));
+            return Translation.tr("Away · %1").arg(root.sessionFor(root._now - (p?.idle_seconds ?? 0) * 1000));
         return Translation.tr("Online");
     }
 
