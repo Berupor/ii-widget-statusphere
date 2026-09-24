@@ -44,7 +44,10 @@ ColumnLayout {
             "memory_total_mb": 16384,
             "disk_used_percent": 58,
             "disk_free_gb": 210,
-            "weather": "18°C, clear",
+            "load_avg_1m": 1.8,
+            "cpu_count": 8,
+            "uptime_hours": 26,
+            "active_workspace": 3,
             "spotify_status": "playing",
             "spotify_track": "Nightcall",
             "spotify_artist": "Kavinsky",
@@ -53,32 +56,7 @@ ColumnLayout {
             "game_name": "Cyberpunk 2077",
             "game_display": "Cyberpunk 2077",
             "game_header_url": String(Qt.resolvedUrl("demo/covers/cp2077-header.jpg")),
-            "game_session_seconds": 5400,
-            "custom_fields": ["active_hours", "local_time", "mood", "flag", "quote", "genre", "top_artist", "streak", "listening", "playlist", "region", "trip_day", "caption", "distance", "project", "commits", "focus", "workspace", "note", "language", "since"],
-            "active_hours": "6",
-            "active_hours_history": [0, 1, 3, 6, 5, 2, 4, 6, 3, 1, 0, 0],
-            "local_time": "23:14",
-            "mood": "calm",
-            "flag": "🇯🇵",
-            "quote": "turn it up",
-            "genre": "synthwave",
-            "top_artist": "Robyn",
-            "streak": "9",
-            "listening": "31",
-            "listening_history": [10, 16, 22, 28, 19, 31, 14],
-            "playlist": "Neon Drive",
-            "region": "kyoto",
-            "trip_day": "4",
-            "caption": "temple steps",
-            "distance": "1240 km",
-            "project": "editor",
-            "commits": "9",
-            "commits_history": [1, 3, 2, 4, 5, 3, 2, 4, 6, 3, 2, 1],
-            "focus": "72%",
-            "workspace": "3: editor",
-            "note": "heads down",
-            "language": "TypeScript",
-            "since": "3d"
+            "game_session_seconds": 5400
         })
     readonly property var demoAccount: ({
             "id": "demo-owner",
@@ -132,15 +110,6 @@ ColumnLayout {
                 })
         },
         {
-            "label": Translation.tr("Graph"),
-            "icon": "show_chart",
-            "tile": CardLayouts.tile({
-                    "type": "scalar",
-                    "form": "graph",
-                    "size": "2x1"
-                })
-        },
-        {
             "label": Translation.tr("Text"),
             "icon": "text_fields",
             "tile": CardLayouts.tile({
@@ -176,15 +145,6 @@ ColumnLayout {
                     "form": "weather",
                     "shape": "auto",
                     "size": "1x1"
-                })
-        },
-        {
-            "label": Translation.tr("Heatmap"),
-            "icon": "grid_on",
-            "tile": CardLayouts.tile({
-                    "type": "scalar",
-                    "form": "heatmap",
-                    "size": "2x1"
                 })
         },
         {
@@ -254,7 +214,7 @@ ColumnLayout {
     // No error role here: it reads as a warning on someone's own card, not a colour choice.
     readonly property var colorOptions: ["primary", "secondary", "tertiary", "primaryContainer", "secondaryContainer", "tertiaryContainer"]
     readonly property var shapeOptions: ["default", "auto", "Circle", "Pill", "Arch", "SemiCircle", "Diamond", "Pentagon", "Cookie4Sided", "Cookie6Sided", "Cookie9Sided", "Clover4Leaf", "Heart", "Sunny", "SoftBurst"]
-    readonly property var scalarFormOptions: ["ring", "bar", "number", "graph", "text", "big", "clock", "weather", "heatmap"]
+    readonly property var scalarFormOptions: ["ring", "bar", "number", "text", "big", "clock", "weather"]
     readonly property var musicFormOptions: ["cover", "vinyl", "wave"]
     readonly property var gameFormOptions: ["banner", "timer"]
     readonly property var onMissingOptions: ["hide", "dim"]

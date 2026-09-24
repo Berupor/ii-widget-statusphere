@@ -665,8 +665,8 @@ Singleton {
     }
 
     // Structured for the right-click detail card and for a scalar tile's field lookup:
-    // percentage fields become { percent }, everything else (workspace, weather,
-    // uptime) stays text-only.
+    // percentage fields become { percent }, everything else (workspace, uptime, any
+    // custom field) stays text-only.
     function fieldsFor(device): var {
         if (!device)
             return [];
@@ -679,16 +679,8 @@ Singleton {
                 "value": String(device.active_workspace),
                 "percent": null
             });
-        if (device.weather)
-            fields.push({
-                "key": "weather",
-                "icon": "sunny",
-                "label": Translation.tr("Weather"),
-                "value": device.weather,
-                "percent": null
-            });
         for (const key of (device.custom_fields ?? [])) {
-            if (key === "weather" || !device[key] || root.nativeFieldKeys.includes(key))
+            if (!device[key] || root.nativeFieldKeys.includes(key))
                 continue;
             const raw = String(device[key]);
             fields.push({
@@ -718,17 +710,15 @@ Singleton {
         return root.fieldsFor(device).find(f => f.key === key) ?? null;
     }
 
-    function graphValuesFor(device, key): var {
-        return device?.[`${key}_history`] ?? [];
-    }
-
     // A device's own layout is a snapshot field like any other, prefixed the way
     // _kind/_health are: it never leaves this machine unless the owner published it.
+    // updated_at is a unix-seconds number, stamped by saveMyLayout in the editor.
     function layoutFor(account): var {
         let best = null;
-        for (const d of account?.devices ?? []) {
-            const l = d._layout;
-            if (l && (best === null || (l.updated_at ?? 0) > (best.updated_at ?? 0)))
+        const devices = Array.isArray(account?.devices) ? account.devices : [];
+        for (const d of devices) {
+            const l = d?._layout;
+            if (l && typeof l === "object" && (best === null || (l.updated_at ?? 0) > (best.updated_at ?? 0)))
                 best = l;
         }
         return best;
@@ -738,12 +728,45 @@ Singleton {
         return root.layoutFor(account) !== null;
     }
 
+    readonly property var validTileTypes: ["scalar", "music", "game", "photo"]
+    readonly property var validSizes: ["1x1", "2x1", "2x2", "4x1"]
+    readonly property var validScalarForms: ["ring", "bar", "number", "text", "big", "clock", "weather"]
+    readonly property var validMusicForms: ["cover", "vinyl", "wave"]
+    readonly property var validGameForms: ["banner", "timer"]
+
+    // A layout.json can be hand-edited, come from a stale client, or once have held a
+    // form the pilot dropped: an unrecognised type/size gets the tile dropped rather
+    // than mis-rendered, and a retired history form (graph/bars/heatmap) falls back to
+    // a plain number instead of a blank tile.
+    function sanitizeTile(t): var {
+        if (!t || typeof t !== "object" || Array.isArray(t) || !root.validTileTypes.includes(t.type))
+            return null;
+        if (t.size !== undefined && !root.validSizes.includes(t.size))
+            return null;
+        if (t.type === "scalar") {
+            if (typeof t.field !== "string" || t.field.length === 0)
+                return null;
+            if (["graph", "bars", "heatmap"].includes(t.form))
+                return Object.assign({}, t, {
+                    "form": "number"
+                });
+            if (t.form !== undefined && !root.validScalarForms.includes(t.form))
+                return null;
+        } else if (t.type === "music" && t.form !== undefined && !root.validMusicForms.includes(t.form)) {
+            return null;
+        } else if (t.type === "game" && t.form !== undefined && !root.validGameForms.includes(t.form)) {
+            return null;
+        }
+        return t;
+    }
+
     // A "*" field expands to every detail field the layout does not already name,
     // so an owner's layout does not have to list every custom.json key by hand.
     function expandWildcardTiles(tiles, account): var {
-        const named = new Set(tiles.filter(t => t.field !== "*").map(t => t.field));
+        const clean = (Array.isArray(tiles) ? tiles : []).map(t => root.sanitizeTile(t)).filter(t => t !== null);
+        const named = new Set(clean.filter(t => t.field !== "*").map(t => t.field));
         const out = [];
-        for (const t of tiles) {
+        for (const t of clean) {
             if (t.field !== "*") {
                 out.push(t);
                 continue;
@@ -762,7 +785,7 @@ Singleton {
     function surfaceTiles(account, surface): var {
         const custom = root.layoutFor(account);
         if (custom)
-            return root.expandWildcardTiles(custom[surface] ?? [], account);
+            return root.expandWildcardTiles(custom[surface], account);
         if (surface === "detail")
             return root.expandWildcardTiles(CardLayouts.standardDetail, account);
         return [];
