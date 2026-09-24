@@ -1,14 +1,10 @@
-//@ probe statusphere -g 480x400 -s 1500
+//@ probe statusphere -g 480x900 -s 6000
 /**
- * Pins the card editor's file contract and the interactions the properties
- * panel drives through: "Save my card" writes the row and detail tiles to
- * ~/.config/statusphere/layout.json with a fresh updated_at, and a typed
- * custom-field value to custom.json alongside it, leaving that file's other
- * keys untouched. A drag drop reorders the array (not just the on-screen
- * packing), a colour swatch and the "keep place when empty" switch write
- * through updateSelectedTile the same way a click on either would, and a
- * value typed into a custom-field tile reaches the live preview before
- * Save is ever clicked.
+ * The settings page end to end, through the controls an owner touches: two tabs,
+ * the Room tab free of editor controls, the tile gallery, the tile sheet and the
+ * files autosave writes. Starts from a layout.json and a custom.json already on
+ * disk, one field in them written by hand, the way a cli user set it up before
+ * the editor existed. `-p shot=room|card|gallery|sheet` picks what the frame shows.
  */
 import ".."
 import "../CardLayouts.js" as CardLayouts
@@ -19,20 +15,18 @@ import QtQuick
 Item {
     id: root
     clip: true
+
+    property string shot: "sheet"
+
     readonly property string layoutPath: `${Directories.config}/statusphere/layout.json`
     readonly property string customFieldsPath: `${Directories.config}/statusphere/custom.json`
+    readonly property string handField: "uptime_pretty"
+    readonly property var handEntry: ({
+            "cmd": "uptime -p",
+            "repeat_seconds": 60
+        })
+    readonly property string tokyoWeatherCmd: "curl -sf 'wttr.in/Tokyo?format=%t+·+%C'"
 
-    // Captured once, synchronously, so the checks below can pin a moment in time instead
-    // of just the settled end state.
-    property bool addedCoffee: false
-    property bool addedCoffeeAgain: false
-    property int detailLenAfterAdd: 0
-    property bool previewShowsLatteBeforeSave: false
-    property bool wroteCoffeeBeforeSave: true
-
-    // What the editor's "Source" list and live preview read from: a self account with
-    // real hardware numbers and a couple of custom.json fields, so both show something
-    // other than dashes even where this machine has no statusphere agent registered.
     readonly property var selfRoom: ({
             "members": [
                 {
@@ -46,125 +40,29 @@ Item {
                     "memory_total_mb": 32768,
                     "disk_used_percent": 61,
                     "disk_free_gb": 180,
-                    "custom_fields": ["project", "mood"],
-                    "project": "statusphere-editor",
-                    "mood": "focused"
+                    "custom_fields": ["uptime_pretty"],
+                    "uptime_pretty": "up 3 hours"
                 }
             ]
         })
 
-    // Which editor the shot frames, the other one sits just outside it: both stay visible
-    // so their checks see what a user would. `-p shownEditor=empty` shoots the empty one.
-    property string shownEditor: "selected"
+    property var seen: ({})
 
-    StatusphereSettings {
-        id: editor
-        x: root.shownEditor === "selected" ? 0 : root.width
-        width: 400
+    function note(key, value) {
+        root.seen = Object.assign({}, root.seen, {
+            [key]: value
+        });
     }
 
-    StatusphereSettings {
-        id: emptyEditor
-        x: root.shownEditor === "empty" ? 0 : root.width
-        width: 400
-    }
-
-    FileView {
-        id: check
-        path: root.layoutPath
-        printErrors: false
-        watchChanges: true
-    }
-
-    FileView {
-        id: customCheck
-        path: root.customFieldsPath
-        printErrors: false
-        watchChanges: true
-    }
-
-    Timer {
-        interval: 300
-        running: true
-        onTriggered: {
-            check.reload();
-            customCheck.reload();
-            // Re-asserted after the config.json read a real registered machine might
-            // have finishes, so the shot stays the same self account on every machine.
-            Statusphere.ingest(JSON.stringify(root.selfRoom));
-            Statusphere.selfAccountId = "acc-owner";
-        }
-    }
-
-    function tile(field, color) {
-        return {
-            "type": "scalar",
-            "field": field,
-            "form": "ring",
-            "size": "1x1",
-            "shape": "default",
-            "color": color,
-            "background": {
-                "kind": "color",
-                "value": color
-            },
-            "onMissing": "hide"
-        };
-    }
-
-    Component.onCompleted: {
-        Statusphere.ingest(JSON.stringify(root.selfRoom));
-        Statusphere.selfAccountId = "acc-owner";
-        editor.editRow = [root.tile("cpu", "primaryContainer"), root.tile("mem", "secondaryContainer"), root.tile("disk", "tertiaryContainer")];
-        editor.editDetail = [];
-        editor.reorderTile(0, 2); // drops "cpu" onto "disk"'s slot: mem, cpu, disk - selects cpu
-        editor.updateSelectedTile({
-            "color": "primary"
-        }); // what a colour swatch click does
-        editor.updateSelectedTile({
-            "onMissing": "dim"
-        }); // what the "keep place when empty" switch does when turned on
-
-        // A custom-field scenario on the untouched detail surface: a pre-existing
-        // unrelated key stands in for whatever else a friend's custom.json already
-        // holds, "Coffee Break!" is added by name the way "Add a tile" would, and
-        // given a value the way the properties panel's text input would.
-        editor.loadedCustomFields = {
-            "legacy_field": {
-                "cmd": "echo legacy",
-                "repeat_seconds": 60
-            }
-        };
-        editor.selectSurface("detail");
-        root.addedCoffee = editor.addCustomField("Coffee Break!");
-        root.detailLenAfterAdd = editor.editDetail.length;
-        root.addedCoffeeAgain = editor.addCustomField("coffee_break");
-        editor.setCustomFieldValue("coffee_break", "latte");
-        root.previewShowsLatteBeforeSave = root.findAll(root, it => it.text === "latte", []).length > 0;
-
-        // Read before the save below writes anything - saveMyLayout() is the only thing
-        // in this file that ever changes custom.json's bytes on disk.
-        let before = {};
+    function readJson(view) {
+        const path = view.path;
+        view.path = "";
+        view.path = path;
         try {
-            before = JSON.parse(customCheck.text());
+            return JSON.parse(view.text());
         } catch (e) {
+            return {};
         }
-        root.wroteCoffeeBeforeSave = before.coffee_break !== undefined;
-
-        // Stays synchronous with everything above: an async layoutFile/customFieldsFile
-        // load landing in between would otherwise reset editRow/editCustomValues to
-        // whatever is currently on disk before this save gets to write them out.
-        editor.saveMyLayout();
-    }
-
-    // A generic visual-tree walk, for pinning what a tile actually renders with
-    // instead of just the data that went in.
-    function findAll(item, pred, out) {
-        if (pred(item))
-            out.push(item);
-        for (const c of item.children ?? [])
-            root.findAll(c, pred, out);
-        return out;
     }
 
     function findAllData(item, pred, out) {
@@ -178,174 +76,352 @@ Item {
         return out;
     }
 
+    function first(item, pred) {
+        return root.findAllData(item, pred, [])[0] ?? null;
+    }
+
+    function visibleTexts(item) {
+        return root.findAllData(item, it => typeof it.text === "string" && it.text !== "" && it.visible && it.font !== undefined && it.iconSize === undefined, []).map(t => t.text);
+    }
+
+    readonly property var settings: settingsLoader.item
+    property var editor: null
+    property var sheet: null
+    property var gallery: null
+    property var pageTabs: null
+
+    function findParts() {
+        root.editor = root.first(root.settings, it => it.editRow !== undefined && it.galleryGroups !== undefined);
+        root.sheet = root.first(root.settings, it => it.editor !== undefined && it.fieldKey !== undefined);
+        root.gallery = root.first(root.settings, it => it.cell !== undefined);
+        root.pageTabs = root.first(root.settings, it => it.currentIndex !== undefined && it.count === 2 && root.first(it, b => b.buttonText === "Room") !== null);
+    }
+
+    function answerField() {
+        return root.first(root.sheet, it => it.placeholderText !== undefined && it.placeholderText === (root.sheet.kind?.hint ?? "-"));
+    }
+
+    function commitText(field, text) {
+        field.text = text;
+        field.editingFinished();
+    }
+
+    function tileIndex(field) {
+        return root.editor.editRow.findIndex(t => t.field === field);
+    }
+
     function tooltipsShown(item) {
         return root.findAllData(item, it => it.internalVisibleCondition !== undefined && it.visible, []).length;
     }
 
-    function pickers(item) {
-        return root.findAllData(item, it => it.picked !== undefined && it.options !== undefined, []);
+    FileView {
+        id: layoutView
+        path: root.layoutPath
+        printErrors: false
+        blockLoading: true
+        blockWrites: true
     }
 
-    function presetLabels(item) {
-        const names = CardLayouts.names().map(n => CardLayouts.get(n).name);
-        return root.findAllData(item, it => it.text !== undefined && names.includes(it.text), []);
+    FileView {
+        id: customView
+        path: root.customFieldsPath
+        printErrors: false
+        blockLoading: true
+        blockWrites: true
     }
 
-    function thumbnails(item) {
-        return root.findAllData(item, it => it.thumbnail === true && it.placed !== undefined, []);
+    Loader {
+        id: settingsLoader
+        active: false
+        width: root.width
+        sourceComponent: StatusphereSettings {}
+    }
+
+    Component.onCompleted: {
+        layoutView.setText(JSON.stringify({
+            "updated_at": 1,
+            "row": [CardLayouts.tile({
+                    "type": "scalar",
+                    "field": root.handField,
+                    "form": "text",
+                    "size": "2x1"
+                })],
+            "detail": []
+        }));
+        customView.setText(JSON.stringify({
+            [root.handField]: root.handEntry
+        }));
+        Statusphere.ingest(JSON.stringify(root.selfRoom));
+        Statusphere.selfAccountId = "acc-owner";
+        timeline.start();
+    }
+
+    SequentialAnimation {
+        id: timeline
+
+        PauseAnimation {
+            duration: 200
+        }
+        ScriptAction {
+            script: settingsLoader.active = true
+        }
+        PauseAnimation {
+            duration: 600
+        }
+        ScriptAction {
+            script: {
+                Statusphere.ingest(JSON.stringify(root.selfRoom));
+                Statusphere.selfAccountId = "acc-owner";
+                root.findParts();
+                root.note("tabs", root.findAllData(root.pageTabs, it => it.buttonText !== undefined, []).map(b => b.buttonText));
+                root.note("roomTexts", root.visibleTexts(root.settings));
+                root.note("roomEditorItems", root.findAllData(root.settings, it => it.visible && (it.reorderable !== undefined || it.fieldKey !== undefined || it.cell !== undefined), []).length);
+                root.note("roomTooltips", root.tooltipsShown(root.settings));
+                root.pageTabs.currentIndex = 1;
+
+                root.editor.selectTile(root.tileIndex(root.handField));
+                root.note("handKind", root.sheet.kindId);
+                root.note("handAnswer", root.answerField()?.text ?? null);
+
+                root.editor.openGallery();
+            }
+        }
+        PauseAnimation {
+            duration: 100
+        }
+        ScriptAction {
+            script: {
+                root.note("galleryTexts", root.visibleTexts(root.gallery));
+                root.note("galleryTooltips", root.tooltipsShown(root.settings));
+                root.editor.addFromGallery("cpu");
+                root.editor.addFromGallery("mem");
+                root.editor.addFromGallery("weather");
+                root.commitText(root.answerField(), "Tokyo");
+                root.note("customRightAfterCommit", root.readJson(customView));
+                root.editor.addFromGallery("command");
+                root.answerField().text = "echo hel";
+            }
+        }
+        PauseAnimation {
+            duration: 800
+        }
+        ScriptAction {
+            script: {
+                root.note("customAfterWeather", root.readJson(customView));
+                root.note("layoutAfterWeather", root.readJson(layoutView));
+                root.editor.selectTile(root.tileIndex("weather"));
+                root.first(root.sheet, it => it.selected !== undefined && it.options !== undefined && it.options[0]?.value === 30).selected(3600);
+            }
+        }
+        PauseAnimation {
+            duration: 800
+        }
+        ScriptAction {
+            script: {
+                root.note("customAfterRepeat", root.readJson(customView));
+                root.editor.selectTile(root.tileIndex("output"));
+                root.commitText(root.answerField(), "echo hello");
+                root.sheet.runTest();
+            }
+        }
+        PauseAnimation {
+            duration: 800
+        }
+        ScriptAction {
+            script: {
+                root.note("customAfterCommand", root.readJson(customView));
+                root.note("testOutput", root.visibleTexts(root.sheet).includes("hello"));
+                root.note("previewShowsTested", root.visibleTexts(root.first(root.editor, it => it.reorderable === true)).includes("hello"));
+                root.editor.removeTileAt(root.tileIndex("weather"));
+                root.editor.removeTileAt(root.tileIndex(root.handField));
+                root.editor.reorderTile(0, 2);
+                root.first(root.sheet, it => it.picked !== undefined && it.options?.[0] === "primary").picked("primary");
+                root.sheet.moreOpen = true;
+                root.first(root.sheet, it => it.text === "Keep place when empty" && it.checked !== undefined).clicked();
+            }
+        }
+        PauseAnimation {
+            duration: 800
+        }
+        ScriptAction {
+            script: {
+                root.note("customAfterRemove", root.readJson(customView));
+                root.note("layoutAfterEdits", root.readJson(layoutView));
+                root.note("sheetTooltips", root.tooltipsShown(root.settings));
+                root.editor.selectedIndex = -1;
+                root.editor.packsOpen = true;
+            }
+        }
+        PauseAnimation {
+            duration: 200
+        }
+        ScriptAction {
+            script: {
+                const names = CardLayouts.names().map(n => CardLayouts.get(n).name);
+                root.note("packLabelsInside", root.findAllData(root.editor, it => names.includes(it.text) && it.visible && it.mapToItem(root.editor, 0, 0).x + it.width <= root.editor.width, []).length);
+                root.note("packThumbsFull", root.findAllData(root.editor, it => it.thumbnail === true && it.placed !== undefined, []).map(t => t.rowsUsed === t.maxRows && CardLayouts.emptyCells(t.placed) === 0));
+                root.arrangeShot();
+            }
+        }
+    }
+
+    function arrangeShot() {
+        root.editor.packsOpen = false;
+        if (root.shot === "room") {
+            root.pageTabs.currentIndex = 0;
+            return;
+        }
+        if (root.shot === "gallery")
+            root.editor.openGallery();
+        else if (root.shot === "sheet") {
+            root.editor.selectTile(root.tileIndex("output"));
+            root.sheet.moreOpen = false;
+            root.sheet.runTest();
+        }
     }
 
     function checks() {
-        emptyEditor.editRow = [];
-        emptyEditor.editDetail = [];
-        emptyEditor.selectedIndex = -1;
-        let saved = {};
-        try {
-            saved = JSON.parse(check.text());
-        } catch (e) {
-        // File not settled yet - every check below fails loudly instead of throwing
-        }
-        let savedCustom = {};
-        try {
-            savedCustom = JSON.parse(customCheck.text());
-        } catch (e) {
-        // Same as above
-        }
-        editor.selectSurface("row"); // back to the surface the checks below assume
-        editor.editRow = editor.editRow.concat([{
-                    "type": "scalar",
-                    "field": "gone_missing",
-                    "form": "text",
-                    "size": "2x1",
-                    "shape": "default",
-                    "color": "secondaryContainer",
-                    "background": {
-                        "kind": "color",
-                        "value": "secondaryContainer"
-                    },
-                    "onMissing": "dim"
-                }]);
-        const offersGoneMissing = editor.sourceOptionsFor(null).some(o => o.value === "scalar:gone_missing");
-        const labelTexts = root.findAll(root, it => it.text !== undefined, []).map(t => t.text);
-
-        // All the file-based checks above already read their own snapshot of editRow's
-        // saved content, so trimming it down here, after the fact, only affects what the
-        // settled shot shows: a single custom-field tile selected, so its properties panel
-        // - including the value input - fits above the fold instead of a 4-tile grid.
-        editor.editRow = [editor.editRow[editor.editRow.length - 1]]; // "gone_missing", alone
-        editor.selectedIndex = 0;
-
-        const labels = root.presetLabels(emptyEditor);
-        const thumbs = root.thumbnails(emptyEditor);
-
+        const s = root.seen;
+        const entryKeys = obj => Object.keys(obj ?? {}).sort();
         return [
             {
-                "name": "no tooltip shows without hover, with or without a selected tile",
-                "got": [root.tooltipsShown(editor), root.tooltipsShown(emptyEditor)],
-                "want": [0, 0]
+                "name": "the page has two tabs, Room and My card",
+                "got": s.tabs,
+                "want": ["Room", "My card"]
             },
             {
-                "name": "with no tile selected the shape and colour pickers are hidden",
-                "got": root.pickers(emptyEditor).map(p => p.visible),
-                "want": [false, false, false]
-            },
-            {
-                "name": "a selected tile shows its shape and colour pickers",
-                "got": root.pickers(editor).filter(p => p.visible).length >= 2,
+                "name": "the Room tab shows the room settings",
+                "got": (s.roomTexts ?? []).includes("Hold your own row to hide"),
                 "want": true
             },
             {
-                "name": "every preset has its name shown inside the page",
-                "got": labels.filter(l => l.visible && l.mapToItem(emptyEditor, 0, 0).x + l.width <= emptyEditor.width).length,
-                "want": CardLayouts.names().length
+                "name": "the Room tab has no card editor controls",
+                "got": s.roomEditorItems,
+                "want": 0
             },
             {
-                "name": "every preset thumbnail fills both of its rows",
-                "got": thumbs.map(t => t.rowsUsed === t.maxRows && CardLayouts.emptyCells(t.placed) === 0),
-                "want": CardLayouts.names().map(() => true)
+                "name": "a hand-written custom.json command shows as Your command",
+                "got": s.handKind,
+                "want": "command"
             },
             {
-                "name": "Save my card writes the row tiles to layout.json",
-                "got": (saved.row ?? []).length,
-                "want": 3
+                "name": "a hand-written command shows its cmd, not an empty field",
+                "got": s.handAnswer,
+                "want": "uptime -p"
             },
             {
-                "name": "Save my card stamps a fresh updated_at",
-                "got": (saved.updated_at ?? 0) > 1700000000,
+                "name": "the gallery lists the live templates and the owner's own kinds",
+                "got": ["Weather", "Clock", "Commits today", "Your text", "Your command"].filter(l => (s.galleryTexts ?? []).includes(l)),
+                "want": ["Weather", "Clock", "Commits today", "Your text", "Your command"]
+            },
+            {
+                "name": "the gallery names tiles by what they are",
+                "got": ["Music - vinyl", "CPU ring", "Active window", "Photo", "Game"].filter(l => (s.galleryTexts ?? []).includes(l)),
+                "want": ["Music - vinyl", "CPU ring", "Active window", "Photo", "Game"]
+            },
+            {
+                "name": "the gallery never says custom or shows a raw field name",
+                "got": (s.galleryTexts ?? []).filter(t => /custom/i.test(t) || /_/.test(t)),
+                "want": []
+            },
+            {
+                "name": "autosave does not write the moment an answer is committed",
+                "got": s.customRightAfterCommit?.weather,
+                "want": undefined
+            },
+            {
+                "name": "Weather with a city writes the wttr.in command after the debounce",
+                "got": s.customAfterWeather?.weather,
+                "want": {
+                    "cmd": root.tokyoWeatherCmd,
+                    "repeat_seconds": 900
+                }
+            },
+            {
+                "name": "picking Weather puts a weather tile on the card",
+                "got": (s.layoutAfterWeather?.row ?? []).filter(t => t.field === "weather").map(t => t.form),
+                "want": ["weather"]
+            },
+            {
+                "name": "a half-typed command is never written",
+                "got": JSON.stringify(s.customAfterWeather ?? {}).includes("echo hel"),
+                "want": false
+            },
+            {
+                "name": "changing Weather's refresh rewrites only its repeat_seconds",
+                "got": s.customAfterRepeat?.weather,
+                "want": {
+                    "cmd": root.tokyoWeatherCmd,
+                    "repeat_seconds": 3600
+                }
+            },
+            {
+                "name": "changing Weather's refresh leaves the other entries alone",
+                "got": s.customAfterRepeat?.[root.handField],
+                "want": root.handEntry
+            },
+            {
+                "name": "Your command writes its cmd with a repeat_seconds",
+                "got": s.customAfterCommand?.output,
+                "want": {
+                    "cmd": "echo hello",
+                    "repeat_seconds": 60
+                }
+            },
+            {
+                "name": "Test shows the command's output in the sheet",
+                "got": s.testOutput,
                 "want": true
             },
             {
-                "name": "dragging a tile onto another's slot reorders the array",
-                "got": (saved.row ?? []).map(t => t.field),
-                "want": ["mem", "cpu", "disk"]
+                "name": "the tested output shows in the preview",
+                "got": s.previewShowsTested,
+                "want": true
             },
             {
-                "name": "a colour swatch click sets the tile's colour role",
-                "got": (saved.row ?? []).find(t => t.field === "cpu")?.color,
+                "name": "removing tiles drops the editor's key and keeps the hand-written one",
+                "got": entryKeys(s.customAfterRemove),
+                "want": ["output", root.handField].sort()
+            },
+            {
+                "name": "a hand-written entry survives its tile's removal untouched",
+                "got": s.customAfterRemove?.[root.handField],
+                "want": root.handEntry
+            },
+            {
+                "name": "dragging a tile onto another's slot reorders the saved row",
+                "got": (s.layoutAfterEdits?.row ?? []).map(t => t.field),
+                "want": ["mem", "cpu", "output"]
+            },
+            {
+                "name": "a colour swatch click saves the tile's colour role",
+                "got": (s.layoutAfterEdits?.row ?? []).find(t => t.field === "cpu")?.color,
                 "want": "primary"
             },
             {
-                "name": "the keep-place switch maps to onMissing: dim",
-                "got": (saved.row ?? []).find(t => t.field === "cpu")?.onMissing,
+                "name": "the keep-place switch saves onMissing: dim",
+                "got": (s.layoutAfterEdits?.row ?? []).find(t => t.field === "cpu")?.onMissing,
                 "want": "dim"
             },
             {
-                "name": "the source list is built from the self device's real fields",
-                "got": editor.sourceOptionsFor(null).map(o => o.value).filter(v => ["scalar:cpu", "scalar:mem", "scalar:disk", "scalar:project", "scalar:mood"].includes(v)).sort(),
-                "want": ["scalar:cpu", "scalar:disk", "scalar:mem", "scalar:mood", "scalar:project"]
-            },
-            {
-                "name": "the source list still offers a field the layout names even if the device stopped reporting it",
-                "got": offersGoneMissing,
+                "name": "autosave stamps a fresh updated_at",
+                "got": (s.layoutAfterEdits?.updated_at ?? 0) > 1700000000,
                 "want": true
             },
             {
-                "name": "a tile with no data yet shows a title-cased label, never the raw key",
-                "got": labelTexts.includes("gone_missing"),
-                "want": false
+                "name": "every pack has its name shown inside the page",
+                "got": s.packLabelsInside,
+                "want": CardLayouts.names().length
             },
             {
-                "name": "that tile's label is title-cased from the key",
-                "got": labelTexts.includes("Gone Missing"),
-                "want": true
+                "name": "every pack thumbnail fills both of its rows",
+                "got": s.packThumbsFull,
+                "want": CardLayouts.names().map(() => true)
             },
             {
-                "name": "add a tile can create a new custom field by name, normalised to snake_case",
-                "got": root.addedCoffee,
-                "want": true
-            },
-            {
-                "name": "a duplicate custom field name is refused",
-                "got": root.addedCoffeeAgain,
-                "want": false
-            },
-            {
-                "name": "a refused add does not create another tile",
-                "got": editor.editDetail.length,
-                "want": root.detailLenAfterAdd
-            },
-            {
-                "name": "typing a value shows it in the live preview before saving",
-                "got": root.previewShowsLatteBeforeSave,
-                "want": true
-            },
-            {
-                "name": "nothing is written to custom.json before Save my card",
-                "got": root.wroteCoffeeBeforeSave,
-                "want": false
-            },
-            {
-                "name": "Save my card writes the typed value into custom.json",
-                "got": editor.decodeCustomValueCmd(savedCustom.coffee_break?.cmd),
-                "want": "latte"
-            },
-            {
-                "name": "Save my card preserves an unrelated custom.json key untouched",
-                "got": savedCustom.legacy_field,
-                "want": {
-                    "cmd": "echo legacy",
-                    "repeat_seconds": 60
-                }
+                "name": "no tooltip shows without hover, on the Room tab, the gallery or a sheet",
+                "got": [s.roomTooltips, s.galleryTooltips, s.sheetTooltips, root.tooltipsShown(root.settings)],
+                "want": [0, 0, 0, 0]
             }
         ];
     }
