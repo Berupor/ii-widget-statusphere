@@ -52,6 +52,7 @@ Rectangle {
             "value": "game"
         }
     ]
+    readonly property string plainBackground: "none"
     readonly property string defaultLiveBackground: CardLayouts.typeOf(root.tile)?.reads ?? "photo"
     readonly property var repeatOptions: [
         {
@@ -397,9 +398,9 @@ Rectangle {
 
             ConfigSelectionArray {
                 Layout.fillWidth: true
-                currentValue: root.tile?.background?.kind ?? "color"
+                currentValue: root.tile?.background?.kind ?? root.plainBackground
                 onSelected: newValue => root.editor.updateSelectedTile({
-                    "background": {
+                    "background": newValue === root.plainBackground ? undefined : {
                         "kind": newValue,
                         "value": newValue === "live" ? root.defaultLiveBackground : ""
                     }
@@ -408,7 +409,7 @@ Rectangle {
                     {
                         "displayName": Translation.tr("Colour"),
                         "icon": "palette",
-                        "value": "color"
+                        "value": root.plainBackground
                     },
                     {
                         "displayName": Translation.tr("Live"),
@@ -437,22 +438,10 @@ Rectangle {
                 })
             }
 
-            ColorSwatches {
-                visible: (root.tile?.background?.kind ?? "color") === "color"
-                options: root.colorOptions
-                current: root.tile?.background?.value ?? ""
-                onPicked: role => root.editor.updateSelectedTile({
-                    "background": {
-                        "kind": "color",
-                        "value": role
-                    }
-                })
-            }
-
             MaterialTextField {
                 id: backgroundUrlField
                 Layout.fillWidth: true
-                visible: (root.tile?.background?.kind ?? "color") === "url"
+                visible: root.tile?.background?.kind === "url"
                 placeholderText: Translation.tr("Image URL")
                 onEditingFinished: root.editor.updateSelectedTile({
                     "background": {

@@ -795,7 +795,8 @@ Singleton {
         const forms = Object.keys(type.forms);
         if (forms.length > 0 && t.form !== undefined && !forms.includes(t.form))
             return null;
-        return type.sanitize ? type.sanitize(t) : t;
+        const known = CardLayouts.withKnownBackground(t);
+        return type.sanitize ? type.sanitize(known) : known;
     }
 
     // A "*" field expands to every detail field the layout does not already name,

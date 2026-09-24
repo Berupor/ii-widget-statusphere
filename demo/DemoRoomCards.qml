@@ -459,7 +459,11 @@ Item {
                                 "type": "scalar",
                                 "field": "cpu",
                                 "form": "bar",
-                                "size": "2x1"
+                                "size": "2x1",
+                                "background": {
+                                    "kind": "color",
+                                    "value": "primaryContainer"
+                                }
                             },
                             {
                                 "type": "scalar",
@@ -864,6 +868,11 @@ Item {
                     return tiles.every(t => t.type !== "bogus") && tiles.some(t => t.field === "cpu");
                 })(),
                 "want": true
+            },
+            {
+                "name": "a colour background from an old layout is dropped, the tile's own colour paints it",
+                "got": Statusphere.surfaceTiles(Statusphere.accountsById["acc-bad-tiles"], "detail").find(t => t.field === "cpu")?.background,
+                "want": undefined
             },
             {
                 "name": "an unknown tile size is dropped",

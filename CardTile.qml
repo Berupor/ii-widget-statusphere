@@ -68,15 +68,15 @@ Item {
     readonly property bool backgroundIsLocal: root.liveBackground === "photo"
     readonly property string backgroundSource: {
         const bg = root.tile.background;
-        if (root.fullBleed || !bg || bg.kind === "color")
+        if (root.fullBleed || !bg)
             return "";
         if (bg.kind === "url")
-            return bg.value;
-        if (bg.value === "music")
+            return bg.value ?? "";
+        if (root.liveBackground === "music")
             return root.musicDevice?.spotify_art_url ?? "";
-        if (bg.value === "game")
+        if (root.liveBackground === "game")
             return root.gameDevice?.game_hero_url || root.gameDevice?.game_header_url || "";
-        if (bg.value === "photo")
+        if (root.liveBackground === "photo")
             return Statusphere.currentPhotoFor(root.account)?.path ?? "";
         return "";
     }

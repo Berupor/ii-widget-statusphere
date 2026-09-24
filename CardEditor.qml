@@ -352,11 +352,7 @@ ColumnLayout {
                         "field": "cpu",
                         "form": "ring",
                         "size": "1x1",
-                        "color": "primaryContainer",
-                        "background": {
-                            "kind": "color",
-                            "value": "primaryContainer"
-                        }
+                        "color": "primaryContainer"
                     }
                 },
                 {
@@ -378,11 +374,7 @@ ColumnLayout {
                         "field": "disk",
                         "form": "ring",
                         "size": "1x1",
-                        "color": "tertiaryContainer",
-                        "background": {
-                            "kind": "color",
-                            "value": "tertiaryContainer"
-                        }
+                        "color": "tertiaryContainer"
                     }
                 },
                 {
@@ -866,8 +858,8 @@ ColumnLayout {
             return;
         try {
             const saved = JSON.parse(layoutFile.text());
-            root.editRow = saved.row ?? [];
-            root.editDetail = saved.detail ?? [];
+            root.editRow = (saved.row ?? []).map(CardLayouts.withKnownBackground);
+            root.editDetail = (saved.detail ?? []).map(CardLayouts.withKnownBackground);
         } catch (e) {
             root.editRow = [];
             root.editDetail = [];

@@ -179,12 +179,18 @@ function tile(props) {
         form: tileTypes[props.type]?.defaultForm ?? "",
         shape: "default",
         color: "secondaryContainer",
-        background: {
-            "kind": "color",
-            "value": "secondaryContainer"
-        },
         onMissing: "hide"
     }, props);
+}
+
+const backgroundKinds = ["live", "url"];
+
+function withKnownBackground(t) {
+    if (t.background === undefined || backgroundKinds.includes(t.background?.kind))
+        return t;
+    const out = Object.assign({}, t);
+    delete out.background;
+    return out;
 }
 
 // Keep in agreement with the Go client: layout.FileName, custom fileName, presence.KeyLayout.
