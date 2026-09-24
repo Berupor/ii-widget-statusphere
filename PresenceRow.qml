@@ -28,7 +28,7 @@ Rectangle {
     readonly property bool customLayout: Statusphere.ownsSurface(root.account, "row")
     readonly property var rowTiles: root.customLayout ? Statusphere.surfaceTiles(root.account, "row") : []
     readonly property bool canShare: root.isSelf && Statusphere.canShare
-    readonly property bool expandable: root.devices.length > 1
+    readonly property bool expandable: root.devices.length > 1 && !root.hidden
     property bool expanded: false
 
     // One picture slot per row, and the later event takes it: a photo just shared beats a
@@ -154,7 +154,7 @@ Rectangle {
             }
 
             Rectangle { // What the picture slot is not showing, and the way back to it
-                visible: !root.customLayout && root.bothPictures && !root.expanded
+                visible: !root.customLayout && !root.hidden && root.bothPictures && !root.expanded
                 Layout.alignment: Qt.AlignVCenter
                 radius: Appearance.rounding.full
                 color: swapArea.containsMouse ? Appearance.colors.colLayer2Hover : Appearance.colors.colLayer2
@@ -230,7 +230,7 @@ Rectangle {
         PresencePhoto {
             Layout.fillWidth: true
             Layout.topMargin: 8
-            visible: !root.customLayout && root.showPhoto && !root.expanded
+            visible: !root.customLayout && !root.hidden && root.showPhoto && !root.expanded
             photo: root.currentPhoto
         }
 
@@ -238,7 +238,7 @@ Rectangle {
             id: game
             Layout.fillWidth: true
             Layout.topMargin: 8
-            visible: !root.customLayout && root.showGame && !root.expanded
+            visible: !root.customLayout && !root.hidden && root.showGame && !root.expanded
             device: root.gaming[0] ?? null
         }
 
@@ -252,7 +252,7 @@ Rectangle {
         Loader { // One art with the rest of the stack peeking out behind it, unless a photo already fills the space
             id: music
             Layout.fillWidth: true
-            active: !root.customLayout && root.playing.length > 0 && !root.expanded
+            active: !root.customLayout && !root.hidden && root.playing.length > 0 && !root.expanded
             visible: active
             sourceComponent: PresenceMusic {
                 compact: root.showPhoto || root.showGame
@@ -265,7 +265,7 @@ Rectangle {
         CardGrid { // The owner's own row layout, in place of the picture/music stack above
             Layout.fillWidth: true
             Layout.topMargin: 8
-            visible: root.customLayout && root.rowTiles.length > 0 && !root.expanded
+            visible: root.customLayout && !root.hidden && root.rowTiles.length > 0 && !root.expanded
             account: root.account
             tiles: root.rowTiles
             maxRows: CardLayouts.rowRows
@@ -350,7 +350,7 @@ Rectangle {
     // Kept in the singleton, not here: a reconnect resorts accountIds and rebuilds this row
     readonly property bool serverDetailsCollapsed: Statusphere.detailsCollapsedFor(root.modelData)
 
-    readonly property bool detailsShown: root.showDetails || (root.serverDetailsForced && !root.serverDetailsCollapsed)
+    readonly property bool detailsShown: !root.hidden && (root.showDetails || (root.serverDetailsForced && !root.serverDetailsCollapsed))
 
     // Must track the CardGrid `visible:` condition above - a surface only covers a field
     // for the header while its tiles are actually on screen.
