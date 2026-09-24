@@ -9,6 +9,7 @@
  */
 import ".."
 import "../CardLayouts.js" as CardLayouts
+import "../Templates.js" as Templates
 import qs.modules.common
 import Quickshell.Io
 import QtQuick
@@ -36,7 +37,7 @@ Item {
             "cmd": "curl -sf 'wttr.in/Tokyo?format=3'",
             "repeat_seconds": 3600
         })
-    readonly property string tokyoWeatherCmd: "curl -sf 'wttr.in/Tokyo?format=%t+·+%C'"
+    readonly property int slowestWeatherRefresh: 600
 
     readonly property var selfRoom: ({
             "members": [
@@ -458,7 +459,7 @@ Item {
         ScriptAction {
             script: {
                 root.notePackList("detail");
-                root.noteUnsourcedPackFields();
+                root.notePackEntries();
                 root.editor.applyPack("coder");
                 root.note("detailPackApplied", [JSON.stringify(root.editor.editDetail) === JSON.stringify(CardLayouts.packs.detail.coder), JSON.stringify(root.editor.editRow) === root.seen.rowBefore]);
                 root.editor.undo();
@@ -467,11 +468,14 @@ Item {
             }
         }
         PauseAnimation {
-            duration: 800
+            duration: 1500
         }
         ScriptAction {
             script: {
                 root.note("customAfterTraveler", root.readJson(customView));
+                const flagTile = root.first(root.first(root.editor, it => it.reorderable === true), it => it.tile?.field === "flag" && it.dimmed !== undefined);
+                root.note("travelerFlagDimmed", flagTile?.dimmed ?? null);
+                root.note("travelerFillHint", root.visibleTexts(root.editor).includes("Dimmed tiles have no value yet - pick one to fill it in"));
                 root.editor.undo();
                 root.editor.selectSurface("row");
                 root.arrangeShot();
@@ -487,20 +491,36 @@ Item {
         return tiles.filter(t => t.type === "scalar" && Statusphere.isCustomFieldKey(t.field)).map(t => t.field);
     }
 
-    function noteUnsourcedPackFields() {
-        const unsourced = [];
+    function notePackEntries() {
+        const seeded = [];
+        const empty = [];
         for (const surface of ["row", "detail"]) {
             root.editor.selectSurface(surface);
             for (const p of CardLayouts.packsFor(surface)) {
                 root.editor.applyPack(p.id);
-                for (const key of root.packCustomFields(p.tiles))
-                    if (root.editor.customEntries[key] === undefined)
-                        unsourced.push(`${surface}.${p.id}.${key}`);
+                for (const key of root.packCustomFields(p.tiles)) {
+                    const entry = root.editor.customEntries[key];
+                    const where = `${surface}.${p.id}.${key}`;
+                    if (entry === undefined)
+                        empty.push(where);
+                    else
+                        seeded.push([where, typeof entry.cmd === "string" && entry.cmd !== "" && entry.value === undefined, key !== "weather" || entry.repeat_seconds >= root.slowestWeatherRefresh]);
+                }
                 root.editor.undo();
             }
         }
         root.editor.selectSurface("detail");
-        root.note("unsourcedPackFields", unsourced);
+        root.note("packSeeded", seeded);
+        root.note("packEmpty", empty);
+    }
+
+    function packFieldsWhere(pred) {
+        const out = [];
+        for (const surface of ["row", "detail"])
+            for (const p of CardLayouts.packsFor(surface))
+                for (const t of p.tiles.filter(t => t.type === "scalar" && Statusphere.isCustomFieldKey(t.field) && pred(t)))
+                    out.push(`${surface}.${p.id}.${t.field}`);
+        return out;
     }
 
     function packShape(surface) {
@@ -667,12 +687,9 @@ Item {
                 "want": undefined
             },
             {
-                "name": "Weather with a city writes the wttr.in command after the debounce",
-                "got": s.customAfterWeather?.weather,
-                "want": {
-                    "cmd": root.tokyoWeatherCmd,
-                    "repeat_seconds": 900
-                }
+                "name": "Weather with a city writes a command for that city after the debounce, refreshed no faster than every 10 minutes",
+                "got": [/Tokyo/.test(s.customAfterWeather?.weather?.cmd ?? ""), (s.customAfterWeather?.weather?.repeat_seconds ?? 0) >= root.slowestWeatherRefresh],
+                "want": [true, true]
             },
             {
                 "name": "picking Weather puts a weather tile on the card",
@@ -688,7 +705,7 @@ Item {
                 "name": "changing Weather's refresh rewrites only its repeat_seconds",
                 "got": s.customAfterRepeat?.weather,
                 "want": {
-                    "cmd": root.tokyoWeatherCmd,
+                    "cmd": s.customAfterWeather?.weather?.cmd,
                     "repeat_seconds": 3600
                 }
             },
@@ -791,26 +808,24 @@ Item {
                 "want": []
             },
             {
-                "name": "applying any pack gives every custom field it names a custom.json entry",
-                "got": s.unsourcedPackFields,
-                "want": []
+                "name": "a pack seeds a command only for a field with a real source, weather refreshed no faster than every 10 minutes",
+                "got": s.packSeeded,
+                "want": root.packFieldsWhere(t => Templates.seedsItself(Templates.kind(Templates.kindByForm[t.form]))).map(where => [where, true, true])
             },
             {
-                "name": "the Traveler detail pack writes the weather and clock templates and its text after the debounce",
-                "got": [s.customAfterTraveler?.weather, s.customAfterTraveler?.local_time, s.customAfterTraveler?.flag],
-                "want": [
-                    {
-                        "cmd": "curl -sf 'wttr.in/?format=%t+·+%C'",
-                        "repeat_seconds": 900
-                    },
-                    {
-                        "cmd": "date +%H:%M",
-                        "repeat_seconds": 30
-                    },
-                    {
-                        "value": "🇯🇵"
-                    }
-                ]
+                "name": "a pack writes no sample text into custom.json, its own text fields stay empty",
+                "got": s.packEmpty,
+                "want": root.packFieldsWhere(t => !Templates.seedsItself(Templates.kind(Templates.kindByForm[t.form])))
+            },
+            {
+                "name": "the Traveler detail pack writes weather and clock after the debounce and leaves its flag empty",
+                "got": [typeof s.customAfterTraveler?.weather?.cmd, (s.customAfterTraveler?.weather?.repeat_seconds ?? 0) >= root.slowestWeatherRefresh, typeof s.customAfterTraveler?.local_time?.cmd, s.customAfterTraveler?.flag],
+                "want": ["string", true, "string", undefined]
+            },
+            {
+                "name": "an empty pack text shows dimmed in the preview with a hint to fill it",
+                "got": [s.travelerFlagDimmed, s.travelerFillHint],
+                "want": [true, true]
             },
             {
                 "name": "applying a pack on Row replaces Row and leaves Detail untouched",

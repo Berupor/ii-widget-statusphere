@@ -61,10 +61,20 @@ ColumnLayout {
             "game_display": "Cyberpunk 2077",
             "game_header_url": String(Qt.resolvedUrl("demo/covers/cp2077-header.jpg")),
             "game_session_seconds": 5400,
-            "custom_fields": Object.keys(CardLayouts.packTexts).concat(["local_time", "weather"]),
+            "custom_fields": Object.keys(root.packSamples).concat(["local_time", "weather"]),
             "local_time": "23:14",
             "weather": "18° · Clear"
-        }, CardLayouts.packTexts)
+        }, root.packSamples)
+    readonly property var packSamples: ({
+            "mood": "🌙",
+            "quote": "back in five",
+            "top_artist": "Robyn",
+            "streak": "9",
+            "playlist": "Neon Drive",
+            "flag": "🇯🇵",
+            "trip_day": "4",
+            "caption": "temple steps"
+        })
     readonly property var demoPhoto: ({
             "path": String(Qt.resolvedUrl("demo/covers/teardrop.jpg")),
             "created_at": "2026-09-20T12:00:00Z",
@@ -98,6 +108,8 @@ ColumnLayout {
                     "onMissing": "dim"
                 }) : t);
     }
+
+    readonly property var unfilledFields: root.editTiles.filter(t => t.type === "scalar" && Statusphere.isCustomFieldKey(t.field) && root.customEntries[t.field] === undefined && !Statusphere.tileHasData(root.previewAccount, t)).map(t => t.field)
 
     readonly property var previewTiles: {
         const tiles = root.editSurface === "detail" ? CardLayouts.fallbackDetail(root.editTiles, Statusphere.detailFieldsFor(root.previewAccount)) : root.editTiles;
@@ -382,7 +394,8 @@ ColumnLayout {
             if (tile.type !== "scalar" || !Statusphere.isCustomFieldKey(tile.field) || root.customEntries[tile.field])
                 continue;
             const kindId = root.kindFromForm(tile.field);
-            root.setAnswer(tile.field, kindId, kindId === "text" ? (CardLayouts.packTexts[tile.field] ?? "") : "");
+            if (Templates.seedsItself(Templates.kind(kindId)))
+                root.setAnswer(tile.field, kindId, "");
         }
     }
 
@@ -451,19 +464,23 @@ ColumnLayout {
 
     Rectangle {
         Layout.fillWidth: true
-        implicitHeight: Math.max(80, preview.implicitHeight + 16 + (emptyHint.visible && preview.rowsUsed > 0 ? emptyHint.implicitHeight + 8 : 0))
+        implicitHeight: Math.max(80, preview.implicitHeight + 16 + (previewHint.visible && preview.rowsUsed > 0 ? previewHint.implicitHeight + 8 : 0))
         radius: Appearance.rounding.normal
         color: Appearance.colors.colLayer1
 
         StyledText {
-            id: emptyHint
-            visible: root.editTiles.length === 0
+            id: previewHint
+            visible: root.editTiles.length === 0 || root.unfilledFields.length > 0
             x: 16
-            y: preview.rowsUsed > 0 ? preview.y + preview.height + 8 : (parent.height - emptyHint.height) / 2
+            y: preview.rowsUsed > 0 ? preview.y + preview.height + 8 : (parent.height - previewHint.height) / 2
             width: parent.width - 32
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
-            text: root.editSurface === "detail" ? Translation.tr("Friends see the standard detail card until you add a tile") : Translation.tr("No tiles yet - add one or start from a pack")
+            text: {
+                if (root.editTiles.length > 0)
+                    return Translation.tr("Dimmed tiles have no value yet - pick one to fill it in");
+                return root.editSurface === "detail" ? Translation.tr("Friends see the standard detail card until you add a tile") : Translation.tr("No tiles yet - add one or start from a pack");
+            }
             color: Appearance.colors.colSubtext
             font.pixelSize: Appearance.font.pixelSize.smaller
         }

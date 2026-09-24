@@ -356,34 +356,12 @@ function standardDetailFor(fields) {
     return best?.tiles ?? [];
 }
 
-// A friend's pack: self-expression, not a system monitor. Music, game and photo carry
-// the personality, active_app/active_window/workspace read what the cli already
-// collects about the machine's own use, and a custom.json field (mood, quote, a local
-// clock, the weather) reaches for whatever the friend shells out for. System metrics
-// (cpu/mem/disk/load/uptime/package_count) stay an accent, at most two a pack. A row
-// pack is the one line every friend sees in the room list, so it fills exactly one row;
-// a detail pack fills three or four. No field twice in a pack and no holes in its grid,
-// while a row pack and a detail pack may name the same field.
 const packNames = {
     "nightOwl": "Night Owl",
     "musicHead": "Music Head",
     "traveler": "Traveler",
     "coder": "Coder",
     "minimal": "Minimal"
-};
-
-// What a "Your text" field a pack names starts out as, so it has a custom.json entry and
-// a value from the moment the pack is applied. Weather and clock forms get their
-// template instead.
-const packTexts = {
-    "mood": "🌙",
-    "quote": "back in five",
-    "top_artist": "Robyn",
-    "streak": "9",
-    "playlist": "Neon Drive",
-    "flag": "🇯🇵",
-    "trip_day": "4",
-    "caption": "temple steps"
 };
 
 const packs = {
