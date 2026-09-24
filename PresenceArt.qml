@@ -11,6 +11,7 @@ import Quickshell.Io
 Rectangle {
     id: root
     required property string source
+    property string fallbackIcon: "music_note"
 
     radius: Appearance.rounding.small
     color: Appearance.colors.colLayer1
@@ -59,6 +60,6 @@ Rectangle {
         anchors.centerIn: parent
         iconSize: Math.round(root.height * 0.4)
         color: Appearance.colors.colSubtext
-        text: "music_note"
+        text: root.fallbackIcon
     }
 }

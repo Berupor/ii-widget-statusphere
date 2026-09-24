@@ -150,6 +150,7 @@ Item {
             sourceComponent: PresenceArt {
                 radius: 0
                 source: root.backgroundSource
+                fallbackIcon: root.liveBackground === "music" ? "music_note" : root.liveBackground === "game" ? "sports_esports" : "image"
             }
         }
 
