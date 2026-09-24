@@ -347,6 +347,21 @@ Singleton {
         return (account?.primary?._kind ?? root.kindById[account?.id ?? ""] ?? "") === "server";
     }
 
+    // Reconnecting reorders accountIds (offline sinks to the bottom), which rebuilds the
+    // Repeater's delegates - so the collapsed state for a server's forced detail card has
+    // to live here, keyed by account id, instead of on the row itself.
+    property var collapsedDetailsById: ({})
+
+    function detailsCollapsedFor(accountId): bool {
+        return root.collapsedDetailsById[accountId] === true;
+    }
+
+    function toggleDetailsCollapsed(accountId): void {
+        const collapsed = Object.assign({}, root.collapsedDetailsById);
+        collapsed[accountId] = !root.detailsCollapsedFor(accountId);
+        root.collapsedDetailsById = collapsed;
+    }
+
     // The verdict is the machine's own, from ~/.config/statusphere/health.json there.
     function healthFor(account): string {
         return account?.primary?._health ?? "";

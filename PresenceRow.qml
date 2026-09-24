@@ -329,7 +329,8 @@ Rectangle {
     // Server cards show details by default (serverMetrics option), which used to make
     // them the one card right-click couldn't collapse - this tracks that dismissal separately
     readonly property bool serverDetailsForced: root.isServer && !root.offline && Statusphere.opt("serverMetrics")
-    property bool serverDetailsCollapsed: false
+    // Kept in the singleton, not here: a reconnect resorts accountIds and rebuilds this row
+    readonly property bool serverDetailsCollapsed: Statusphere.detailsCollapsedFor(root.modelData)
 
     onCanShareChanged: if (!root.canShare)
         root.showActions = false
@@ -344,7 +345,7 @@ Rectangle {
                 return;
             }
             if (root.serverDetailsForced) {
-                root.serverDetailsCollapsed = !root.serverDetailsCollapsed;
+                Statusphere.toggleDetailsCollapsed(root.modelData);
                 return;
             }
             root.showDetails = !root.showDetails;
