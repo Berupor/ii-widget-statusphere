@@ -203,8 +203,10 @@ ColumnLayout {
         }
     }
 
-    CardEditor {
+    Loader {
         Layout.fillWidth: true
-        visible: pageTabs.currentIndex === 1
+        active: pageTabs.currentIndex === 1
+        visible: active
+        sourceComponent: CardEditor {}
     }
 }

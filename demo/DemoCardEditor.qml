@@ -134,7 +134,7 @@ Item {
         const cards = root.findAllData(root.gallery, it => it.modelData?.tile !== undefined && it.span !== undefined, []);
         for (const card of cards) {
             const name = card.modelData.label;
-            const label = root.first(card, it => it.text === name && it.truncated !== undefined);
+            const label = root.first(card, it => it.objectName === "galleryEntryLabel");
             if (!label || label.truncated || !root.inside(label, card))
                 problems.push(`${name}: label`);
             if (!root.inside(card, root.gallery))
@@ -241,8 +241,17 @@ Item {
                 root.note("roomTexts", root.visibleTexts(root.settings));
                 root.note("roomEditorItems", root.findAllData(root.settings, it => it.visible && (it.reorderable !== undefined || it.fieldKey !== undefined || it.entryScale !== undefined), []).length);
                 root.note("roomTooltips", root.tooltipsShown(root.settings));
+                root.note("roomEditorBuilt", root.editor !== null);
                 root.pageTabs.currentIndex = 1;
-
+                root.findParts();
+                root.note("cardEditorBuilt", root.editor !== null);
+            }
+        }
+        PauseAnimation {
+            duration: 600
+        }
+        ScriptAction {
+            script: {
                 root.editor.selectTile(root.tileIndex(root.handField));
                 root.note("handKind", root.sheet.kindId);
                 root.note("handAnswer", root.answerField()?.text ?? null);
@@ -530,6 +539,11 @@ Item {
                 "name": "the Room tab has no card editor controls",
                 "got": s.roomEditorItems,
                 "want": 0
+            },
+            {
+                "name": "the card editor is built only once its tab is picked",
+                "got": [s.roomEditorBuilt, s.cardEditorBuilt],
+                "want": [false, true]
             },
             {
                 "name": "a hand-written custom.json command shows as Your command",

@@ -503,7 +503,23 @@ ColumnLayout {
         return Object.assign(values, root.testedValues);
     }
 
-    readonly property var previewAccount: {
+    // Every snapshot rebuilds selfAccount even when the owner's own device did not change,
+    // so the preview and gallery accounts only take a value that differs from the last one.
+    property var previewAccount: null
+    property var galleryAccount: null
+    onFreshPreviewAccountChanged: root.keepIfChanged("previewAccount", root.freshPreviewAccount)
+    onFreshGalleryAccountChanged: root.keepIfChanged("galleryAccount", root.freshGalleryAccount)
+    Component.onCompleted: {
+        root.previewAccount = root.freshPreviewAccount;
+        root.galleryAccount = root.freshGalleryAccount;
+    }
+
+    function keepIfChanged(name, value) {
+        if (JSON.stringify(root[name]) !== JSON.stringify(value))
+            root[name] = value;
+    }
+
+    readonly property var freshPreviewAccount: {
         const account = root.ownerAccount;
         if (!account)
             return root.accountWith(root.withValues({}, root.knownValues), null);
@@ -513,7 +529,7 @@ ColumnLayout {
         });
     }
 
-    readonly property var galleryAccount: {
+    readonly property var freshGalleryAccount: {
         const samples = {};
         for (const kind of root.ownerKinds)
             samples[root.normalizeFieldName(kind.defaultName ?? kind.label)] = kind.sample;
@@ -997,7 +1013,7 @@ ColumnLayout {
         readonly property real thumbPadding: 4
 
         Repeater {
-            model: packList.packs
+            model: root.packsOpen ? packList.packs : []
 
             delegate: ColumnLayout {
                 id: packDelegate
@@ -1081,7 +1097,7 @@ ColumnLayout {
                     spacing: gallery.gap * gallery.entryScale
 
                     Repeater {
-                        model: galleryGroup.modelData.entries
+                        model: root.galleryOpen && galleryGroup.expanded ? galleryGroup.modelData.entries : []
 
                         delegate: RippleButton {
                             id: galleryCard
@@ -1104,6 +1120,7 @@ ColumnLayout {
 
                             StyledText {
                                 id: cardLabel
+                                objectName: "galleryEntryLabel"
                                 width: parent.width
                                 y: galleryTile.height * gallery.entryScale + gallery.labelGap
                                 horizontalAlignment: Text.AlignHCenter
