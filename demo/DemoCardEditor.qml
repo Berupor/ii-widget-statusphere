@@ -26,6 +26,12 @@ Item {
             "cmd": "uptime -p",
             "repeat_seconds": 60
         })
+    readonly property string legacyField: "status_line"
+    readonly property string legacyText: "it's late"
+    readonly property var legacyEntry: ({
+            "cmd": "printf '%s' 'it'\\''s late'",
+            "repeat_seconds": 0
+        })
     readonly property var handEditedWeather: ({
             "cmd": "curl -sf 'wttr.in/Tokyo?format=3'",
             "repeat_seconds": 3600
@@ -213,11 +219,17 @@ Item {
                     "field": root.handField,
                     "form": "text",
                     "size": "2x1"
+                }), CardLayouts.tile({
+                    "type": "scalar",
+                    "field": root.legacyField,
+                    "form": "text",
+                    "size": "2x1"
                 })],
             "detail": []
         }));
         customView.setText(JSON.stringify({
-            [root.handField]: root.handEntry
+            [root.handField]: root.handEntry,
+            [root.legacyField]: root.legacyEntry
         }));
         Statusphere.ingest(JSON.stringify(root.selfRoom));
         Statusphere.selfAccountId = "acc-owner";
@@ -259,6 +271,9 @@ Item {
                 root.editor.selectTile(root.tileIndex(root.handField));
                 root.note("handKind", root.sheet.kindId);
                 root.note("handAnswer", root.answerField()?.text ?? null);
+                root.editor.selectTile(root.tileIndex(root.legacyField));
+                root.note("legacyOpened", [root.sheet.kindId, root.answerField()?.text ?? null]);
+                root.commitText(root.answerField(), root.answerField().text);
 
                 root.editor.openGallery();
             }
@@ -308,6 +323,8 @@ Item {
         ScriptAction {
             script: {
                 root.note("customAfterWeather", root.readJson(customView));
+                root.note("legacyAfterSave", root.seen.customAfterWeather?.[root.legacyField]);
+                root.editor.removeTileAt(root.tileIndex(root.legacyField));
                 root.note("layoutAfterWeather", root.readJson(layoutView));
                 root.editor.selectTile(root.tileIndex("weather"));
                 root.first(root.sheet, it => it.selected !== undefined && it.options !== undefined && it.options[0]?.value === 30).selected(3600);
@@ -477,7 +494,7 @@ Item {
             for (const p of CardLayouts.packsFor(surface)) {
                 root.editor.applyPack(p.id);
                 for (const key of root.packCustomFields(p.tiles))
-                    if (!root.editor.customEntries[key]?.cmd)
+                    if (root.editor.customEntries[key] === undefined)
                         unsourced.push(`${surface}.${p.id}.${key}`);
                 root.editor.undo();
             }
@@ -571,6 +588,18 @@ Item {
                 "name": "a hand-written command shows its cmd, not an empty field",
                 "got": s.handAnswer,
                 "want": "uptime -p"
+            },
+            {
+                "name": "a text the editor once wrote as a printf cmd opens as Your text with its words",
+                "got": s.legacyOpened,
+                "want": ["text", root.legacyText]
+            },
+            {
+                "name": "saving that text rewrites it as a plain value, with no shell",
+                "got": s.legacyAfterSave,
+                "want": {
+                    "value": root.legacyText
+                }
             },
             {
                 "name": "the gallery lists the live templates and the owner's own kinds",
@@ -779,8 +808,7 @@ Item {
                         "repeat_seconds": 30
                     },
                     {
-                        "cmd": "printf '%s' '🇯🇵'",
-                        "repeat_seconds": 0
+                        "value": "🇯🇵"
                     }
                 ]
             },

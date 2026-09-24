@@ -128,7 +128,7 @@ ColumnLayout {
     readonly property var knownValues: {
         const values = {};
         for (const key of Object.keys(root.customEntries)) {
-            const text = Templates.decodeText(root.customEntries[key]?.cmd);
+            const text = Templates.textOf(root.customEntries[key]);
             if (text !== null)
                 values[key] = text;
         }
@@ -183,7 +183,7 @@ ColumnLayout {
         const entry = root.customEntries[key];
         if (!entry)
             return null;
-        const text = Templates.decodeText(entry.cmd);
+        const text = Templates.textOf(entry);
         if (text !== null)
             return {
                 "kind": "text",
@@ -241,12 +241,22 @@ ColumnLayout {
     }
 
     function commandFor(kindId, answer) {
-        if (kindId === "text")
-            return Templates.encodeText(answer);
         if (kindId === "command")
             return answer.trim();
         const kind = Templates.kind(kindId);
-        return kind.needsAnswer && !answer.trim() ? "" : kind.cmdFor(answer);
+        return !kind?.cmdFor || (kind.needsAnswer && !answer.trim()) ? "" : kind.cmdFor(answer);
+    }
+
+    function entryFor(key, kindId, answer) {
+        if (kindId === "text")
+            return answer ? {
+                "value": answer
+            } : null;
+        const cmd = root.commandFor(kindId, answer);
+        return cmd ? {
+            "cmd": cmd,
+            "repeat_seconds": root.repeatFor(key, kindId)
+        } : null;
     }
 
     function chooseKind(key, kindId) {
@@ -256,15 +266,11 @@ ColumnLayout {
     }
 
     function setAnswer(key, kindId, answer) {
-        const cmd = root.commandFor(kindId, answer);
-        if (!cmd || (kindId === "text" && !answer)) {
+        const entry = root.entryFor(key, kindId, answer);
+        if (entry)
+            store.setEntry(key, entry, root.fieldKindOf(kindId, answer));
+        else
             root.dropEntry(key);
-            return;
-        }
-        store.setEntry(key, {
-            "cmd": cmd,
-            "repeat_seconds": kindId === "text" ? 0 : root.repeatFor(key, kindId)
-        }, root.fieldKindOf(kindId, answer));
     }
 
     function fieldKindOf(kindId, answer) {
@@ -278,7 +284,7 @@ ColumnLayout {
 
     function setRepeat(key, seconds) {
         const entry = root.customEntries[key];
-        if (!entry || !(seconds > 0) || entry.repeat_seconds === seconds)
+        if (!entry?.cmd || !(seconds > 0) || entry.repeat_seconds === seconds)
             return;
         const source = root.sourceOf(key);
         store.setEntry(key, Object.assign({}, entry, {
@@ -293,7 +299,8 @@ ColumnLayout {
     }
 
     function dropEntry(key) {
-        if (root.customEntries[key] === undefined || !store.isOwned(key))
+        const entry = root.customEntries[key];
+        if (entry === undefined || !(store.isOwned(key) || Templates.legacyTextOf(entry) !== null))
             return;
         store.removeEntry(key);
     }

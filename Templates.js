@@ -20,25 +20,23 @@ function shPath(path) {
     return shQuote(trimmed);
 }
 
-// printf avoids the cross-shell escaping differences of echo.
-const textCmdPrefix = "printf '%s' ";
+const legacyTextCmdPrefix = "printf '%s' ";
 
-function encodeText(value) {
-    return textCmdPrefix + shQuote(value);
+function legacyTextOf(entry) {
+    const cmd = entry?.cmd;
+    if (typeof cmd !== "string" || !cmd.startsWith(legacyTextCmdPrefix))
+        return null;
+    return shUnquote(cmd.slice(legacyTextCmdPrefix.length));
 }
 
-function decodeText(cmd) {
-    if (typeof cmd !== "string" || !cmd.startsWith(textCmdPrefix))
-        return null;
-    return shUnquote(cmd.slice(textCmdPrefix.length));
+function textOf(entry) {
+    return typeof entry?.value === "string" ? entry.value : legacyTextOf(entry);
 }
 
 const clockCmd = "date +%H:%M";
 const batteryCmd = "printf '%s%%' \"$(cat /sys/class/power_supply/BAT*/capacity | head -n1)\"";
 const defaultCommandRepeat = 60;
 
-// What an owner-made tile can show. A template with cmdFor is a ready shell command asking
-// at most one question; needsAnswer means the field has no value until it is answered.
 const kinds = [
     {
         "id": "weather",
