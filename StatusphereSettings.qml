@@ -29,6 +29,53 @@ ColumnLayout {
     property var editDetail: []
     property string editSurface: "row"
     property int selectedIndex: -1
+    property string selectedPresetName: ""
+    property string savedSnapshot: "{}"
+    readonly property bool dirty: JSON.stringify({
+        "row": root.editRow,
+        "detail": root.editDetail
+    }) !== root.savedSnapshot
+
+    // Plausible values for every field a catalog entry or preset can name, so a preset
+    // thumbnail reads at a glance instead of showing "-" for data this machine has none of.
+    readonly property var demoDevice: ({
+            "cpu_percent": 42,
+            "memory_used_mb": 6144,
+            "memory_total_mb": 16384,
+            "disk_used_percent": 58,
+            "disk_free_gb": 210,
+            "weather": "18°C, clear",
+            "spotify_status": "playing",
+            "spotify_track": "Nightcall",
+            "spotify_artist": "Kavinsky",
+            "spotify_art_url": String(Qt.resolvedUrl("demo/covers/nightcall.jpg")),
+            "game_status": "playing",
+            "game_name": "Cyberpunk 2077",
+            "game_display": "Cyberpunk 2077",
+            "game_header_url": String(Qt.resolvedUrl("demo/covers/cp2077-header.jpg")),
+            "game_session_seconds": 5400,
+            "custom_fields": ["active_hours", "local_time", "mood", "quote", "genre", "region", "trip_day", "caption", "project", "commits", "focus", "workspace", "note"],
+            "active_hours": "6",
+            "active_hours_history": [0, 1, 3, 6, 5, 2, 4, 6, 3, 1, 0, 0],
+            "local_time": "23:14",
+            "mood": "calm",
+            "quote": "turn it up",
+            "genre": "synthwave",
+            "region": "kyoto",
+            "trip_day": "4",
+            "caption": "temple steps",
+            "project": "editor",
+            "commits": "9",
+            "commits_history": [1, 3, 2, 4, 5, 3, 2, 4, 6, 3, 2, 1],
+            "focus": "72%",
+            "workspace": "3: editor",
+            "note": "heads down"
+        })
+    readonly property var demoAccount: ({
+            "primary": root.demoDevice,
+            "devices": [root.demoDevice],
+            "offline": false
+        })
     readonly property var editTiles: root.editSurface === "row" ? root.editRow : root.editDetail
     readonly property var selectedTile: (root.selectedIndex >= 0 && root.selectedIndex < root.editTiles.length) ? root.editTiles[root.selectedIndex] : null
     // Forces every tile to stay on screen and clickable in the editor, even one that would
@@ -189,12 +236,73 @@ ColumnLayout {
     ]
 
     readonly property var sizeOptions: ["1x1", "2x1", "2x2", "4x1"]
-    readonly property var colorOptions: ["primary", "secondary", "tertiary", "error", "primaryContainer", "secondaryContainer", "tertiaryContainer", "errorContainer"]
+    // No error role here: it reads as a warning on someone's own card, not a colour choice.
+    readonly property var colorOptions: ["primary", "secondary", "tertiary", "primaryContainer", "secondaryContainer", "tertiaryContainer"]
     readonly property var shapeOptions: ["default", "auto", "Circle", "Pill", "Arch", "SemiCircle", "Diamond", "Pentagon", "Cookie4Sided", "Cookie6Sided", "Cookie9Sided", "Clover4Leaf", "Heart", "Sunny", "SoftBurst"]
     readonly property var scalarFormOptions: ["ring", "bar", "number", "graph", "text", "big", "clock", "weather", "heatmap"]
     readonly property var musicFormOptions: ["cover", "vinyl", "wave"]
     readonly property var gameFormOptions: ["banner", "timer"]
     readonly property var onMissingOptions: ["hide", "dim"]
+    readonly property var sizeIcons: ({
+            "1x1": "crop_square",
+            "2x1": "crop_landscape",
+            "2x2": "grid_on",
+            "4x1": "view_agenda"
+        })
+    readonly property var sizeChipOptions: root.sizeOptions.map(s => ({
+                "displayName": s,
+                "icon": root.sizeIcons[s] ?? "",
+                "value": s
+            }))
+
+    // Same templates as "Add a tile" below, filtered to one data type - the catalog is
+    // already the human-readable name for every form a tile can take.
+    function formOptionsFor(type) {
+        return root.catalog.filter(c => c.tile.type === type).map(c => ({
+                    "displayName": c.label,
+                    "icon": c.icon,
+                    "value": c.tile.form
+                }));
+    }
+
+    // What actually exists for this device right now, plus the three composite sources -
+    // rebinding a tile to one of these sets both its type and its field together.
+    function sourceOptionsFor(deviceId) {
+        const device = deviceId ? (root.ownerAccount?.devices ?? []).find(d => d.device_id === deviceId) : root.ownerAccount?.primary;
+        const options = Statusphere.fieldsFor(device).map(f => ({
+                    "displayName": f.label,
+                    "icon": f.icon,
+                    "value": `scalar:${f.key}`
+                }));
+        options.push({
+            "displayName": Translation.tr("Music"),
+            "icon": "music_note",
+            "value": "music:"
+        });
+        options.push({
+            "displayName": Translation.tr("Game"),
+            "icon": "sports_esports",
+            "value": "game:"
+        });
+        options.push({
+            "displayName": Translation.tr("Photo"),
+            "icon": "photo_camera",
+            "value": "photo:"
+        });
+        return options;
+    }
+
+    function selectSource(sourceKey) {
+        const sep = sourceKey.indexOf(":");
+        const type = sourceKey.slice(0, sep);
+        const field = sourceKey.slice(sep + 1);
+        const forms = root.formOptionsFor(type);
+        root.updateSelectedTile({
+            "type": type,
+            "field": field,
+            "form": forms.length > 0 ? forms[0].value : ""
+        });
+    }
 
     function setSurfaceTiles(tiles) {
         if (root.editSurface === "row")
@@ -215,11 +323,13 @@ ColumnLayout {
         root.editRow = preset.row;
         root.editDetail = preset.detail;
         root.selectedIndex = -1;
+        root.selectedPresetName = name;
     }
 
     function addTile(blueprint) {
         root.setSurfaceTiles(root.editTiles.concat([blueprint]));
         root.selectedIndex = root.editTiles.length - 1; // editTiles already reflects the concat above
+        root.selectedPresetName = "";
     }
 
     function updateSelectedTile(patch) {
@@ -228,6 +338,7 @@ ColumnLayout {
         const tiles = root.editTiles.slice();
         tiles[root.selectedIndex] = Object.assign({}, tiles[root.selectedIndex], patch);
         root.setSurfaceTiles(tiles);
+        root.selectedPresetName = "";
     }
 
     function removeSelectedTile() {
@@ -237,20 +348,32 @@ ColumnLayout {
         tiles.splice(root.selectedIndex, 1);
         root.setSurfaceTiles(tiles);
         root.selectedIndex = -1;
+        root.selectedPresetName = "";
     }
 
-    function moveSelectedTile(delta) {
-        if (!root.selectedTile)
+    function removeTileAt(index) {
+        const tiles = root.editTiles.slice();
+        tiles.splice(index, 1);
+        root.setSurfaceTiles(tiles);
+        if (root.selectedIndex === index)
+            root.selectedIndex = -1;
+        else if (root.selectedIndex > index)
+            root.selectedIndex -= 1;
+        root.selectedPresetName = "";
+    }
+
+    // Drop onto another tile's slot inserts before it; everything from there on shifts
+    // over by one, same as pulling a card out of a hand and sliding it back in elsewhere.
+    function reorderTile(from, to) {
+        if (!root.editTiles[from] || from === to)
             return;
         const tiles = root.editTiles.slice();
-        const to = root.selectedIndex + delta;
-        if (to < 0 || to >= tiles.length)
-            return;
-        const tmp = tiles[to];
-        tiles[to] = tiles[root.selectedIndex];
-        tiles[root.selectedIndex] = tmp;
+        const [moved] = tiles.splice(from, 1);
+        const insertAt = from < to ? to - 1 : to;
+        tiles.splice(insertAt, 0, moved);
         root.setSurfaceTiles(tiles);
-        root.selectedIndex = to;
+        root.selectedIndex = insertAt;
+        root.selectedPresetName = "";
     }
 
     function loadMyLayout() {
@@ -264,6 +387,10 @@ ColumnLayout {
         }
         if (root.selectedIndex >= root.editTiles.length)
             root.selectedIndex = -1;
+        root.savedSnapshot = JSON.stringify({
+            "row": root.editRow,
+            "detail": root.editDetail
+        });
     }
 
     function saveMyLayout() {
@@ -272,6 +399,10 @@ ColumnLayout {
             "row": root.editRow,
             "detail": root.editDetail
         }, null, 2));
+        root.savedSnapshot = JSON.stringify({
+            "row": root.editRow,
+            "detail": root.editDetail
+        });
     }
 
     FileView {
@@ -446,6 +577,149 @@ ColumnLayout {
         }
     }
 
+    component ColorSwatches: Row {
+        id: swatchesRoot
+        spacing: 6
+        required property var options
+        property string current: ""
+        signal picked(string role)
+
+        function roleColor(role: string): color {
+            switch (role) {
+            case "primary":
+                return Appearance.colors.colPrimary;
+            case "secondary":
+                return Appearance.colors.colSecondary;
+            case "tertiary":
+                return Appearance.colors.colTertiary;
+            case "primaryContainer":
+                return Appearance.colors.colPrimaryContainer;
+            case "secondaryContainer":
+                return Appearance.colors.colSecondaryContainer;
+            case "tertiaryContainer":
+                return Appearance.colors.colTertiaryContainer;
+            default:
+                return Appearance.colors.colLayer2;
+            }
+        }
+
+        Repeater {
+            model: swatchesRoot.options
+            delegate: Rectangle {
+                id: swatch
+                required property string modelData
+                width: 26
+                height: 26
+                radius: height / 2
+                color: swatchesRoot.roleColor(swatch.modelData)
+                border.width: swatchesRoot.current === swatch.modelData ? 3 : 1
+                border.color: swatchesRoot.current === swatch.modelData ? Appearance.colors.colOnLayer1 : Appearance.colors.colOutlineVariant
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: swatchesRoot.picked(swatch.modelData)
+                }
+
+                StyledToolTip {
+                    text: swatch.modelData
+                }
+            }
+        }
+    }
+
+    // Silhouette names mirror CardTile.qml's silhouetteShape() - a name added there needs
+    // the same case added here to get a preview instead of falling back to a circle.
+    component ShapeGrid: Flow {
+        id: shapeGrid
+        spacing: 6
+        required property var options
+        property string current: ""
+        signal picked(string name)
+
+        function shapeEnum(name: string): int {
+            switch (name) {
+            case "Pill":
+                return MaterialShape.Shape.Pill;
+            case "Arch":
+                return MaterialShape.Shape.Arch;
+            case "SemiCircle":
+                return MaterialShape.Shape.SemiCircle;
+            case "Diamond":
+                return MaterialShape.Shape.Diamond;
+            case "Pentagon":
+                return MaterialShape.Shape.Pentagon;
+            case "Cookie4Sided":
+                return MaterialShape.Shape.Cookie4Sided;
+            case "Cookie6Sided":
+                return MaterialShape.Shape.Cookie6Sided;
+            case "Cookie9Sided":
+                return MaterialShape.Shape.Cookie9Sided;
+            case "Clover4Leaf":
+                return MaterialShape.Shape.Clover4Leaf;
+            case "Heart":
+                return MaterialShape.Shape.Heart;
+            case "Sunny":
+                return MaterialShape.Shape.Sunny;
+            case "SoftBurst":
+                return MaterialShape.Shape.SoftBurst;
+            default:
+                return MaterialShape.Shape.Circle;
+            }
+        }
+
+        Repeater {
+            model: shapeGrid.options
+            delegate: Rectangle {
+                id: shapeSwatch
+                required property string modelData
+                width: 40
+                height: 40
+                radius: Appearance.rounding.small
+                color: shapeGrid.current === shapeSwatch.modelData ? Appearance.colors.colSecondaryContainer : Appearance.colors.colLayer2
+                border.width: shapeGrid.current === shapeSwatch.modelData ? 2 : 0
+                border.color: Appearance.colors.colPrimary
+
+                MaterialSymbol {
+                    visible: shapeSwatch.modelData === "auto"
+                    anchors.centerIn: parent
+                    text: "auto_awesome"
+                    iconSize: Appearance.font.pixelSize.large
+                    color: Appearance.colors.colOnLayer2
+                }
+
+                Rectangle {
+                    visible: shapeSwatch.modelData === "default"
+                    anchors.centerIn: parent
+                    width: 20
+                    height: 20
+                    radius: Appearance.rounding.small
+                    color: "transparent"
+                    border.width: 2
+                    border.color: Appearance.colors.colOnLayer2
+                }
+
+                MaterialShape {
+                    visible: shapeSwatch.modelData !== "default" && shapeSwatch.modelData !== "auto"
+                    anchors.centerIn: parent
+                    implicitSize: 20
+                    shape: shapeGrid.shapeEnum(shapeSwatch.modelData)
+                    color: Appearance.colors.colOnLayer2
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: shapeGrid.picked(shapeSwatch.modelData)
+                }
+
+                StyledToolTip {
+                    text: shapeSwatch.modelData
+                }
+            }
+        }
+    }
+
     ContentSubsection {
         title: Translation.tr("My card")
         tooltip: Translation.tr("Pick a pack to start from, then add, remove, move or resize tiles.\nSaves to ~/.config/statusphere/layout.json")
@@ -464,6 +738,7 @@ ColumnLayout {
                 delegate: ColumnLayout {
                     id: presetDelegate
                     required property string modelData
+                    readonly property bool isSelected: root.selectedPresetName === presetDelegate.modelData
                     spacing: 4
 
                     Rectangle {
@@ -471,14 +746,14 @@ ColumnLayout {
                         implicitHeight: 76
                         radius: Appearance.rounding.small
                         color: Appearance.colors.colLayer2
-                        border.width: 1
-                        border.color: Appearance.colors.colOutlineVariant
+                        border.width: presetDelegate.isSelected ? 2 : 1
+                        border.color: presetDelegate.isSelected ? Appearance.colors.colPrimary : Appearance.colors.colOutlineVariant
                         clip: true
 
                         CardGrid {
                             anchors.fill: parent
                             anchors.margins: 6
-                            account: root.ownerAccount
+                            account: root.demoAccount
                             maxRows: 2
                             tiles: root.previewSafe(CardLayouts.get(presetDelegate.modelData)?.row ?? [])
                         }
@@ -494,7 +769,8 @@ ColumnLayout {
                         Layout.alignment: Qt.AlignHCenter
                         text: CardLayouts.get(presetDelegate.modelData)?.name ?? presetDelegate.modelData
                         font.pixelSize: Appearance.font.pixelSize.smaller
-                        color: Appearance.colors.colSubtext
+                        font.weight: presetDelegate.isSelected ? Font.Medium : Font.Normal
+                        color: presetDelegate.isSelected ? Appearance.colors.colPrimary : Appearance.colors.colSubtext
                     }
                 }
             }
@@ -544,8 +820,11 @@ ColumnLayout {
                 maxRows: root.editSurface === "row" ? 2 : 4
                 tiles: root.previewTiles
                 selectable: true
+                reorderable: true
                 selectedIndex: root.selectedIndex
                 onTileClicked: index => root.selectedIndex = index
+                onTileMoved: (fromIndex, toIndex) => root.reorderTile(fromIndex, toIndex)
+                onTileRemoveRequested: index => root.removeTileAt(index)
             }
         }
 
@@ -573,28 +852,29 @@ ColumnLayout {
             Layout.fillWidth: true
             Layout.topMargin: 8
             visible: root.selectedTile !== null
-            spacing: 6
+            spacing: 10
 
             ContentSubsectionLabel {
                 text: Translation.tr("Selected tile")
             }
 
+            ContentSubsectionLabel {
+                text: Translation.tr("Source")
+            }
+
+            ConfigSelectionArray {
+                Layout.fillWidth: true
+                currentValue: `${root.selectedTile?.type ?? ""}:${root.selectedTile?.type === "scalar" ? (root.selectedTile?.field ?? "") : ""}`
+                onSelected: newValue => root.selectSource(newValue)
+                options: root.sourceOptionsFor(root.selectedTile?.device ?? null)
+            }
+
             ConfigRow {
                 Layout.fillWidth: true
 
-                MaterialTextField {
-                    Layout.fillWidth: true
-                    placeholderText: Translation.tr("Field, e.g. cpu, weather, a custom.json key")
-                    text: root.selectedTile?.field ?? ""
-                    enabled: root.selectedTile?.type === "scalar"
-                    onEditingFinished: root.updateSelectedTile({
-                        "field": text
-                    })
-                }
-
                 StyledComboBox {
                     id: deviceBox
-                    Layout.preferredWidth: 160
+                    Layout.preferredWidth: 200
                     textRole: "displayName"
                     model: [{
                             "displayName": Translation.tr("Primary device"),
@@ -603,140 +883,166 @@ ColumnLayout {
                                 "displayName": Statusphere.deviceNameFor(d),
                                 "value": d.device_id
                             }))]
-                    currentIndex: {
-                        const i = deviceBox.model.findIndex(m => m.value === (root.selectedTile?.device ?? null));
-                        return i !== -1 ? i : 0;
-                    }
                     onActivated: index => root.updateSelectedTile({
                         "device": deviceBox.model[index].value
                     })
-                }
-            }
 
-            ConfigRow {
-                Layout.fillWidth: true
-
-                StyledComboBox {
-                    id: formBox
-                    Layout.preferredWidth: 130
-                    property var options: {
-                        if (root.selectedTile?.type === "music")
-                            return root.musicFormOptions;
-                        if (root.selectedTile?.type === "game")
-                            return root.gameFormOptions;
-                        return root.scalarFormOptions;
+                    Binding {
+                        target: deviceBox
+                        property: "currentIndex"
+                        value: Math.max(0, deviceBox.model.findIndex(m => m.value === (root.selectedTile?.device ?? null)))
                     }
-                    model: formBox.options
-                    currentIndex: Math.max(0, formBox.options.indexOf(root.selectedTile?.form))
-                    onActivated: index => root.updateSelectedTile({
-                        "form": formBox.options[index]
-                    })
-                }
-
-                StyledComboBox {
-                    id: sizeBox
-                    Layout.preferredWidth: 90
-                    model: root.sizeOptions
-                    currentIndex: Math.max(0, root.sizeOptions.indexOf(root.selectedTile?.size))
-                    onActivated: index => root.updateSelectedTile({
-                        "size": root.sizeOptions[index]
-                    })
-                }
-
-                StyledComboBox {
-                    id: shapeBox
-                    Layout.preferredWidth: 130
-                    model: root.shapeOptions
-                    currentIndex: Math.max(0, root.shapeOptions.indexOf(root.selectedTile?.shape))
-                    onActivated: index => root.updateSelectedTile({
-                        "shape": root.shapeOptions[index]
-                    })
                 }
             }
 
-            ConfigRow {
+            ContentSubsectionLabel {
+                text: Translation.tr("Form")
+                visible: root.selectedTile?.type !== "photo"
+            }
+
+            ConfigSelectionArray {
                 Layout.fillWidth: true
+                visible: root.selectedTile?.type !== "photo"
+                currentValue: root.selectedTile?.form ?? ""
+                onSelected: newValue => root.updateSelectedTile({
+                    "form": newValue
+                })
+                options: root.formOptionsFor(root.selectedTile?.type ?? "scalar")
+            }
 
-                StyledComboBox {
-                    id: colorBox
-                    Layout.preferredWidth: 160
-                    model: root.colorOptions
-                    currentIndex: Math.max(0, root.colorOptions.indexOf(root.selectedTile?.color))
-                    onActivated: index => root.updateSelectedTile({
-                        "color": root.colorOptions[index]
-                    })
-                }
+            ContentSubsectionLabel {
+                text: Translation.tr("Size")
+            }
 
-                StyledComboBox {
-                    id: onMissingBox
-                    Layout.preferredWidth: 100
-                    model: root.onMissingOptions
-                    currentIndex: Math.max(0, root.onMissingOptions.indexOf(root.selectedTile?.onMissing))
-                    onActivated: index => root.updateSelectedTile({
-                        "onMissing": root.onMissingOptions[index]
-                    })
+            ConfigSelectionArray {
+                Layout.fillWidth: true
+                currentValue: root.selectedTile?.size ?? ""
+                onSelected: newValue => root.updateSelectedTile({
+                    "size": newValue
+                })
+                options: root.sizeChipOptions
+            }
+
+            ContentSubsectionLabel {
+                text: Translation.tr("Silhouette")
+            }
+
+            ShapeGrid {
+                Layout.fillWidth: true
+                options: root.shapeOptions
+                current: root.selectedTile?.shape ?? ""
+                onPicked: name => root.updateSelectedTile({
+                    "shape": name
+                })
+            }
+
+            ContentSubsectionLabel {
+                text: Translation.tr("Colour")
+            }
+
+            ColorSwatches {
+                options: root.colorOptions
+                current: root.selectedTile?.color ?? ""
+                onPicked: role => root.updateSelectedTile({
+                    "color": role
+                })
+            }
+
+            ContentSubsectionLabel {
+                text: Translation.tr("Background")
+            }
+
+            ConfigSelectionArray {
+                Layout.fillWidth: true
+                currentValue: root.selectedTile?.background?.kind ?? "color"
+                onSelected: newValue => root.updateSelectedTile({
+                    "background": {
+                        "kind": newValue,
+                        "value": newValue === "live" ? (root.selectedTile?.type === "scalar" ? "" : root.selectedTile?.type) : ""
+                    }
+                })
+                options: [
+                    {
+                        "displayName": Translation.tr("Colour"),
+                        "icon": "palette",
+                        "value": "color"
+                    },
+                    {
+                        "displayName": Translation.tr("Live"),
+                        "icon": "bolt",
+                        "value": "live"
+                    },
+                    {
+                        "displayName": Translation.tr("Image URL"),
+                        "icon": "link",
+                        "value": "url"
+                    }
+                ]
+            }
+
+            ColorSwatches {
+                visible: (root.selectedTile?.background?.kind ?? "color") === "color"
+                options: root.colorOptions
+                current: root.selectedTile?.background?.value ?? ""
+                onPicked: role => root.updateSelectedTile({
+                    "background": {
+                        "kind": "color",
+                        "value": role
+                    }
+                })
+            }
+
+            MaterialTextField {
+                id: backgroundUrlField
+                Layout.fillWidth: true
+                visible: (root.selectedTile?.background?.kind ?? "color") === "url"
+                placeholderText: Translation.tr("Image URL")
+                onEditingFinished: root.updateSelectedTile({
+                    "background": {
+                        "kind": "url",
+                        "value": backgroundUrlField.text
+                    }
+                })
+
+                Binding {
+                    target: backgroundUrlField
+                    property: "text"
+                    value: root.selectedTile?.background?.kind === "url" ? (root.selectedTile?.background?.value ?? "") : ""
                 }
             }
 
-            ConfigRow {
-                Layout.fillWidth: true
+            ConfigSwitch {
+                id: keepPlaceSwitch
+                buttonIcon: "visibility"
+                text: Translation.tr("Keep place when empty")
+                onCheckedChanged: root.updateSelectedTile({
+                    "onMissing": keepPlaceSwitch.checked ? "dim" : "hide"
+                })
 
-                StyledComboBox {
-                    id: backgroundKindBox
-                    Layout.preferredWidth: 100
-                    model: ["color", "live", "url"]
-                    currentIndex: Math.max(0, ["color", "live", "url"].indexOf(root.selectedTile?.background?.kind))
-                    onActivated: index => root.updateSelectedTile({
-                        "background": {
-                            "kind": ["color", "live", "url"][index],
-                            "value": root.selectedTile?.background?.value ?? ""
-                        }
-                    })
-                }
-
-                MaterialTextField {
-                    Layout.fillWidth: true
-                    placeholderText: Translation.tr("Background value: a colour role, music/game/photo, or a URL")
-                    text: root.selectedTile?.background?.value ?? ""
-                    onEditingFinished: root.updateSelectedTile({
-                        "background": {
-                            "kind": root.selectedTile?.background?.kind ?? "color",
-                            "value": text
-                        }
-                    })
-                }
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 6
-
-                RippleButtonWithIcon {
-                    materialIcon: "arrow_upward"
-                    mainText: Translation.tr("Move up")
-                    onClicked: root.moveSelectedTile(-1)
-                }
-                RippleButtonWithIcon {
-                    materialIcon: "arrow_downward"
-                    mainText: Translation.tr("Move down")
-                    onClicked: root.moveSelectedTile(1)
-                }
-                RippleButtonWithIcon {
-                    materialIcon: "delete"
-                    mainText: Translation.tr("Remove")
-                    onClicked: root.removeSelectedTile()
-                }
-                Item {
-                    Layout.fillWidth: true
+                Binding {
+                    target: keepPlaceSwitch
+                    property: "checked"
+                    value: root.selectedTile?.onMissing === "dim"
                 }
             }
         }
 
-        RippleButtonWithIcon {
+        RowLayout {
             Layout.topMargin: 8
-            materialIcon: "save"
-            mainText: Translation.tr("Save my card")
-            onClicked: root.saveMyLayout()
+            spacing: 8
+
+            RippleButtonWithIcon {
+                materialIcon: "save"
+                mainText: Translation.tr("Save my card")
+                onClicked: root.saveMyLayout()
+            }
+
+            StyledText {
+                visible: root.dirty
+                text: Translation.tr("Unsaved changes")
+                color: Appearance.colors.colSubtext
+                font.pixelSize: Appearance.font.pixelSize.smaller
+            }
         }
     }
 }
