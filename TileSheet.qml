@@ -55,8 +55,8 @@ Rectangle {
     ]
     readonly property string plainBackground: "none"
     readonly property string defaultLiveBackground: CardLayouts.typeOf(root.tile)?.reads ?? "photo"
-    // photo/picture tiles paint their own art over any background, so the background pickers below have no visible effect on them.
-    readonly property bool backgroundHidden: (CardLayouts.typeOf(root.tile)?.art ?? "") !== ""
+    // photo/picture tiles and fullBleed forms (music Cover, game Banner) paint their own art over any background, so the background pickers below have no visible effect on them.
+    readonly property bool backgroundHidden: (CardLayouts.typeOf(root.tile)?.art ?? "") !== "" || CardLayouts.formOf(root.tile)?.fullBleed === true
     readonly property var repeatOptions: Templates.repeatChoices.map(seconds => ({
                 "displayName": root.durationLabel(seconds),
                 "value": seconds
