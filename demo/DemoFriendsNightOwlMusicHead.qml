@@ -62,19 +62,33 @@ Item {
                     "spotify_position": 95,
                     "spotify_length": 240,
                     "spotify_art_url": root.cover("nightcall.jpg"),
-                    "custom_fields": ["top_artist", "streak", "quote", "genre", "listening"],
+                    "custom_fields": ["top_artist", "streak", "quote", "genre", "listening", "playlist"],
                     "top_artist": "Kavinsky",
                     "streak": "12",
                     "quote": "Turn it up",
                     "genre": "Synthwave",
                     "listening": "38",
+                    "playlist": "Neon Drive",
                     "listening_history": [12, 18, 25, 30, 22, 38, 15]
                 }
             ],
             "photos": []
         })
 
+    // A generic visual-tree walk, for pinning what a tile actually renders with
+    // instead of just the data that went in.
+    function findAll(item, pred, out) {
+        if (pred(item))
+            out.push(item);
+        for (const c of item.children ?? [])
+            root.findAll(c, pred, out);
+        return out;
+    }
+
     function checks() {
+        const grids = root.findAll(root, it => it.rowsUsed !== undefined && it.placed !== undefined, []);
+        const packedSolid = grids.every(g => g.placed.reduce((sum, p) => sum + p.cols * p.rows, 0) === g.rowsUsed * g.columns);
+
         return [
             {
                 "name": "the night owl pack counts as a custom layout",
@@ -89,6 +103,11 @@ Item {
             {
                 "name": "both rows drew their detail card open",
                 "got": nyxRow.height > 200 && echoRow.height > 200,
+                "want": true
+            },
+            {
+                "name": "no pack row is left with an empty grid cell",
+                "got": grids.length > 0 && packedSolid,
                 "want": true
             }
         ];

@@ -34,12 +34,13 @@ Item {
                         "detail": CardLayouts.presets.traveler.detail
                     },
                     "weather": "9° Rain · Lisbon, PT",
-                    "custom_fields": ["local_time", "mood", "region", "trip_day", "caption"],
+                    "custom_fields": ["local_time", "mood", "region", "trip_day", "caption", "distance"],
                     "local_time": "13:15",
                     "mood": "📷",
                     "region": "PT-11",
                     "trip_day": "42",
-                    "caption": "Somewhere new"
+                    "caption": "Somewhere new",
+                    "distance": "1240 km"
                 },
                 {
                     "account_id": "acc-turing",
@@ -53,13 +54,16 @@ Item {
                         "detail": CardLayouts.presets.coder.detail
                     },
                     "cpu_percent": 34,
+                    "memory_used_mb": 5200,
+                    "memory_total_mb": 16384,
                     "active_workspace": 4,
-                    "custom_fields": ["project", "commits", "focus", "note"],
+                    "custom_fields": ["project", "commits", "focus", "note", "language"],
                     "project": "statusphere · nvim",
                     "commits": "5",
                     "commits_history": [1, 0, 3, 2, 4, 1, 5],
                     "focus": "45%",
-                    "note": "Refactoring the tile grid"
+                    "note": "Refactoring the tile grid",
+                    "language": "TypeScript"
                 }
             ],
             "photos": [
@@ -134,6 +138,15 @@ Item {
                 "got": CardLayouts.names().every(n => {
                     const p = CardLayouts.get(n);
                     return [...p.row, ...p.detail].every(t => t.color !== "error" && (t.background?.value ?? "") !== "error");
+                }),
+                "want": true
+            },
+            {
+                "name": "no field repeats within a pack across row and detail",
+                "got": CardLayouts.names().every(n => {
+                    const p = CardLayouts.get(n);
+                    const fields = [...p.row, ...p.detail].filter(t => t.type === "scalar" && t.field !== "*").map(t => t.field);
+                    return new Set(fields).size === fields.length;
                 }),
                 "want": true
             }

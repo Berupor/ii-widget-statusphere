@@ -27,16 +27,30 @@ Item {
                         "row": CardLayouts.presets.minimal.row,
                         "detail": CardLayouts.presets.minimal.detail
                     },
-                    "custom_fields": ["quote", "local_time", "mood"],
+                    "custom_fields": ["quote", "local_time", "mood", "since"],
                     "quote": "Here, mostly",
                     "local_time": "20:05",
-                    "mood": "🍃"
+                    "mood": "🍃",
+                    "since": "3d"
                 }
             ],
             "photos": []
         })
 
+    // A generic visual-tree walk, for pinning what a tile actually renders with
+    // instead of just the data that went in.
+    function findAll(item, pred, out) {
+        if (pred(item))
+            out.push(item);
+        for (const c of item.children ?? [])
+            root.findAll(c, pred, out);
+        return out;
+    }
+
     function checks() {
+        const grids = root.findAll(root, it => it.rowsUsed !== undefined && it.placed !== undefined, []);
+        const packedSolid = grids.every(g => g.placed.reduce((sum, p) => sum + p.cols * p.rows, 0) === g.rowsUsed * g.columns);
+
         return [
             {
                 "name": "the minimal pack counts as a custom layout",
@@ -46,6 +60,11 @@ Item {
             {
                 "name": "the row drew its detail card open",
                 "got": renRow.height > 150,
+                "want": true
+            },
+            {
+                "name": "no pack row is left with an empty grid cell",
+                "got": grids.length > 0 && packedSolid,
                 "want": true
             }
         ];

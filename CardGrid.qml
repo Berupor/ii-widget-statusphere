@@ -11,6 +11,7 @@ Item {
     required property var account
     required property var tiles
     property int maxRows: 2
+    property bool thumbnail: false
 
     readonly property int columns: 4
     readonly property real spacing: 8
@@ -135,6 +136,7 @@ Item {
 
             account: root.account
             tile: cardTile.modelData.tile
+            thumbnail: root.thumbnail
             x: cardTile.modelData.col * (root.cellSize + root.spacing) + (cardTile.dragged ? root.dragOffsetX : 0)
             y: cardTile.modelData.row * (root.cellSize + root.spacing) + (cardTile.dragged ? root.dragOffsetY : 0)
             z: cardTile.dragged ? 10 : 0

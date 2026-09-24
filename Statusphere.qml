@@ -590,6 +590,8 @@ Singleton {
             return "terminal";
         case "workspace":
             return "desktop_windows";
+        case "language":
+            return "code";
         case "mood":
             return "mood";
         case "region":

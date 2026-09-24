@@ -11,6 +11,7 @@ import Qt5Compat.GraphicalEffects
 Rectangle {
     id: root
     property var photo: null // { account_id, path, created_at, expires_at }
+    property bool thumbnail: false
 
     readonly property int minHeight: 100
     readonly property int maxHeight: 320
@@ -52,7 +53,7 @@ Rectangle {
     }
 
     Rectangle {
-        visible: root.photo !== null
+        visible: root.photo !== null && !root.thumbnail
         anchors {
             right: parent.right
             bottom: parent.bottom

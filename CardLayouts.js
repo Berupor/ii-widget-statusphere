@@ -162,7 +162,7 @@ const presets = {
             }),
             tile({
                 "type": "scalar",
-                "field": "quote",
+                "field": "playlist",
                 "form": "big",
                 "size": "2x1",
                 "color": "secondaryContainer",
@@ -232,7 +232,7 @@ const presets = {
             }),
             tile({
                 "type": "scalar",
-                "field": "trip_day",
+                "field": "distance",
                 "form": "number",
                 "size": "1x1",
                 "color": "secondaryContainer",
@@ -294,7 +294,7 @@ const presets = {
         "detail": [
             tile({
                 "type": "scalar",
-                "field": "focus",
+                "field": "mem",
                 "form": "ring",
                 "size": "1x1",
                 "color": "tertiaryContainer",
@@ -302,7 +302,7 @@ const presets = {
             }),
             tile({
                 "type": "scalar",
-                "field": "workspace",
+                "field": "language",
                 "form": "text",
                 "size": "2x1",
                 "onMissing": "hide"
@@ -335,6 +335,14 @@ const presets = {
                 "size": "1x1",
                 "shape": "auto",
                 "color": "tertiaryContainer",
+                "onMissing": "hide"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "since",
+                "form": "number",
+                "size": "1x1",
+                "color": "primaryContainer",
                 "onMissing": "hide"
             })
         ],

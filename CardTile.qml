@@ -13,6 +13,9 @@ Item {
     id: root
     required property var account
     required property var tile
+    // A preset preview packs a whole card into ~35px cells with no room for text -
+    // it shows only the tile's silhouette, colour and any cover/banner/photo art.
+    property bool thumbnail: false
 
     readonly property var device: Statusphere.deviceForTile(root.account, root.tile)
     readonly property bool hasData: Statusphere.tileHasData(root.account, root.tile)
@@ -258,7 +261,7 @@ Item {
         Item {
             id: vinylForm
             anchors.fill: parent
-            visible: root.tile.type === "music" && root.musicForm === "vinyl"
+            visible: root.tile.type === "music" && root.musicForm === "vinyl" && !root.thumbnail
 
             readonly property var musicDevice: Statusphere.musicDevices(root.account)[0] ?? null
             readonly property real progress: (vinylForm.musicDevice?.spotify_length ?? 0) > 0 ? (vinylForm.musicDevice.spotify_position ?? 0) / vinylForm.musicDevice.spotify_length : 0
@@ -305,7 +308,7 @@ Item {
         ColumnLayout {
             id: waveForm
             anchors.fill: parent
-            visible: root.tile.type === "music" && root.musicForm === "wave"
+            visible: root.tile.type === "music" && root.musicForm === "wave" && !root.thumbnail
             spacing: 6
 
             readonly property var musicDevice: Statusphere.musicDevices(root.account)[0] ?? null
@@ -351,7 +354,7 @@ Item {
             id: gameTimer
             anchors.verticalCenter: parent.verticalCenter
             width: parent.width
-            visible: root.tile.type === "game" && root.gameForm === "timer"
+            visible: root.tile.type === "game" && root.gameForm === "timer" && !root.thumbnail
             spacing: 8
 
             readonly property var gameDevice: Statusphere.gameDevices(root.account)[0] ?? null
@@ -387,10 +390,11 @@ Item {
             anchors.fill: parent
             visible: root.tile.type === "photo"
             photo: Statusphere.currentPhotoFor(root.account)
+            thumbnail: root.thumbnail
         }
 
         CircularProgress {
-            visible: root.tile.type === "scalar" && root.tile.form === "ring"
+            visible: root.tile.type === "scalar" && root.tile.form === "ring" && !root.thumbnail
             anchors.centerIn: parent
             implicitSize: Math.round(Math.min(content.width, content.height))
             lineWidth: Math.max(3, implicitSize * 0.08)
@@ -422,7 +426,7 @@ Item {
         }
 
         ColumnLayout {
-            visible: root.tile.type === "scalar" && root.tile.form === "bar"
+            visible: root.tile.type === "scalar" && root.tile.form === "bar" && !root.thumbnail
             anchors.verticalCenter: parent.verticalCenter
             width: parent.width
             spacing: 4
@@ -456,7 +460,7 @@ Item {
         }
 
         ColumnLayout {
-            visible: root.tile.type === "scalar" && (root.tile.form === "number" || root.tile.form === "weather")
+            visible: root.tile.type === "scalar" && (root.tile.form === "number" || root.tile.form === "weather") && !root.thumbnail
             anchors.centerIn: parent
             width: parent.width
             spacing: 2
@@ -481,7 +485,7 @@ Item {
         }
 
         StyledText {
-            visible: root.tile.type === "scalar" && (root.tile.form === "big" || root.tile.form === "clock")
+            visible: root.tile.type === "scalar" && (root.tile.form === "big" || root.tile.form === "clock") && !root.thumbnail
             anchors.fill: parent
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
@@ -496,7 +500,7 @@ Item {
         }
 
         ColumnLayout {
-            visible: root.tile.type === "scalar" && (root.tile.form === "graph" || root.tile.form === "bars")
+            visible: root.tile.type === "scalar" && (root.tile.form === "graph" || root.tile.form === "bars") && !root.thumbnail
             anchors.fill: parent
             spacing: 4
 
@@ -535,7 +539,7 @@ Item {
 
         ColumnLayout {
             id: heatmap
-            visible: root.tile.type === "scalar" && root.tile.form === "heatmap"
+            visible: root.tile.type === "scalar" && root.tile.form === "heatmap" && !root.thumbnail
             anchors.fill: parent
             spacing: 4
 
@@ -608,7 +612,7 @@ Item {
         }
 
         RowLayout {
-            visible: root.tile.type === "scalar" && root.tile.form === "text"
+            visible: root.tile.type === "scalar" && root.tile.form === "text" && !root.thumbnail
             anchors.verticalCenter: parent.verticalCenter
             width: parent.width
             spacing: 6
