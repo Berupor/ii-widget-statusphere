@@ -12,6 +12,7 @@ Rectangle {
     id: root
     property var photo: null // { account_id, path, created_at, expires_at }
     property bool thumbnail: false
+    property bool cropped: false
 
     readonly property int minHeight: 100
     readonly property int maxHeight: 320
@@ -32,7 +33,7 @@ Rectangle {
         sourcePath: root.photo?.path ?? ""
         thumbnailSizeName: "x-large" // The default sizes itself off sourceSize, which is 0 before the first load
         // Panoramas get letterboxed rather than gutted; anything taller is cropped to maxHeight
-        fillMode: root.naturalHeight > 0 && root.naturalHeight < root.minHeight ? Image.PreserveAspectFit : Image.PreserveAspectCrop
+        fillMode: !root.cropped && root.naturalHeight > 0 && root.naturalHeight < root.minHeight ? Image.PreserveAspectFit : Image.PreserveAspectCrop
 
         layer.enabled: true
         layer.effect: OpacityMask {

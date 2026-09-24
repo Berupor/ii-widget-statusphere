@@ -438,6 +438,7 @@ Item {
             visible: root.tile.type === "photo"
             photo: Statusphere.currentPhotoFor(root.account)
             thumbnail: root.thumbnail
+            cropped: true
         }
 
         CircularProgress {
