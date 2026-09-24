@@ -7,6 +7,7 @@ import qs.modules.common.functions
 import qs.services
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Window
 
 /** One device's now playing: art, track, interpolated progress. */
 Rectangle {
@@ -15,6 +16,7 @@ Rectangle {
     property var stackedDevice: null // Peeks out behind the art
     property int stackedCount: 0
     property bool compact: false // A photo already fills the card, so keep this to one thin line
+    readonly property bool animating: root.visible && root.Window.visibility !== Window.Hidden
     property bool _expanded: false // Tapped open out of the compact line
 
     onCompactChanged: if (!root.compact)
@@ -39,7 +41,7 @@ Rectangle {
 
     Timer {
         interval: 250
-        running: root.visible && root.device?.spotify_status === "playing"
+        running: root.animating && root.device?.spotify_status === "playing"
         repeat: true
         onTriggered: root._nowMs = Date.now()
     }
@@ -204,6 +206,7 @@ Rectangle {
                     Layout.alignment: Qt.AlignVCenter
                     valueBarHeight: 3
                     wavy: root.device?.spotify_status === "playing"
+                    animateWave: root.animating
                     highlightColor: Appearance.colors.colPrimary
                     trackColor: Appearance.colors.colSecondaryContainer
                     value: root.lengthKnown ? root.interpolatedPosition / root.length : 0
@@ -239,6 +242,7 @@ Rectangle {
                 StyledProgressBar {
                     Layout.fillWidth: true
                     wavy: root.device?.spotify_status === "playing"
+                    animateWave: root.animating
                     highlightColor: Appearance.colors.colPrimary
                     trackColor: Appearance.colors.colSecondaryContainer
                     value: root.lengthKnown ? root.interpolatedPosition / root.length : 0

@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import qs.modules.common
 import qs.modules.common.widgets
 import QtQuick
+import QtQuick.Window
 import Qt5Compat.GraphicalEffects
 import Quickshell.Io
 
@@ -39,6 +40,8 @@ Rectangle {
         anchors.fill: parent
         source: root.downloaded ? Qt.resolvedUrl(root.cacheFilePath) : ""
         fillMode: Image.PreserveAspectCrop
+        sourceSize.width: Math.ceil(root.width * Screen.devicePixelRatio)
+        sourceSize.height: Math.ceil(root.height * Screen.devicePixelRatio)
         cache: true
 
         layer.enabled: true

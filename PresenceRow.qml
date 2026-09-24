@@ -242,20 +242,23 @@ Rectangle {
         }
 
         Rectangle {
-            visible: music.visible && music.showingCompact && (root.showPhoto || root.showGame)
+            visible: (music.item?.showingCompact ?? false) && (root.showPhoto || root.showGame)
             Layout.fillWidth: true
             implicitHeight: 1
             color: Appearance.colors.colOutlineVariant
         }
 
-        PresenceMusic { // One art with the rest of the stack peeking out behind it, unless a photo already fills the space
+        Loader { // One art with the rest of the stack peeking out behind it, unless a photo already fills the space
             id: music
             Layout.fillWidth: true
-            visible: !root.customLayout && root.playing.length > 0 && !root.expanded
-            compact: root.showPhoto || root.showGame
-            device: root.playing[0] ?? null
-            stackedDevice: root.playing[1] ?? null
-            stackedCount: root.playing.length - 1
+            active: !root.customLayout && root.playing.length > 0 && !root.expanded
+            visible: active
+            sourceComponent: PresenceMusic {
+                compact: root.showPhoto || root.showGame
+                device: root.playing[0] ?? null
+                stackedDevice: root.playing[1] ?? null
+                stackedCount: root.playing.length - 1
+            }
         }
 
         CardGrid { // The owner's own row layout, in place of the picture/music stack above
@@ -320,11 +323,14 @@ Rectangle {
             }
         }
 
-        PresenceDetailCard { // Right click: the noisy stuff (cpu/mem/disk, workspace, weather)
+        Loader { // Right click: the noisy stuff (cpu/mem/disk, workspace, weather)
             Layout.fillWidth: true
             Layout.topMargin: 4
-            visible: root.showDetails || (root.serverDetailsForced && !root.serverDetailsCollapsed)
-            account: root.account
+            active: root.detailsShown
+            visible: active
+            sourceComponent: PresenceDetailCard {
+                account: root.account
+            }
         }
 
         PresenceActions { // Middle click, own card only
@@ -343,13 +349,15 @@ Rectangle {
     // Kept in the singleton, not here: a reconnect resorts accountIds and rebuilds this row
     readonly property bool serverDetailsCollapsed: Statusphere.detailsCollapsedFor(root.modelData)
 
-    // Must track the CardGrid/PresenceDetailCard `visible:` conditions below - a surface
-    // only covers a field for the header while its tiles are actually on screen.
+    readonly property bool detailsShown: root.showDetails || (root.serverDetailsForced && !root.serverDetailsCollapsed)
+
+    // Must track the CardGrid `visible:` condition above - a surface only covers a field
+    // for the header while its tiles are actually on screen.
     readonly property var visibleSurfaces: {
         const surfaces = [];
         if (root.customLayout && root.rowTiles.length > 0 && !root.expanded)
             surfaces.push("row");
-        if (root.showDetails || (root.serverDetailsForced && !root.serverDetailsCollapsed))
+        if (root.detailsShown)
             surfaces.push("detail");
         return surfaces;
     }
