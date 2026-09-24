@@ -460,17 +460,19 @@ Item {
                                 "type": "scalar",
                                 "field": "cpu",
                                 "form": "bar",
-                                "size": "2x1",
-                                "background": {
-                                    "kind": "color",
-                                    "value": "primaryContainer"
-                                }
+                                "size": "2x1"
                             },
                             {
                                 "type": "scalar",
                                 "field": "mem",
                                 "form": "number",
                                 "size": "99x99"
+                            },
+                            {
+                                "type": "scalar",
+                                "field": "disk",
+                                "form": "heatmap",
+                                "size": "2x1"
                             }
                         ]
                     }
@@ -820,6 +822,11 @@ Item {
                 "want": "Circle"
             },
             {
+                "name": "a shape applies only to a square tile: a Circle tile at 2x1 renders default, the same tile at 1x1 stays Circle, and the stored shape itself is untouched",
+                "got": [wideCircleProbe.resolvedShape, squareCircleProbe.resolvedShape, wideCircleProbe.tile.shape],
+                "want": ["default", "Circle", "Circle"]
+            },
+            {
                 "name": "a weather tile pulls the temperature out of the value and captions it with the city",
                 "got": root.findAll(weatherProbe, it => it.text !== undefined && it.font !== undefined, []).map(it => it.text),
                 "want": ["Lisbon, PT", "9°"]
@@ -1148,6 +1155,30 @@ Item {
                     "value": "secondaryContainer"
                 },
                 "onMissing": "hide"
+            })
+    }
+
+    CardTile {
+        id: squareCircleProbe
+        visible: false
+        account: Statusphere.accountsById["acc-probe"]
+        tile: CardLayouts.tile({
+                "type": "picture",
+                "url": root.pictureUrl,
+                "size": "1x1",
+                "shape": "Circle"
+            })
+    }
+
+    CardTile {
+        id: wideCircleProbe
+        visible: false
+        account: Statusphere.accountsById["acc-probe"]
+        tile: CardLayouts.tile({
+                "type": "picture",
+                "url": root.pictureUrl,
+                "size": "2x1",
+                "shape": "Circle"
             })
     }
 }

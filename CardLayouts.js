@@ -158,6 +158,9 @@ const shapes = ["Circle", "Pill", "Arch", "SemiCircle", "Diamond", "Pentagon", "
 const shapeChoices = ["default", "auto"].concat(shapes);
 
 function resolvedShape(t, value) {
+    const span = spanOf(t.size);
+    if (span.cols !== span.rows)
+        return "default";
     if (t.shape !== "auto")
         return shapes.includes(t.shape) || t.shape === "default" ? t.shape : "Circle";
     return formOf(t).autoShape?.(value) ?? "Circle";
