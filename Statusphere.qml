@@ -18,6 +18,10 @@ Singleton {
     property bool registered: false
     property string selfAccountId: ""
     property string selfDeviceId: ""
+    property string cliVersion: ""
+    property bool cliVersionChecked: false
+    property bool cliCompatible: false
+    readonly property string minCliVersion: "0.11.0" // tag that first ships --version; bump on release
     readonly property bool available: root.binaryFound && root.registered
     readonly property bool enabled: WidgetCatalog.isEnabled("statusphere")
     readonly property bool shouldRun: root.enabled && root.available
@@ -705,11 +709,24 @@ Singleton {
         return oneLine.length > root.errorMaxLength ? oneLine.slice(0, root.errorMaxLength - 1) + "…" : oneLine;
     }
 
+    function versionAtLeast(current: string, minimum: string): bool {
+        const parse = v => v.replace(/^v/, "").split(/[-+]/)[0].split(".").map(n => parseInt(n, 10) || 0);
+        const c = parse(current);
+        const m = parse(minimum);
+        for (let i = 0; i < 3; i++) {
+            if (c[i] !== m[i])
+                return c[i] > m[i];
+        }
+        return true;
+    }
+
     function placeholderText(): string {
         if (!root.binaryFound)
             return Translation.tr("statusphere cli not found in ~/.local/bin");
         if (!root.registered)
             return Translation.tr("No statusphere account registered");
+        if (root.cliVersionChecked && !root.cliCompatible)
+            return Translation.tr("statusphere cli needs updating");
         if (!root.live)
             return root.friendlyError(root.lastError) || Translation.tr("Connecting…");
         return Translation.tr("Nobody else around yet");
@@ -773,6 +790,19 @@ Singleton {
         running: true
         command: ["bash", "-c", "test -s \"${XDG_CONFIG_HOME:-$HOME/.config}/statusphere/config.json\""]
         onExited: exitCode => root.registered = (exitCode === 0)
+    }
+
+    Process {
+        running: true
+        command: ["bash", "-c", "\"$HOME/.local/bin/statusphere\" --version 2>/dev/null"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const v = text.trim();
+                root.cliVersion = v;
+                root.cliCompatible = v !== "" && root.versionAtLeast(v, root.minCliVersion);
+                root.cliVersionChecked = true;
+            }
+        }
     }
 
     Process {
