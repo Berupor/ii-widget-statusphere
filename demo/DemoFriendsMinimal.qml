@@ -1,8 +1,9 @@
 //@ probe statusphere -g 420x420 -s 1500
 /**
- * The spare end of the spectrum: uptime, cpu and load, row collapsed and
- * detail expanded, on its own so it reads as restraint rather than emptiness
- * next to a denser pack.
+ * The spare end of the spectrum: a quote, a local clock and how long they've
+ * been online, one mood line in the detail card - row collapsed and detail
+ * expanded, on its own so it reads as restraint rather than emptiness next
+ * to a denser pack.
  */
 import ".."
 import "../CardLayouts.js" as CardLayouts
@@ -27,12 +28,11 @@ Item {
                         "row": CardLayouts.presets.minimal.row,
                         "detail": CardLayouts.presets.minimal.detail
                     },
-                    "uptime_hours": 74,
-                    "cpu_percent": 8,
-                    "load_avg_1m": 0.3,
-                    "cpu_count": 4,
-                    "memory_used_mb": 3100,
-                    "memory_total_mb": 8192
+                    "custom_fields": ["quote", "local_time", "since", "mood"],
+                    "quote": "still here",
+                    "local_time": "23:14",
+                    "since": "3d",
+                    "mood": "unbothered, in the moment"
                 }
             ],
             "photos": []
@@ -52,6 +52,9 @@ Item {
         const grids = root.findAll(root, it => it.rowsUsed !== undefined && it.placed !== undefined, []);
         const packedSolid = grids.every(g => g.placed.reduce((sum, p) => sum + p.cols * p.rows, 0) === g.rowsUsed * g.columns);
 
+        const texts = root.findAll(root, it => it.text !== undefined, []);
+        const hasText = value => texts.some(t => t.text === value);
+
         return [
             {
                 "name": "the minimal pack counts as a custom layout",
@@ -66,6 +69,11 @@ Item {
             {
                 "name": "no pack row is left with an empty grid cell",
                 "got": grids.length > 0 && packedSolid,
+                "want": true
+            },
+            {
+                "name": "a big-form tile shows a label, not just a bare value",
+                "got": hasText("Quote") && hasText("still here"),
                 "want": true
             }
         ];

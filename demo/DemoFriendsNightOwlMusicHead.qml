@@ -1,9 +1,10 @@
 //@ probe statusphere -g 420x1200 -s 1500
 /**
  * Two friend packs on their own, row collapsed and detail expanded: a night
- * gamer (session timer, an uptime ring, a load number, a workspace sticker)
- * next to a music head (a spinning vinyl, memory and cpu accents, a load
- * ring, uptime and workspace in the detail card).
+ * owl (a wave visualizer strip, what window is open, a mood sticker, how
+ * long they've been up) next to a music head (a spinning vinyl, top artist
+ * and a streak, a quote, then what they're listening to, a playlist and a
+ * genre in the detail card).
  */
 import ".."
 import "../CardLayouts.js" as CardLayouts
@@ -33,16 +34,16 @@ Item {
                         "row": CardLayouts.presets.nightOwl.row,
                         "detail": CardLayouts.presets.nightOwl.detail
                     },
-                    "game_status": "playing",
-                    "game_source": "steam",
-                    "game_name": "Cyberpunk 2077",
-                    "game_display": "Cyberpunk 2077",
-                    "game_header_url": root.cover("cp2077-header.jpg"),
-                    "game_session_seconds": 6000,
+                    "spotify_status": "playing",
+                    "spotify_track": "Turn Off the Lights",
+                    "spotify_artist": "Nite Jewel",
+                    "spotify_position": 40,
+                    "spotify_length": 210,
+                    "spotify_art_url": root.cover("nightcall.jpg"),
                     "uptime_hours": 27,
-                    "load_avg_1m": 3.2,
-                    "cpu_count": 12,
-                    "active_workspace": 4
+                    "custom_fields": ["active_window", "mood"],
+                    "active_window": "mpv - late_night_mix.mkv",
+                    "mood": "🌙"
                 },
                 {
                     "account_id": "acc-echo",
@@ -61,15 +62,13 @@ Item {
                     "spotify_position": 95,
                     "spotify_length": 240,
                     "spotify_art_url": root.cover("nightcall.jpg"),
-                    "cpu_percent": 22,
-                    "memory_used_mb": 5200,
-                    "memory_total_mb": 16384,
-                    "disk_used_percent": 61,
-                    "disk_free_gb": 180,
-                    "load_avg_1m": 1.1,
-                    "cpu_count": 8,
-                    "uptime_hours": 5,
-                    "active_workspace": 2
+                    "custom_fields": ["top_artist", "streak", "quote", "listening", "playlist", "genre"],
+                    "top_artist": "Kavinsky",
+                    "streak": "12",
+                    "quote": "one more lap",
+                    "listening": "34",
+                    "playlist": "Drive Forever",
+                    "genre": "synthwave"
                 }
             ],
             "photos": []

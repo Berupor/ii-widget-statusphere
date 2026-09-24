@@ -1,10 +1,11 @@
 //@ probe statusphere -g 420x1200 -s 2500
 /**
  * Two more friend packs on their own, row collapsed and detail expanded: a
- * travelling photographer (a shared photo plus cpu, load, mem and uptime
- * accents) next to a coder (disk, cpu and workspace in the row, mem, uptime
- * and load in the detail card - the one pack that leans on the hardware
- * catalog as its centerpiece rather than an accent).
+ * travelling photographer (a shared photo, a local clock, the weather, a
+ * flag and a trip day, then a region, a distance and a caption in the detail
+ * card - all custom.json fields, no system metrics) next to a coder (what
+ * window and app are open, workspace and package count, cpu and mem as a
+ * small accent).
  */
 import ".."
 import "../CardLayouts.js" as CardLayouts
@@ -34,15 +35,14 @@ Item {
                         "row": CardLayouts.presets.traveler.row,
                         "detail": CardLayouts.presets.traveler.detail
                     },
-                    "cpu_percent": 58,
-                    "load_avg_1m": 2.1,
-                    "cpu_count": 6,
-                    "memory_used_mb": 9000,
-                    "memory_total_mb": 16384,
-                    "uptime_hours": 5,
-                    "disk_used_percent": 63,
-                    "disk_free_gb": 90,
-                    "active_workspace": 7
+                    "custom_fields": ["local_time", "weather", "flag", "trip_day", "region", "distance", "caption"],
+                    "local_time": "13:15",
+                    "weather": "9° Rain · Tokyo, JP",
+                    "flag": "🇯🇵",
+                    "trip_day": "42",
+                    "region": "JP-13",
+                    "distance": "1240 km",
+                    "caption": "Somewhere new"
                 },
                 {
                     "account_id": "acc-turing",
@@ -55,15 +55,13 @@ Item {
                         "row": CardLayouts.presets.coder.row,
                         "detail": CardLayouts.presets.coder.detail
                     },
+                    "active_window": "nvim - main.go",
+                    "active_app": "kitty",
+                    "active_workspace": 4,
+                    "package_count": 1523,
                     "cpu_percent": 34,
                     "memory_used_mb": 5200,
-                    "memory_total_mb": 16384,
-                    "active_workspace": 4,
-                    "uptime_hours": 3,
-                    "disk_used_percent": 47,
-                    "disk_free_gb": 210,
-                    "load_avg_1m": 1.4,
-                    "cpu_count": 8
+                    "memory_total_mb": 16384
                 }
             ],
             "photos": [
@@ -96,6 +94,15 @@ Item {
             return copies.length > 0 && copies.every(t => !t.truncated);
         };
 
+        // A tooltip mirrors the same string in an untouched Text alongside the tile's
+        // own - only the maximumLineCount: 3 one is the tile, so require no copy wraps
+        // mid-word and at least one wraps at word boundaries.
+        const captionTexts = root.findAll(root, it => it.wrapMode !== undefined && it.text !== undefined, []);
+        const captionsOk = ["Somewhere new"].every(text => {
+            const copies = captionTexts.filter(t => t.text === text);
+            return copies.length > 0 && copies.every(t => t.wrapMode !== Text.Wrap) && copies.some(t => t.wrapMode === Text.WordWrap);
+        });
+
         return [
             {
                 "name": "the traveler pack counts as a custom layout",
@@ -118,13 +125,23 @@ Item {
                 "want": true
             },
             {
+                "name": "a caption tile wraps at word boundaries, not mid-word",
+                "got": captionsOk,
+                "want": true
+            },
+            {
+                "name": "a weather tile's city caption is not truncated",
+                "got": notTruncated("Tokyo, JP"),
+                "want": true
+            },
+            {
                 "name": "a 1x1 number value shrinks to fit instead of eliding",
-                "got": notTruncated("2.10 / 6"),
+                "got": notTruncated("1240 km"),
                 "want": true
             },
             {
                 "name": "a 2x1 text value shrinks to fit instead of eliding",
-                "got": notTruncated("47%"),
+                "got": notTruncated("nvim - main.go"),
                 "want": true
             },
             {
