@@ -26,7 +26,7 @@ WidgetManifest {
         { "key": "wallpaperWidth", "default": 360 },
         { "key": "wallpaperHideOffline", "default": false },
         { "key": "wallpaperMaxRows", "default": 0 },
-        { "key": "editorOwnedFields", "default": [] },
+        { "key": "editorOwnedFields", "default": {} },
         { "key": "collapsedDetailIds", "default": [] }
     ]
     slots: ({

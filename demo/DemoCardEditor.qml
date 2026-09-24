@@ -26,6 +26,10 @@ Item {
             "cmd": "uptime -p",
             "repeat_seconds": 60
         })
+    readonly property var handEditedWeather: ({
+            "cmd": "curl -sf 'wttr.in/Tokyo?format=3'",
+            "repeat_seconds": 3600
+        })
     readonly property string tokyoWeatherCmd: "curl -sf 'wttr.in/Tokyo?format=%t+·+%C'"
 
     readonly property var selfRoom: ({
@@ -315,6 +319,19 @@ Item {
         ScriptAction {
             script: {
                 root.note("customAfterRepeat", root.readJson(customView));
+                customView.setText(JSON.stringify(Object.assign({}, root.seen.customAfterRepeat, {
+                    "weather": root.handEditedWeather
+                })));
+                root.editor.store.customFile.reload();
+            }
+        }
+        PauseAnimation {
+            duration: 200
+        }
+        ScriptAction {
+            script: {
+                root.editor.selectedIndex = root.tileIndex("weather");
+                root.note("handEditedWeather", [root.sheet.kindId, root.answerField()?.text ?? null]);
                 root.editor.selectTile(root.tileIndex("output"));
                 root.commitText(root.answerField(), "echo hello");
                 root.sheet.runTest();
@@ -650,6 +667,11 @@ Item {
                 "name": "changing Weather's refresh leaves the other entries alone",
                 "got": s.customAfterRepeat?.[root.handField],
                 "want": root.handEntry
+            },
+            {
+                "name": "a Weather entry edited by hand shows as Your command with the edited cmd",
+                "got": s.handEditedWeather,
+                "want": ["command", root.handEditedWeather.cmd]
             },
             {
                 "name": "Your command writes its cmd with a repeat_seconds",

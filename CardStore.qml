@@ -10,7 +10,7 @@ QtObject {
     property var row: []
     property var detail: []
     property var entries: ({})
-    readonly property var ownedFields: Statusphere.opt("editorOwnedFields") ?? []
+    readonly property var fieldKinds: root.fieldKindsFrom(Statusphere.opt("editorOwnedFields"))
     property var undoState: null
 
     readonly property int autosaveDelayMs: 500
@@ -27,25 +27,42 @@ QtObject {
         root.markLayoutChanged();
     }
 
-    function setEntry(key, entry) {
+    function fieldKindsFrom(stored) {
+        if (Array.isArray(stored))
+            return stored.reduce((fieldKinds, key) => Object.assign(fieldKinds, {
+                        [key]: {}
+                    }), {});
+        return stored && typeof stored === "object" ? stored : {};
+    }
+
+    function isOwned(key) {
+        return root.fieldKinds[key] !== undefined;
+    }
+
+    function setEntry(key, entry, fieldKind) {
+        if (JSON.stringify(root.entries[key]) === JSON.stringify(entry) && JSON.stringify(root.fieldKinds[key]) === JSON.stringify(fieldKind))
+            return;
         root.entries = Object.assign({}, root.entries, {
             [key]: entry
         });
-        if (!root.ownedFields.includes(key))
-            root.setOwnedFields(root.ownedFields.concat([key]));
+        root.setFieldKinds(Object.assign({}, root.fieldKinds, {
+            [key]: fieldKind
+        }));
         root.markCustomChanged();
     }
 
     function removeEntry(key) {
-        const next = Object.assign({}, root.entries);
-        delete next[key];
-        root.entries = next;
-        root.setOwnedFields(root.ownedFields.filter(k => k !== key));
+        const entries = Object.assign({}, root.entries);
+        delete entries[key];
+        root.entries = entries;
+        const fieldKinds = Object.assign({}, root.fieldKinds);
+        delete fieldKinds[key];
+        root.setFieldKinds(fieldKinds);
         root.markCustomChanged();
     }
 
-    function setOwnedFields(keys) {
-        WidgetsStore.setOption("statusphere", "editorOwnedFields", keys);
+    function setFieldKinds(fieldKinds) {
+        WidgetsStore.setOption("statusphere", "editorOwnedFields", fieldKinds);
     }
 
     function rememberUndo() {
@@ -53,7 +70,7 @@ QtObject {
             "row": root.row,
             "detail": root.detail,
             "entries": root.entries,
-            "owned": root.ownedFields
+            "fieldKinds": root.fieldKinds
         };
     }
 
@@ -63,7 +80,7 @@ QtObject {
             return false;
         root.undoState = null;
         root.entries = state.entries;
-        root.setOwnedFields(state.owned);
+        root.setFieldKinds(state.fieldKinds);
         root.markCustomChanged();
         root.setLayout(state.row, state.detail);
         return true;

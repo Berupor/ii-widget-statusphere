@@ -7,6 +7,7 @@ import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
 import "CardLayouts.js" as CardLayouts
+import "Templates.js" as Templates
 
 Rectangle {
     id: root
@@ -16,8 +17,8 @@ Rectangle {
     readonly property bool ownField: root.tile?.type === "scalar" && Statusphere.isCustomFieldKey(root.tile?.field ?? "")
     readonly property string fieldKey: root.ownField ? root.tile.field : ""
     readonly property string kindId: root.ownField ? root.editor.shownKindFor(root.fieldKey) : ""
-    readonly property var kind: root.editor.ownerKind(root.kindId)
-    readonly property bool runsCommand: root.editor.isCommandKind(root.kindId)
+    readonly property var kind: Templates.kind(root.kindId)
+    readonly property bool runsCommand: Templates.isCommandKind(root.kindId)
     readonly property string committedAnswer: root.ownField ? root.editor.answerFor(root.fieldKey, root.kindId) : ""
     readonly property int repeatSeconds: root.ownField ? root.editor.repeatFor(root.fieldKey, root.kindId) : 0
     readonly property bool hasEntry: root.ownField && root.editor.customEntries[root.fieldKey] !== undefined
@@ -231,7 +232,7 @@ Rectangle {
                 id: answerField
                 Layout.fillWidth: true
                 visible: (root.kind?.ask ?? "") !== ""
-                placeholderText: root.kind?.hint ?? ""
+                placeholderText: Translation.tr(root.kind?.hint ?? "")
                 onEditingFinished: root.commitAnswer()
 
                 Binding {
@@ -304,7 +305,7 @@ Rectangle {
             StyledText {
                 Layout.fillWidth: true
                 visible: root.kind?.needsAnswer === true && !root.hasEntry
-                text: Translation.tr("Friends see this tile once it has a %1").arg((root.kind?.ask ?? "").toLowerCase())
+                text: Translation.tr("Friends see this tile once it has a %1").arg(Translation.tr(root.kind?.ask ?? "").toLowerCase())
                 color: Appearance.colors.colSubtext
                 font.pixelSize: Appearance.font.pixelSize.smaller
                 wrapMode: Text.WordWrap

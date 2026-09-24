@@ -6,6 +6,7 @@ import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
 import "CardLayouts.js" as CardLayouts
+import "Templates.js" as Templates
 
 ColumnLayout {
     id: root
@@ -27,7 +28,7 @@ ColumnLayout {
     readonly property var allTiles: root.editRow.concat(root.editDetail)
     readonly property var selectedTile: (root.selectedIndex >= 0 && root.selectedIndex < root.editTiles.length) ? root.editTiles[root.selectedIndex] : null
 
-    CardStore {
+    readonly property CardStore store: CardStore {
         id: store
         onLayoutLoaded: {
             if (root.selectedIndex >= root.editTiles.length)
@@ -71,368 +72,7 @@ ColumnLayout {
         })
     readonly property var demoAccount: root.accountWith(root.demoDevice, root.demoPhoto)
 
-    // custom.json fields run their "cmd" through sh -c, so every value the editor puts
-    // into one is shell-quoted. printf avoids the cross-shell escaping differences of echo.
-    readonly property string textCmdPrefix: "printf '%s' "
-    readonly property string clockCmd: "date +%H:%M"
-    readonly property string batteryCmd: "printf '%s%%' \"$(cat /sys/class/power_supply/BAT*/capacity | head -n1)\""
-    readonly property int defaultCommandRepeat: 60
-
-    function shQuote(value) {
-        return `'${String(value).replace(/'/g, "'\\''")}'`;
-    }
-
-    function shUnquote(token) {
-        const m = /^'((?:[^']|'\\'')*)'$/.exec(token);
-        return m ? m[1].replace(/'\\''/g, "'") : null;
-    }
-
-    function shPath(path) {
-        const trimmed = path.trim();
-        if (trimmed === "~")
-            return "\"$HOME\"";
-        if (trimmed.startsWith("~/"))
-            return `"$HOME"/${root.shQuote(trimmed.slice(2))}`;
-        return root.shQuote(trimmed);
-    }
-
-    function shUnpath(token) {
-        if (token === "\"$HOME\"")
-            return "~";
-        if (token.startsWith("\"$HOME\"/")) {
-            const rest = root.shUnquote(token.slice(8));
-            return rest === null ? null : `~/${rest}`;
-        }
-        return root.shUnquote(token);
-    }
-
-    function encodeText(value) {
-        return root.textCmdPrefix + root.shQuote(value);
-    }
-
-    function decodeText(cmd) {
-        if (typeof cmd !== "string" || !cmd.startsWith(root.textCmdPrefix))
-            return null;
-        return root.shUnquote(cmd.slice(root.textCmdPrefix.length));
-    }
-
-    // What an owner-made tile can show. A template is a ready shell command asking at most
-    // one question; answerOf reads the answer back out of a cmd, null if it is not this one.
-    readonly property var ownerKinds: [
-        {
-            "id": "weather",
-            "label": Translation.tr("Weather"),
-            "icon": "partly_cloudy_day",
-            "ask": Translation.tr("City"),
-            "hint": Translation.tr("City, blank for where you are"),
-            "sample": "18° · Clear",
-            "repeat": 900,
-            "tile": {
-                "form": "weather",
-                "shape": "auto",
-                "size": "1x1",
-                "color": "primaryContainer"
-            },
-            "cmdFor": city => `curl -sf ${root.shQuote(`wttr.in/${encodeURIComponent(city.trim())}?format=%t+·+%C`)}`,
-            "answerOf": cmd => {
-                const m = /^curl -sf 'wttr\.in\/([^?']*)\?format=%t\+·\+%C'$/.exec(cmd);
-                return m ? decodeURIComponent(m[1]) : null;
-            }
-        },
-        {
-            "id": "clock",
-            "label": Translation.tr("Clock"),
-            "icon": "schedule",
-            "ask": Translation.tr("Timezone"),
-            "hint": Translation.tr("Timezone, eg. Asia/Tokyo, blank for local"),
-            "sample": "23:14",
-            "repeat": 30,
-            "tile": {
-                "form": "clock",
-                "shape": "auto",
-                "size": "1x1",
-                "color": "tertiaryContainer"
-            },
-            "cmdFor": zone => zone.trim() ? `TZ=${root.shQuote(zone.trim())} ${root.clockCmd}` : root.clockCmd,
-            "answerOf": cmd => {
-                if (cmd === root.clockCmd)
-                    return "";
-                const m = /^TZ=(.+) date \+%H:%M$/.exec(cmd);
-                return m ? root.shUnquote(m[1]) : null;
-            }
-        },
-        {
-            "id": "commits",
-            "label": Translation.tr("Commits today"),
-            "icon": "commit",
-            "ask": Translation.tr("Folder"),
-            "hint": Translation.tr("A git folder, eg. ~/Projects/app"),
-            "needsAnswer": true,
-            "sample": "7",
-            "repeat": 300,
-            "tile": {
-                "form": "number",
-                "size": "1x1"
-            },
-            "cmdFor": folder => `git -C ${root.shPath(folder)} rev-list --count --since=midnight HEAD`,
-            "answerOf": cmd => {
-                const m = /^git -C (.+) rev-list --count --since=midnight HEAD$/.exec(cmd);
-                return m ? root.shUnpath(m[1]) : null;
-            }
-        },
-        {
-            "id": "battery",
-            "label": Translation.tr("Battery"),
-            "icon": "battery_5_bar",
-            "sample": "82%",
-            "repeat": 120,
-            "tile": {
-                "form": "ring",
-                "size": "1x1",
-                "color": "tertiaryContainer"
-            },
-            "cmdFor": () => root.batteryCmd,
-            "answerOf": cmd => cmd === root.batteryCmd ? "" : null
-        },
-        {
-            "id": "text",
-            "label": Translation.tr("Your text"),
-            "defaultName": Translation.tr("Note"),
-            "icon": "edit_note",
-            "ask": Translation.tr("Text"),
-            "hint": Translation.tr("What friends see"),
-            "sample": Translation.tr("brb, coffee"),
-            "tile": {
-                "form": "text",
-                "size": "2x1"
-            }
-        },
-        {
-            "id": "command",
-            "label": Translation.tr("Your command"),
-            "defaultName": Translation.tr("Output"),
-            "icon": "terminal",
-            "ask": Translation.tr("Command"),
-            "hint": Translation.tr("Shell command, its output is the value"),
-            "sample": "42",
-            "repeat": root.defaultCommandRepeat,
-            "tile": {
-                "form": "text",
-                "size": "2x1",
-                "color": "primaryContainer"
-            }
-        }
-    ]
-
-    function ownerKind(id) {
-        return root.ownerKinds.find(k => k.id === id) ?? null;
-    }
-
-    function isCommandKind(id) {
-        return id !== "text" && root.ownerKind(id) !== null;
-    }
-
-    readonly property var galleryGroups: [
-        {
-            "title": Translation.tr("Live"),
-            "startsOpen": true,
-            "entries": ["weather", "clock", "commits", "battery"].map(id => root.galleryEntryFor(root.ownerKind(id)))
-        },
-        {
-            "title": Translation.tr("Your own"),
-            "entries": ["text", "command"].map(id => root.galleryEntryFor(root.ownerKind(id))).concat([
-                {
-                    "id": "picture",
-                    "label": Translation.tr("Picture"),
-                    "tile": {
-                        "type": "picture",
-                        "url": "",
-                        "size": "2x2"
-                    }
-                }
-            ])
-        },
-        {
-            "title": Translation.tr("Activity"),
-            "entries": [
-                {
-                    "id": "music-cover",
-                    "label": Translation.tr("Music - cover"),
-                    "tile": {
-                        "type": "music",
-                        "form": "cover",
-                        "size": "4x1",
-                        "background": {
-                            "kind": "live",
-                            "value": "music"
-                        }
-                    }
-                },
-                {
-                    "id": "game",
-                    "label": Translation.tr("Game"),
-                    "tile": {
-                        "type": "game",
-                        "form": "banner",
-                        "size": "4x1",
-                        "background": {
-                            "kind": "live",
-                            "value": "game"
-                        }
-                    }
-                },
-                {
-                    "id": "music-wave",
-                    "label": Translation.tr("Music - wave"),
-                    "tile": {
-                        "type": "music",
-                        "form": "wave",
-                        "size": "2x1",
-                        "color": "tertiaryContainer"
-                    }
-                },
-                {
-                    "id": "game-timer",
-                    "label": Translation.tr("Game - session"),
-                    "tile": {
-                        "type": "game",
-                        "form": "timer",
-                        "size": "2x1"
-                    }
-                },
-                {
-                    "id": "window",
-                    "label": Translation.tr("Active window"),
-                    "tile": {
-                        "type": "scalar",
-                        "field": "active_window",
-                        "form": "text",
-                        "size": "4x1"
-                    }
-                },
-                {
-                    "id": "music-vinyl",
-                    "label": Translation.tr("Music - vinyl"),
-                    "tile": {
-                        "type": "music",
-                        "form": "vinyl",
-                        "size": "2x2",
-                        "color": "primaryContainer"
-                    }
-                },
-                {
-                    "id": "photo",
-                    "label": Translation.tr("Photo"),
-                    "tile": {
-                        "type": "photo",
-                        "size": "1x1"
-                    }
-                },
-                {
-                    "id": "workspace",
-                    "label": Translation.tr("Workspace"),
-                    "tile": {
-                        "type": "scalar",
-                        "field": "workspace",
-                        "form": "number",
-                        "size": "1x1",
-                        "color": "tertiaryContainer"
-                    }
-                }
-            ]
-        },
-        {
-            "title": Translation.tr("System"),
-            "entries": [
-                {
-                    "id": "cpu",
-                    "label": Translation.tr("CPU ring"),
-                    "tile": {
-                        "type": "scalar",
-                        "field": "cpu",
-                        "form": "ring",
-                        "size": "1x1",
-                        "color": "primaryContainer"
-                    }
-                },
-                {
-                    "id": "mem",
-                    "label": Translation.tr("Memory bar"),
-                    "tile": {
-                        "type": "scalar",
-                        "field": "mem",
-                        "form": "bar",
-                        "size": "2x1",
-                        "color": "primaryContainer"
-                    }
-                },
-                {
-                    "id": "disk",
-                    "label": Translation.tr("Disk ring"),
-                    "tile": {
-                        "type": "scalar",
-                        "field": "disk",
-                        "form": "ring",
-                        "size": "1x1",
-                        "color": "tertiaryContainer"
-                    }
-                },
-                {
-                    "id": "load",
-                    "label": Translation.tr("Load"),
-                    "tile": {
-                        "type": "scalar",
-                        "field": "load",
-                        "form": "number",
-                        "size": "1x1",
-                        "color": "tertiaryContainer"
-                    }
-                },
-                {
-                    "id": "uptime",
-                    "label": Translation.tr("Uptime"),
-                    "tile": {
-                        "type": "scalar",
-                        "field": "uptime",
-                        "form": "number",
-                        "size": "1x1",
-                        "color": "primaryContainer"
-                    }
-                },
-                {
-                    "id": "packages",
-                    "label": Translation.tr("Packages"),
-                    "tile": {
-                        "type": "scalar",
-                        "field": "package_count",
-                        "form": "number",
-                        "size": "1x1"
-                    }
-                }
-            ]
-        }
-    ]
-
-    function galleryEntryFor(kind) {
-        return {
-            "id": kind.id,
-            "label": kind.label,
-            "ownerKind": kind.id,
-            "tile": Object.assign({
-                "type": "scalar",
-                "field": root.normalizeFieldName(kind.defaultName ?? kind.label)
-            }, kind.tile)
-        };
-    }
-
-    function galleryEntry(id) {
-        for (const group of root.galleryGroups) {
-            const found = group.entries.find(e => e.id === id);
-            if (found)
-                return found;
-        }
-        return null;
-    }
+    readonly property var galleryGroups: Templates.galleryGroups
 
     function formOptionsFor(typeName) {
         const forms = CardLayouts.tileTypes[typeName]?.forms ?? {};
@@ -488,7 +128,7 @@ ColumnLayout {
     readonly property var knownValues: {
         const values = {};
         for (const key of Object.keys(root.customEntries)) {
-            const text = root.decodeText(root.customEntries[key]?.cmd);
+            const text = Templates.decodeText(root.customEntries[key]?.cmd);
             if (text !== null)
                 values[key] = text;
         }
@@ -523,14 +163,10 @@ ColumnLayout {
 
     readonly property var freshGalleryAccount: {
         const samples = {};
-        for (const kind of root.ownerKinds)
-            samples[root.normalizeFieldName(kind.defaultName ?? kind.label)] = kind.sample;
+        for (const kind of Templates.kinds)
+            samples[Templates.fieldKeyOfKind(kind)] = Translation.tr(kind.sample);
         const device = root.withValues(Object.assign({}, root.demoDevice, root.ownerAccount?.primary ?? {}), samples);
         return root.accountWith(device, Statusphere.currentPhotoFor(root.ownerAccount) ?? root.demoPhoto);
-    }
-
-    function normalizeFieldName(name) {
-        return String(name).trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
     }
 
     function uniqueFieldKey(base, except) {
@@ -547,38 +183,34 @@ ColumnLayout {
         const entry = root.customEntries[key];
         if (!entry)
             return null;
-        const text = root.decodeText(entry.cmd);
+        const text = Templates.decodeText(entry.cmd);
         if (text !== null)
             return {
                 "kind": "text",
                 "answer": text,
                 "repeat": 0
             };
-        for (const kind of root.ownerKinds) {
-            const answer = kind.answerOf ? kind.answerOf(entry.cmd) : null;
-            if (answer !== null)
-                return {
-                    "kind": kind.id,
-                    "answer": answer,
-                    "repeat": entry.repeat_seconds ?? kind.repeat
-                };
-        }
+        const stored = store.fieldKinds[key];
+        const kind = Templates.kind(stored?.kind);
+        const answer = stored?.answer ?? "";
+        if (kind?.cmdFor && kind.cmdFor(answer) === entry.cmd)
+            return {
+                "kind": kind.id,
+                "answer": answer,
+                "repeat": entry.repeat_seconds ?? kind.repeat
+            };
         return {
             "kind": "command",
             "answer": entry.cmd ?? "",
-            "repeat": entry.repeat_seconds ?? root.defaultCommandRepeat
+            "repeat": entry.repeat_seconds ?? Templates.defaultCommandRepeat
         };
     }
-
-    readonly property var kindByForm: root.ownerKinds.filter(k => k.tile?.form === k.id).reduce((byForm, k) => Object.assign(byForm, {
-                [k.id]: k.id
-            }), {})
 
     // A field with no custom.json entry yet: a weather or clock form says which template it
     // wants, anything else starts out as the owner's own text.
     function kindFromForm(key) {
         const tile = root.allTiles.find(t => t.type === "scalar" && t.field === key);
-        return root.kindByForm[tile?.form] ?? "text";
+        return Templates.kindByForm[tile?.form] ?? "text";
     }
 
     function shownKindFor(key) {
@@ -587,8 +219,8 @@ ColumnLayout {
 
     function kindChoicesFor(key) {
         const ids = [root.sourceOf(key)?.kind ?? root.kindFromForm(key), "text", "command"];
-        return [...new Set(ids)].map(id => root.ownerKind(id)).map(k => ({
-                    "displayName": k.label,
+        return [...new Set(ids)].map(id => Templates.kind(id)).map(k => ({
+                    "displayName": Translation.tr(k.label),
                     "icon": k.icon,
                     "value": k.id
                 }));
@@ -605,15 +237,15 @@ ColumnLayout {
 
     function repeatFor(key, kindId) {
         const source = root.sourceOf(key);
-        return source && source.repeat > 0 ? source.repeat : (root.ownerKind(kindId)?.repeat ?? root.defaultCommandRepeat);
+        return source && source.repeat > 0 ? source.repeat : (Templates.kind(kindId)?.repeat ?? Templates.defaultCommandRepeat);
     }
 
     function commandFor(kindId, answer) {
         if (kindId === "text")
-            return root.encodeText(answer);
+            return Templates.encodeText(answer);
         if (kindId === "command")
             return answer.trim();
-        const kind = root.ownerKind(kindId);
+        const kind = Templates.kind(kindId);
         return kind.needsAnswer && !answer.trim() ? "" : kind.cmdFor(answer);
     }
 
@@ -629,19 +261,29 @@ ColumnLayout {
             root.dropEntry(key);
             return;
         }
-        root.setEntry(key, {
+        store.setEntry(key, {
             "cmd": cmd,
             "repeat_seconds": kindId === "text" ? 0 : root.repeatFor(key, kindId)
-        });
+        }, root.fieldKindOf(kindId, answer));
+    }
+
+    function fieldKindOf(kindId, answer) {
+        return Templates.kind(kindId)?.cmdFor ? {
+            "kind": kindId,
+            "answer": answer
+        } : {
+            "kind": kindId
+        };
     }
 
     function setRepeat(key, seconds) {
         const entry = root.customEntries[key];
         if (!entry || !(seconds > 0) || entry.repeat_seconds === seconds)
             return;
-        root.setEntry(key, Object.assign({}, entry, {
+        const source = root.sourceOf(key);
+        store.setEntry(key, Object.assign({}, entry, {
             "repeat_seconds": seconds
-        }));
+        }), root.fieldKindOf(source.kind, source.answer));
     }
 
     function setTestedValue(key, value) {
@@ -650,19 +292,8 @@ ColumnLayout {
         });
     }
 
-    function setEntry(key, entry) {
-        const current = root.customEntries[key];
-        if (current && current.cmd === entry.cmd && current.repeat_seconds === entry.repeat_seconds)
-            return;
-        store.setEntry(key, entry);
-    }
-
-    function isOwned(key) {
-        return store.ownedFields.includes(key) || (root.sourceOf(key)?.kind ?? "command") !== "command";
-    }
-
     function dropEntry(key) {
-        if (root.customEntries[key] === undefined || !root.isOwned(key))
+        if (root.customEntries[key] === undefined || !store.isOwned(key))
             return;
         store.removeEntry(key);
     }
@@ -679,7 +310,7 @@ ColumnLayout {
     }
 
     function renameField(key, label) {
-        const base = root.normalizeFieldName(label);
+        const base = Templates.fieldKeyOf(label);
         if (!base || base === key)
             return;
         const next = root.uniqueFieldKey(base, key);
@@ -688,7 +319,7 @@ ColumnLayout {
                     }) : t);
         const entry = root.customEntries[key];
         if (entry)
-            root.setEntry(next, entry);
+            store.setEntry(next, entry, store.fieldKinds[key] ?? {});
         if (root.chosenKinds[key])
             root.chooseKind(next, root.chosenKinds[key]);
         root.setLayout(rename(root.editRow), rename(root.editDetail));
@@ -749,17 +380,17 @@ ColumnLayout {
     }
 
     function addFromGallery(id) {
-        const entry = root.galleryEntry(id);
+        const entry = Templates.galleryEntry(id);
         if (!entry)
             return;
-        const kind = root.ownerKind(entry.ownerKind ?? "");
+        const kind = Templates.kind(entry.ownerKind ?? "");
         const tile = CardLayouts.tile(entry.tile);
         if (kind)
             tile.field = root.uniqueFieldKey(tile.field, "");
         root.galleryOpen = false;
         root.setSurfaceTiles(root.editTiles.concat([tile]));
         root.selectedIndex = root.editTiles.length - 1;
-        if (kind && kind.answerOf && !kind.needsAnswer)
+        if (Templates.seedsItself(kind))
             root.setAnswer(tile.field, kind.id, "");
         else if (kind)
             root.chooseKind(tile.field, kind.id);
@@ -971,7 +602,7 @@ ColumnLayout {
 
                 RippleButtonWithIcon {
                     materialIcon: galleryGroup.expanded ? "expand_less" : "expand_more"
-                    mainText: galleryGroup.modelData.title
+                    mainText: Translation.tr(galleryGroup.modelData.title)
                     onClicked: galleryGroup.expanded = !galleryGroup.expanded
                 }
 
@@ -1010,7 +641,7 @@ ColumnLayout {
                                 y: galleryTile.height * gallery.entryScale + gallery.labelGap
                                 horizontalAlignment: Text.AlignHCenter
                                 wrapMode: Text.WordWrap
-                                text: galleryCard.modelData.label
+                                text: Translation.tr(galleryCard.modelData.label)
                                 font.pixelSize: Appearance.font.pixelSize.smaller
                                 color: Appearance.colors.colOnLayer1
                             }
