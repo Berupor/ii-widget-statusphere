@@ -1,8 +1,8 @@
 //@ probe statusphere -g 620x420 -s 1500
 /**
- * A close-up of the four scalar chart forms at a size where the curve, the
- * bars, the ring gap and the headline value are actually legible - the friend
- * packs only ever show them shrunk into a 1x1/2x1 cell.
+ * A close-up of the scalar forms at a size where the bar fill, the ring gap
+ * and the headline value are actually legible - the friend packs only ever
+ * show them shrunk into a 1x1/2x1 cell.
  */
 import ".."
 import "../CardLayouts.js" as CardLayouts
@@ -18,31 +18,31 @@ Item {
         CardLayouts.tile({
             "type": "scalar",
             "field": "cpu",
-            "form": "graph",
+            "form": "bar",
             "size": "2x1",
             "color": "primaryContainer",
             "onMissing": "hide"
         }),
         CardLayouts.tile({
             "type": "scalar",
-            "field": "signal",
-            "form": "bars",
-            "size": "2x1",
+            "field": "mem",
+            "form": "ring",
+            "size": "1x1",
             "color": "secondaryContainer",
             "onMissing": "hide"
         }),
         CardLayouts.tile({
             "type": "scalar",
-            "field": "cpu",
-            "form": "ring",
+            "field": "load",
+            "form": "number",
             "size": "1x1",
             "color": "tertiaryContainer",
             "onMissing": "hide"
         }),
         CardLayouts.tile({
             "type": "scalar",
-            "field": "sessions",
-            "form": "number",
+            "field": "disk",
+            "form": "big",
             "size": "1x1",
             "color": "primaryContainer",
             "onMissing": "hide"
@@ -63,11 +63,12 @@ Item {
                         "detail": []
                     },
                     "cpu_percent": 63,
-                    "cpu_history": [12, 18, 22, 34, 30, 44, 51, 47, 60, 55, 63, 58],
-                    "custom_fields": ["signal", "sessions"],
-                    "signal": "82%",
-                    "signal_history": [3, 5, 4, 6, 8, 7, 9, 6, 5, 8],
-                    "sessions": "128"
+                    "memory_used_mb": 12288,
+                    "memory_total_mb": 16384,
+                    "load_avg_1m": 2.4,
+                    "cpu_count": 8,
+                    "disk_used_percent": 47,
+                    "disk_free_gb": 120
                 }
             ],
             "photos": []
@@ -76,19 +77,19 @@ Item {
     function checks() {
         return [
             {
-                "name": "graph, bars, ring and number tiles all place on the grid",
+                "name": "bar, ring, number and big tiles all place on the grid",
                 "got": grid.placed.length,
                 "want": 4
             },
             {
-                "name": "the graph tile reads the cpu history for its curve",
-                "got": Statusphere.graphValuesFor(Statusphere.deviceForTile(Statusphere.accountsById["acc-scalars"], root.scalarTiles[0]), "cpu").length,
-                "want": 12
+                "name": "the bar tile's fill percent comes from cpu_percent",
+                "got": Statusphere.fieldFor(Statusphere.deviceForTile(Statusphere.accountsById["acc-scalars"], root.scalarTiles[0]), "cpu")?.percent,
+                "want": 63
             },
             {
-                "name": "the ring tile's percent comes from cpu_percent, not the graph history",
-                "got": Statusphere.fieldFor(Statusphere.deviceForTile(Statusphere.accountsById["acc-scalars"], root.scalarTiles[2]), "cpu")?.percent,
-                "want": 63
+                "name": "the ring tile's fill percent comes from the memory used/total ratio, not a fixed value",
+                "got": Statusphere.fieldFor(Statusphere.deviceForTile(Statusphere.accountsById["acc-scalars"], root.scalarTiles[1]), "mem")?.percent,
+                "want": 75
             }
         ];
     }

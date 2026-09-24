@@ -1,6 +1,6 @@
 //@ probe statusphere -g 420x420 -s 1500
 /**
- * The spare end of the spectrum: a short note and a clock, row collapsed and
+ * The spare end of the spectrum: uptime, cpu and load, row collapsed and
  * detail expanded, on its own so it reads as restraint rather than emptiness
  * next to a denser pack.
  */
@@ -27,11 +27,12 @@ Item {
                         "row": CardLayouts.presets.minimal.row,
                         "detail": CardLayouts.presets.minimal.detail
                     },
-                    "custom_fields": ["quote", "local_time", "mood", "since"],
-                    "quote": "Here, mostly",
-                    "local_time": "20:05",
-                    "mood": "🍃",
-                    "since": "3d"
+                    "uptime_hours": 74,
+                    "cpu_percent": 8,
+                    "load_avg_1m": 0.3,
+                    "cpu_count": 4,
+                    "memory_used_mb": 3100,
+                    "memory_total_mb": 8192
                 }
             ],
             "photos": []

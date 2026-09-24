@@ -1,9 +1,9 @@
 //@ probe statusphere -g 420x1200 -s 1500
 /**
  * Two friend packs on their own, row collapsed and detail expanded: a night
- * gamer (session timer, an active-hours heatmap, a night clock, a mood sticker)
- * next to a music head (a spinning vinyl, top artist and streak, a lyric
- * quote and a listening heatmap in the detail card).
+ * gamer (session timer, an uptime ring, a load number, a workspace sticker)
+ * next to a music head (a spinning vinyl, memory and cpu accents, a load
+ * ring, uptime and workspace in the detail card).
  */
 import ".."
 import "../CardLayouts.js" as CardLayouts
@@ -39,11 +39,10 @@ Item {
                     "game_display": "Cyberpunk 2077",
                     "game_header_url": root.cover("cp2077-header.jpg"),
                     "game_session_seconds": 6000,
-                    "custom_fields": ["active_hours", "local_time", "mood"],
-                    "active_hours": "6",
-                    "active_hours_history": [0, 1, 3, 6, 5, 2, 4, 6, 3, 1, 0, 0],
-                    "local_time": "02:47",
-                    "mood": "🌙"
+                    "uptime_hours": 27,
+                    "load_avg_1m": 3.2,
+                    "cpu_count": 12,
+                    "active_workspace": 4
                 },
                 {
                     "account_id": "acc-echo",
@@ -62,14 +61,15 @@ Item {
                     "spotify_position": 95,
                     "spotify_length": 240,
                     "spotify_art_url": root.cover("nightcall.jpg"),
-                    "custom_fields": ["top_artist", "streak", "quote", "genre", "listening", "playlist"],
-                    "top_artist": "Kavinsky",
-                    "streak": "12",
-                    "quote": "Turn it up",
-                    "genre": "Synthwave",
-                    "listening": "38",
-                    "playlist": "Neon Drive",
-                    "listening_history": [12, 18, 25, 30, 22, 38, 15]
+                    "cpu_percent": 22,
+                    "memory_used_mb": 5200,
+                    "memory_total_mb": 16384,
+                    "disk_used_percent": 61,
+                    "disk_free_gb": 180,
+                    "load_avg_1m": 1.1,
+                    "cpu_count": 8,
+                    "uptime_hours": 5,
+                    "active_workspace": 2
                 }
             ],
             "photos": []
