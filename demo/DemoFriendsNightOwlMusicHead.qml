@@ -1,10 +1,10 @@
 //@ probe statusphere -g 420x1200 -s 1500
 /**
  * Two friend packs on their own, row collapsed and detail expanded: a night
- * owl (a local clock, what window is open and a mood sticker in the row, the
- * game, a wave line, the app, uptime and the night weather in the detail)
- * next to a music head (a spinning vinyl, top artist and a streak) with the
- * minimal detail card.
+ * owl (a local clock, what window is open and the moon phase in the row, the
+ * game, a wave line, the app, uptime, the night weather, the moon, a clock
+ * and sunrise/sunset in the detail) next to a music head (a spinning vinyl,
+ * what she's into lately and a clock) with the minimal detail card.
  */
 import ".."
 import "../CardLayouts.js" as CardLayouts
@@ -48,10 +48,11 @@ Item {
                     "uptime_hours": 27,
                     "active_app": "mpv",
                     "active_window": "mpv - late_night_mix.mkv",
-                    "custom_fields": ["local_time", "mood", "weather"],
+                    "custom_fields": ["local_time", "weather", "moon", "sun"],
                     "weather": "7° Clear",
                     "local_time": "03:12",
-                    "mood": "🌙"
+                    "moon": "🌔",
+                    "sun": "06:45 · 18:52"
                 },
                 {
                     "account_id": "acc-echo",
@@ -70,10 +71,8 @@ Item {
                     "spotify_position": 95,
                     "spotify_length": 240,
                     "spotify_art_url": root.cover("nightcall.jpg"),
-                    "custom_fields": ["top_artist", "streak", "quote", "mood", "local_time", "weather"],
-                    "top_artist": "Kavinsky",
-                    "streak": "12",
-                    "quote": "one more lap",
+                    "custom_fields": ["into_lately", "mood", "local_time", "weather"],
+                    "into_lately": "Nightcall on loop",
                     "mood": "🎧 driving home the long way",
                     "local_time": "21:40",
                     "weather": "11° Clear"

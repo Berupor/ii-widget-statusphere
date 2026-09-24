@@ -473,8 +473,8 @@ Item {
         ScriptAction {
             script: {
                 root.note("customAfterTraveler", root.readJson(customView));
-                const flagTile = root.first(root.first(root.editor, it => it.reorderable === true), it => it.tile?.field === "flag" && it.dimmed !== undefined);
-                root.note("travelerFlagDimmed", flagTile?.dimmed ?? null);
+                const askTile = root.first(root.first(root.editor, it => it.reorderable === true), it => it.tile?.field === "where_i_am" && it.dimmed !== undefined);
+                root.note("travelerAskDimmed", askTile?.dimmed ?? null);
                 root.note("travelerFillHint", root.visibleTexts(root.editor).includes("Dimmed tiles have no value yet - pick one to fill it in"));
                 root.editor.undo();
                 root.editor.selectSurface("row");
@@ -823,13 +823,13 @@ Item {
                 "want": root.packFieldsWhere(t => !Templates.seedsItself(Templates.kind(Templates.kindByForm[t.form])))
             },
             {
-                "name": "the Traveler detail pack writes weather and clock after the debounce and leaves its flag empty",
-                "got": [typeof s.customAfterTraveler?.weather?.cmd, (s.customAfterTraveler?.weather?.repeat_seconds ?? 0) >= root.slowestWeatherRefresh, typeof s.customAfterTraveler?.local_time?.cmd, s.customAfterTraveler?.flag],
+                "name": "the Traveler detail pack writes weather and clock after the debounce and leaves its asked text empty",
+                "got": [typeof s.customAfterTraveler?.weather?.cmd, (s.customAfterTraveler?.weather?.repeat_seconds ?? 0) >= root.slowestWeatherRefresh, typeof s.customAfterTraveler?.local_time?.cmd, s.customAfterTraveler?.where_i_am],
                 "want": ["string", true, "string", undefined]
             },
             {
                 "name": "an empty pack text shows dimmed in the preview with a hint to fill it",
-                "got": [s.travelerFlagDimmed, s.travelerFillHint],
+                "got": [s.travelerAskDimmed, s.travelerFillHint],
                 "want": [true, true]
             },
             {

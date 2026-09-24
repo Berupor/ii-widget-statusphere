@@ -71,6 +71,36 @@ const kinds = [
         "cmdFor": zone => zone.trim() ? `TZ=${shQuote(zone.trim())} ${clockCmd}` : clockCmd
     },
     {
+        "id": "moon",
+        "label": "Moon phase",
+        "icon": "bedtime",
+        "ask": "City",
+        "hint": "City, blank for where you are",
+        "sample": "🌔",
+        "repeat": 3600,
+        "tile": {
+            "form": "moon",
+            "size": "1x1",
+            "color": "primaryContainer"
+        },
+        "cmdFor": city => `curl -sf ${shQuote(`wttr.in/${encodeURIComponent(city.trim())}?format=%m`)}`
+    },
+    {
+        "id": "sun",
+        "label": "Sunrise & sunset",
+        "icon": "wb_twilight",
+        "ask": "City",
+        "hint": "City, blank for where you are",
+        "sample": "06:12 · 19:40",
+        "repeat": 3600,
+        "tile": {
+            "form": "sun",
+            "size": "2x1",
+            "color": "tertiaryContainer"
+        },
+        "cmdFor": city => `curl -sf ${shQuote(`wttr.in/${encodeURIComponent(city.trim())}?format=%S+·+%s`)} | sed -E 's/:([0-9]{2}):[0-9]{2}/:\\1/g'`
+    },
+    {
         "id": "commits",
         "label": "Commits today",
         "icon": "commit",
@@ -172,7 +202,7 @@ const galleryGroups = [
     {
         "title": "Live",
         "startsOpen": true,
-        "entries": ["weather", "clock", "commits", "battery"].map(galleryEntryFor)
+        "entries": ["weather", "clock", "moon", "sun", "commits", "battery"].map(galleryEntryFor)
     },
     {
         "title": "Your own",

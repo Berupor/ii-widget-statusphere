@@ -325,13 +325,11 @@ Item {
                     "spotify_position": 90,
                     "spotify_length": 240,
                     "spotify_art_url": root.cover("teardrop.jpg"),
-                    "custom_fields": ["top_artist", "streak", "quote", "listening", "playlist", "genre"],
-                    "top_artist": "Preset Artist",
-                    "streak": "9",
-                    "quote": "Turn it up",
-                    "listening": "31",
-                    "playlist": "Neon Drive",
-                    "genre": "Synthwave"
+                    "uptime_hours": 6,
+                    "custom_fields": ["into_lately", "local_time", "weather"],
+                    "into_lately": "Preset Track on repeat",
+                    "local_time": "20:15",
+                    "weather": "12° Clear"
                 },
                 {
                     "account_id": "acc-hardware",
@@ -371,9 +369,12 @@ Item {
                     "spotify_length": 220,
                     "spotify_art_url": root.cover("nightcall.jpg"),
                     "uptime_hours": 31,
-                    "custom_fields": ["active_window", "mood"],
+                    "custom_fields": ["active_window", "local_time", "weather", "moon", "sun"],
                     "active_window": "Discord",
-                    "mood": "🌙"
+                    "local_time": "02:40",
+                    "weather": "6° Clear",
+                    "moon": "🌔",
+                    "sun": "06:50 · 18:45"
                 },
                 {
                     "account_id": "acc-custom",

@@ -59,19 +59,17 @@ ColumnLayout {
             "game_display": "Cyberpunk 2077",
             "game_header_url": String(Qt.resolvedUrl("demo/covers/cp2077-header.jpg")),
             "game_session_seconds": 5400,
-            "custom_fields": Object.keys(root.packSamples).concat(["local_time", "weather"]),
+            "custom_fields": Object.keys(root.packSamples).concat(["local_time", "weather", "moon", "sun"]),
             "local_time": "23:14",
-            "weather": "18° · Clear"
+            "weather": "18° · Clear",
+            "moon": "🌔",
+            "sun": "06:12 · 19:40"
         }, root.packSamples)
     readonly property var packSamples: ({
             "mood": "🌙",
             "quote": "back in five",
-            "top_artist": "Robyn",
-            "streak": "9",
-            "playlist": "Neon Drive",
-            "flag": "🇯🇵",
-            "trip_day": "4",
-            "caption": "temple steps"
+            "into_lately": "deep house on repeat",
+            "where_i_am": "Lisbon"
         })
     readonly property var demoPhoto: ({
             "path": String(Qt.resolvedUrl("demo/covers/teardrop.jpg")),
@@ -379,6 +377,11 @@ ColumnLayout {
         root.packsOpen = false;
         root.setSurfaceTiles(pack.tiles);
         root.seedEntries(pack.tiles);
+        const askIndex = pack.tiles.findIndex(t => t.type === "scalar" && Statusphere.isCustomFieldKey(t.field) && root.kindFromForm(t.field) === "text");
+        if (askIndex < 0)
+            return;
+        root.selectedIndex = askIndex;
+        tileSheet.focusAnswer();
     }
 
     function seedEntries(tiles) {
@@ -667,6 +670,7 @@ ColumnLayout {
     }
 
     TileSheet {
+        id: tileSheet
         Layout.fillWidth: true
         visible: root.selectedTile !== null && !root.galleryOpen
         editor: root

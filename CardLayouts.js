@@ -39,6 +39,14 @@ const tileTypes = {
                 "label": "Weather",
                 "file": "TileWeather.qml",
                 "autoShape": weatherShape
+            },
+            "moon": {
+                "label": "Moon",
+                "file": "TileSticker.qml"
+            },
+            "sun": {
+                "label": "Sun",
+                "file": "TileText.qml"
             }
         },
         "hasData": (data, account, t) => data.fieldFor(data.deviceForTile(account, t), t.field) !== null
@@ -385,8 +393,8 @@ const packs = {
             }),
             tile({
                 "type": "scalar",
-                "field": "mood",
-                "form": "big",
+                "field": "moon",
+                "form": "moon",
                 "size": "1x1",
                 "color": "primaryContainer",
                 "onMissing": "hide"
@@ -402,16 +410,18 @@ const packs = {
             }),
             tile({
                 "type": "scalar",
-                "field": "top_artist",
-                "form": "text",
+                "field": "into_lately",
+                "form": "big",
                 "size": "2x1",
-                "onMissing": "hide"
+                "color": "secondaryContainer",
+                "onMissing": "dim"
             }),
             tile({
                 "type": "scalar",
-                "field": "streak",
-                "form": "number",
+                "field": "local_time",
+                "form": "clock",
                 "size": "1x1",
+                "shape": "auto",
                 "color": "tertiaryContainer",
                 "onMissing": "hide"
             })
@@ -474,7 +484,7 @@ const packs = {
                 "form": "big",
                 "size": "4x1",
                 "color": "secondaryContainer",
-                "onMissing": "hide"
+                "onMissing": "dim"
             })
         ]
     },
@@ -516,6 +526,31 @@ const packs = {
                 "shape": "auto",
                 "color": "tertiaryContainer",
                 "onMissing": "dim"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "moon",
+                "form": "moon",
+                "size": "1x1",
+                "color": "primaryContainer",
+                "onMissing": "dim"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "local_time",
+                "form": "clock",
+                "size": "1x1",
+                "shape": "auto",
+                "color": "secondaryContainer",
+                "onMissing": "dim"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "sun",
+                "form": "sun",
+                "size": "2x1",
+                "color": "tertiaryContainer",
+                "onMissing": "dim"
             })
         ],
         "musicHead": [
@@ -527,7 +562,7 @@ const packs = {
             }),
             tile({
                 "type": "scalar",
-                "field": "playlist",
+                "field": "into_lately",
                 "form": "big",
                 "size": "2x2",
                 "color": "tertiaryContainer",
@@ -535,25 +570,28 @@ const packs = {
             }),
             tile({
                 "type": "scalar",
-                "field": "top_artist",
-                "form": "text",
-                "size": "2x1",
-                "onMissing": "dim"
-            }),
-            tile({
-                "type": "scalar",
-                "field": "streak",
-                "form": "number",
+                "field": "local_time",
+                "form": "clock",
                 "size": "1x1",
+                "shape": "auto",
                 "color": "primaryContainer",
                 "onMissing": "dim"
             }),
             tile({
                 "type": "scalar",
-                "field": "mood",
-                "form": "big",
+                "field": "weather",
+                "form": "weather",
                 "size": "1x1",
+                "shape": "auto",
                 "color": "secondaryContainer",
+                "onMissing": "dim"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "uptime",
+                "form": "number",
+                "size": "2x1",
+                "color": "primaryContainer",
                 "onMissing": "dim"
             })
         ],
@@ -584,26 +622,18 @@ const packs = {
             }),
             tile({
                 "type": "scalar",
-                "field": "flag",
-                "form": "big",
+                "field": "sun",
+                "form": "sun",
                 "size": "1x1",
-                "color": "tertiary",
+                "color": "tertiaryContainer",
                 "onMissing": "dim"
             }),
             tile({
                 "type": "scalar",
-                "field": "caption",
+                "field": "where_i_am",
                 "form": "big",
-                "size": "1x1",
+                "size": "2x1",
                 "color": "secondaryContainer",
-                "onMissing": "dim"
-            }),
-            tile({
-                "type": "scalar",
-                "field": "trip_day",
-                "form": "number",
-                "size": "1x1",
-                "color": "primaryContainer",
                 "onMissing": "dim"
             })
         ],
