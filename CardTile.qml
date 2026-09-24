@@ -243,7 +243,10 @@ Item {
     Item {
         id: content
         anchors.fill: parent
-        anchors.margins: root.fullBleed ? 0 : 12
+        // A fixed 12px eats most of a thumbnail-scale tile (a preset preview packs a
+        // whole card into ~40px cells) and leaves nothing for text to fit in - scale
+        // it with the tile instead.
+        anchors.margins: root.fullBleed ? 0 : Math.max(4, Math.round(Math.min(width, height) * 0.1))
         clip: true
 
         PresenceMusic {
@@ -482,7 +485,7 @@ Item {
             anchors.fill: parent
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            wrapMode: Text.Wrap
+            wrapMode: Text.WordWrap
             maximumLineCount: 3
             elide: Text.ElideRight
             fontSizeMode: Text.Fit
@@ -553,11 +556,33 @@ Item {
                 Layout.fillHeight: true
 
                 readonly property int count: heatmap.raw.length
-                // Columns picked off the box's own aspect ratio, not a fixed count, so a
-                // square 2x2 tile packs into a grid instead of one wide, half-empty row.
-                readonly property int cols: dotsArea.count > 0 ? Math.max(1, Math.min(dotsArea.count, Math.round(Math.sqrt(dotsArea.count * dotsArea.width / Math.max(1, dotsArea.height))))) : 1
-                readonly property int rows: dotsArea.count > 0 ? Math.ceil(dotsArea.count / dotsArea.cols) : 1
-                readonly property real dotSize: dotsArea.count > 0 ? Math.min((dotsArea.width - (dotsArea.cols - 1) * 4) / dotsArea.cols, (dotsArea.height - (dotsArea.rows - 1) * 4) / dotsArea.rows) : 0
+                // Every row count from 1 to count gives a column count (ceil(count / rows))
+                // and a dot size bound by whichever of width/height is tighter; picking the
+                // row count that maximises that size fills the box on one axis instead of
+                // leaving slack on both, and a 2x1 strip no longer packs like a square tile.
+                readonly property var packing: {
+                    if (dotsArea.count <= 0)
+                        return {
+                            "cols": 1,
+                            "rows": 1,
+                            "size": 0
+                        };
+                    let best = null;
+                    for (let rows = 1; rows <= dotsArea.count; rows++) {
+                        const cols = Math.ceil(dotsArea.count / rows);
+                        const size = Math.min((dotsArea.width - (cols - 1) * 4) / cols, (dotsArea.height - (rows - 1) * 4) / rows);
+                        if (!best || size > best.size)
+                            best = {
+                                "cols": cols,
+                                "rows": rows,
+                                "size": size
+                            };
+                    }
+                    return best;
+                }
+                readonly property int cols: dotsArea.packing.cols
+                readonly property int rows: dotsArea.packing.rows
+                readonly property real dotSize: Math.max(0, dotsArea.packing.size)
 
                 Grid {
                     id: dots
@@ -589,7 +614,8 @@ Item {
             spacing: 6
 
             MaterialSymbol {
-                text: Statusphere.iconForField(root.tile.field)
+                visible: (root.field?.icon ?? "").length > 0
+                text: root.field?.icon ?? ""
                 iconSize: Appearance.font.pixelSize.normal
                 color: root.contentColor
             }

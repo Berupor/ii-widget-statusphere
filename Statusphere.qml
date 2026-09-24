@@ -239,7 +239,11 @@ Singleton {
         return root.hiddenLines[sum % root.hiddenLines.length];
     }
 
+    // A demo/preview account can carry its photo straight on the object - there is no
+    // account_id it could ingest a real photo line under.
     function currentPhotoFor(account): var {
+        if (account?._photo)
+            return account._photo;
         const p = root.photosByAccountId[account?.id];
         if (!p)
             return null;
@@ -568,6 +572,8 @@ Singleton {
         return null;
     }
 
+    // A key without an entry here falls through to no icon rather than a generic one -
+    // a wrong icon reads worse than a bare label.
     function iconForField(key): string {
         switch (key) {
         case "cpu":
@@ -584,8 +590,16 @@ Singleton {
             return "terminal";
         case "workspace":
             return "desktop_windows";
+        case "mood":
+            return "mood";
+        case "region":
+            return "location_on";
+        case "top_artist":
+            return "album";
+        case "genre":
+            return "library_music";
         default:
-            return "monitoring";
+            return "";
         }
     }
 
@@ -677,7 +691,7 @@ Singleton {
             const raw = String(device[key]);
             fields.push({
                 "key": key,
-                "icon": root.iconForField(key),
+                "icon": device[`${key}_icon`] || root.iconForField(key),
                 "label": root.labelForKey(key),
                 "value": raw,
                 "percent": root.percentForField(key, raw, device)
