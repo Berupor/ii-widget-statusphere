@@ -134,21 +134,6 @@ Item {
         return stripped.includes("·") ? stripped.split("·").pop().trim() : stripped;
     }
 
-    // A deterministic squiggle per track, not a real spectrum - there is no audio data on
-    // the wire, so the wave strip is a decoration that at least changes with the song.
-    function waveSeed(device): var {
-        const key = Statusphere.trackKey(device) || "silence";
-        let seed = 0;
-        for (let i = 0; i < key.length; i++)
-            seed = (seed * 31 + key.charCodeAt(i)) >>> 0;
-        const points = [];
-        for (let i = 0; i < 24; i++) {
-            seed = (seed * 1103515245 + 12345) >>> 0;
-            points.push(200 + (seed % 800));
-        }
-        return points;
-    }
-
     readonly property bool backgroundIsLocal: root.tile.background?.kind === "live" && root.tile.background?.value === "photo"
     readonly property string backgroundSource: {
         const bg = root.tile.background;
@@ -310,11 +295,14 @@ Item {
 
         ColumnLayout {
             id: waveForm
-            anchors.fill: parent
+            anchors.verticalCenter: parent.verticalCenter
+            width: parent.width
             visible: root.tile.type === "music" && root.musicForm === "wave" && !root.thumbnail
             spacing: 6
 
             readonly property var musicDevice: Statusphere.musicDevices(root.account)[0] ?? null
+            readonly property bool hasPosition: (waveForm.musicDevice?.spotify_length ?? 0) > 0
+            readonly property real progress: waveForm.hasPosition ? (waveForm.musicDevice.spotify_position ?? 0) / waveForm.musicDevice.spotify_length : 0
 
             RowLayout {
                 Layout.fillWidth: true
@@ -334,16 +322,16 @@ Item {
                 }
             }
 
-            Item {
+            StyledProgressBar {
                 Layout.fillWidth: true
-                Layout.fillHeight: true
-
-                WaveVisualizer {
-                    anchors.fill: parent
-                    color: root.contentColor
-                    live: waveForm.musicDevice?.spotify_status === "playing"
-                    points: root.waveSeed(waveForm.musicDevice)
-                }
+                from: 0
+                to: 1
+                value: waveForm.progress
+                valueBarHeight: 6
+                wavy: true
+                animateWave: waveForm.hasPosition && waveForm.musicDevice?.spotify_status === "playing"
+                highlightColor: root.contentColor
+                trackColor: ColorUtils.transparentize(root.contentColor, 0.75)
             }
         }
 
