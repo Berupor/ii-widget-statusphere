@@ -94,6 +94,16 @@ Item {
         editor.saveMyLayout();
     }
 
+    // A generic visual-tree walk, for pinning what a tile actually renders with
+    // instead of just the data that went in.
+    function findAll(item, pred, out) {
+        if (pred(item))
+            out.push(item);
+        for (const c of item.children ?? [])
+            root.findAll(c, pred, out);
+        return out;
+    }
+
     function checks() {
         let saved = {};
         try {
@@ -101,6 +111,21 @@ Item {
         } catch (e) {
         // File not settled yet - every check below fails loudly instead of throwing
         }
+        editor.editRow = editor.editRow.concat([{
+                    "type": "scalar",
+                    "field": "gone_missing",
+                    "form": "text",
+                    "size": "2x1",
+                    "shape": "default",
+                    "color": "secondaryContainer",
+                    "background": {
+                        "kind": "color",
+                        "value": "secondaryContainer"
+                    },
+                    "onMissing": "dim"
+                }]);
+        const offersGoneMissing = editor.sourceOptionsFor(null).some(o => o.value === "scalar:gone_missing");
+        const labelTexts = root.findAll(root, it => it.text !== undefined, []).map(t => t.text);
         return [
             {
                 "name": "Save my card writes the row tiles to layout.json",
@@ -134,22 +159,17 @@ Item {
             },
             {
                 "name": "the source list still offers a field the layout names even if the device stopped reporting it",
-                "got": (function() {
-                    editor.editRow = editor.editRow.concat([{
-                                "type": "scalar",
-                                "field": "gone_missing",
-                                "form": "text",
-                                "size": "2x1",
-                                "shape": "default",
-                                "color": "secondaryContainer",
-                                "background": {
-                                    "kind": "color",
-                                    "value": "secondaryContainer"
-                                },
-                                "onMissing": "dim"
-                            }]);
-                    return editor.sourceOptionsFor(null).some(o => o.value === "scalar:gone_missing");
-                })(),
+                "got": offersGoneMissing,
+                "want": true
+            },
+            {
+                "name": "a tile with no data yet shows a title-cased label, never the raw key",
+                "got": labelTexts.includes("gone_missing"),
+                "want": false
+            },
+            {
+                "name": "that tile's label is title-cased from the key",
+                "got": labelTexts.includes("Gone Missing"),
                 "want": true
             }
         ];

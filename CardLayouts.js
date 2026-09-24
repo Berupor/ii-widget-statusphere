@@ -207,7 +207,7 @@ const presets = {
             }),
             tile({
                 "type": "scalar",
-                "field": "mood",
+                "field": "flag",
                 "form": "big",
                 "size": "1x1",
                 "color": "tertiary",

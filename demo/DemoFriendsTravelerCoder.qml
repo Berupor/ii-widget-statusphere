@@ -1,4 +1,4 @@
-//@ probe statusphere -g 420x1200 -s 1500
+//@ probe statusphere -g 420x1200 -s 2500
 /**
  * Two more friend packs on their own, row collapsed and detail expanded: a
  * travelling photographer (local clock, weather, a shared photo) next to a
@@ -34,9 +34,9 @@ Item {
                         "detail": CardLayouts.presets.traveler.detail
                     },
                     "weather": "9° Rain · Lisbon, PT",
-                    "custom_fields": ["local_time", "mood", "region", "trip_day", "caption", "distance"],
+                    "custom_fields": ["local_time", "flag", "region", "trip_day", "caption", "distance"],
                     "local_time": "13:15",
-                    "mood": "📷",
+                    "flag": "🇵🇹",
                     "region": "PT-11",
                     "trip_day": "42",
                     "caption": "Somewhere new",
@@ -102,6 +102,12 @@ Item {
         const grids = root.findAll(root, it => it.rowsUsed !== undefined && it.placed !== undefined, []);
         const packedSolid = grids.every(g => g.placed.reduce((sum, p) => sum + p.cols * p.rows, 0) === g.rowsUsed * g.columns);
 
+        const valueTexts = root.findAll(root, it => it.truncated !== undefined, []);
+        const notTruncated = text => {
+            const copies = valueTexts.filter(t => t.text === text);
+            return copies.length > 0 && copies.every(t => !t.truncated);
+        };
+
         return [
             {
                 "name": "the traveler pack counts as a custom layout",
@@ -131,6 +137,16 @@ Item {
             {
                 "name": "the commits heatmap sizes its dots to fill the tile, not a fixed square grid",
                 "got": commitsDots ? Math.max(commitsDots.packing.size * commitsDots.cols / commitsDots.width, commitsDots.packing.size * commitsDots.rows / commitsDots.height) > 0.85 : false,
+                "want": true
+            },
+            {
+                "name": "a 1x1 number value shrinks to fit instead of eliding",
+                "got": notTruncated("1240 km"),
+                "want": true
+            },
+            {
+                "name": "a 2x1 text value shrinks to fit instead of eliding",
+                "got": notTruncated("TypeScript"),
                 "want": true
             },
             {

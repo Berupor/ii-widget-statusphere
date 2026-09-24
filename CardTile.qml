@@ -25,7 +25,7 @@ Item {
     readonly property var field: root.tile.type === "scalar" ? Statusphere.fieldFor(root.device, root.tile.field) : null
     readonly property real percent: root.field?.percent ?? 0
     readonly property string valueText: root.field?.value ?? "-"
-    readonly property string labelText: root.field?.label ?? root.tile.field
+    readonly property string labelText: root.field?.label ?? Statusphere.labelForKey(root.tile.field)
 
     function roleColor(role: string): color {
         switch (role) {
@@ -477,6 +477,8 @@ Item {
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignHCenter
                 elide: Text.ElideRight
+                fontSizeMode: Text.HorizontalFit
+                minimumPixelSize: Appearance.font.pixelSize.smallest
                 animateChange: true
                 text: root.hasData ? root.numberDisplayValue : "-"
                 font.pixelSize: Appearance.font.pixelSize.huge
@@ -611,29 +613,41 @@ Item {
             }
         }
 
-        RowLayout {
+        ColumnLayout {
             visible: root.tile.type === "scalar" && root.tile.form === "text" && !root.thumbnail
-            anchors.verticalCenter: parent.verticalCenter
-            width: parent.width
-            spacing: 6
+            anchors.fill: parent
+            spacing: 4
 
-            MaterialSymbol {
-                visible: (root.field?.icon ?? "").length > 0
-                text: root.field?.icon ?? ""
-                iconSize: Appearance.font.pixelSize.normal
-                color: root.contentColor
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 4
+
+                MaterialSymbol {
+                    visible: (root.field?.icon ?? "").length > 0
+                    text: root.field?.icon ?? ""
+                    iconSize: Appearance.font.pixelSize.smaller
+                    color: root.mutedContentColor
+                }
+                StyledText {
+                    Layout.fillWidth: true
+                    elide: Text.ElideRight
+                    text: root.labelText
+                    font.pixelSize: Appearance.font.pixelSize.smaller
+                    color: root.mutedContentColor
+                }
             }
             StyledText {
                 Layout.fillWidth: true
+                Layout.fillHeight: true
+                verticalAlignment: Text.AlignVCenter
+                wrapMode: Text.WordWrap
+                maximumLineCount: 2
                 elide: Text.ElideRight
-                text: root.labelText
-                font.pixelSize: Appearance.font.pixelSize.small
-                color: root.contentColor
-            }
-            StyledText {
-                horizontalAlignment: Text.AlignRight
-                text: root.valueText
-                font.pixelSize: Appearance.font.pixelSize.small
+                fontSizeMode: Text.Fit
+                minimumPixelSize: Appearance.font.pixelSize.smallest
+                animateChange: true
+                text: root.hasData ? root.valueText : "-"
+                font.pixelSize: Appearance.font.pixelSize.huge
                 color: root.contentColor
             }
         }
