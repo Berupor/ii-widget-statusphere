@@ -926,13 +926,15 @@ ColumnLayout {
 
     Rectangle {
         Layout.fillWidth: true
-        implicitHeight: Math.max(80, preview.implicitHeight + 16)
+        implicitHeight: Math.max(80, preview.implicitHeight + 16 + (emptyHint.visible && preview.rowsUsed > 0 ? emptyHint.implicitHeight + 8 : 0))
         radius: Appearance.rounding.normal
         color: Appearance.colors.colLayer1
 
         StyledText {
+            id: emptyHint
             visible: root.editTiles.length === 0
-            anchors.centerIn: parent
+            x: 16
+            y: preview.rowsUsed > 0 ? preview.y + preview.height + 8 : (parent.height - emptyHint.height) / 2
             width: parent.width - 32
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
@@ -1005,7 +1007,7 @@ ColumnLayout {
         readonly property var packs: CardLayouts.packsFor(root.editSurface)
         readonly property int maxRows: CardLayouts.rowsFor(root.editSurface)
         readonly property int thumbRows: Math.max(1, ...packList.packs.map(p => CardLayouts.rowsUsed(CardLayouts.pack(p.tiles, packList.maxRows))))
-        readonly property real thumbWidth: 112
+        readonly property real thumbWidth: (packList.width - (packList.packs.length - 1) * packList.spacing) / packList.packs.length
         readonly property real thumbPadding: 4
 
         Repeater {

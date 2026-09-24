@@ -291,7 +291,17 @@ Item {
         ScriptAction {
             script: {
                 root.editor.selectSurface("detail");
+            }
+        }
+        PauseAnimation {
+            duration: 200
+        }
+        ScriptAction {
+            script: {
                 root.note("emptyDetailHint", root.visibleTexts(root.editor).includes("Friends see the standard detail card until you add a tile"));
+                const hint = root.first(root.editor, it => it.text === "Friends see the standard detail card until you add a tile");
+                const preview = root.first(root.editor, it => it.reorderable === true);
+                root.note("emptyDetailHintClear", hint.mapToItem(null, 0, 0).y >= preview.mapToItem(null, 0, preview.height).y && hint.mapToItem(null, 0, hint.height).y <= hint.parent.mapToItem(null, 0, hint.parent.height).y);
                 root.note("emptyDetailPreviewTiles", root.first(root.editor, it => it.reorderable === true)?.tiles.length ?? 0);
                 root.editor.selectSurface("row");
             }
@@ -495,6 +505,11 @@ Item {
             {
                 "name": "the empty-state hint on an empty Detail tab says friends see the standard card",
                 "got": s.emptyDetailHint,
+                "want": true
+            },
+            {
+                "name": "the empty Detail hint sits under the standard tiles, inside the preview, not over them",
+                "got": s.emptyDetailHintClear,
                 "want": true
             },
             {
