@@ -100,57 +100,7 @@ ColumnLayout {
     }
 
     ContentSubsection {
-        title: Translation.tr("Games")
-
-        ConfigSwitch {
-            buttonIcon: "sports_esports"
-            text: Translation.tr('What friends are playing')
-            checked: Statusphere.opt("games")
-            onCheckedChanged: setOption("games", checked)
-            StyledToolTip {
-                text: Translation.tr("A card with the game's own art from Steam, and how long they have been in it.\nIncognito hides games the way it hides windows, before anything leaves their machine")
-            }
-        }
-    }
-
-    ContentSubsection {
         title: Translation.tr("Photos")
-
-        ConfigSwitch {
-            buttonIcon: "check"
-            text: Translation.tr('Friends\' shared photos')
-            checked: Statusphere.opt("photos")
-            onCheckedChanged: setOption("photos", checked)
-            StyledToolTip {
-                text: Translation.tr("Shows a room member's current shared photo below their row")
-            }
-        }
-
-        ConfigSpinBox {
-            enabled: Statusphere.opt("photos")
-            icon: "compress"
-            text: Translation.tr("Min photo height")
-            value: Statusphere.opt("photoMinHeight")
-            from: 60
-            to: 320
-            stepSize: 20
-            onValueChanged: {
-                setOption("photoMinHeight", value);
-            }
-        }
-
-        ConfigSpinBox {
-            enabled: Statusphere.opt("photos")
-            icon: "expand"
-            text: Translation.tr("Max photo height")
-            value: Statusphere.opt("photoMaxHeight")
-            from: 120
-            to: 640
-            stepSize: 20
-            onValueChanged: {
-                setOption("photoMaxHeight", value);
-            }
-        }
 
         ConfigSwitch {
             buttonIcon: "add_a_photo"

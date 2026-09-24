@@ -21,9 +21,11 @@ Rectangle {
     readonly property bool canPick: root.isSelf && Statusphere.available && Statusphere.opt("incognito")
     readonly property var devices: root.account?.devices ?? []
     readonly property var playing: Statusphere.musicDevices(root.account)
-    readonly property var gaming: Statusphere.opt("games") ? Statusphere.gameDevices(root.account) : []
+    readonly property var gaming: Statusphere.gameDevices(root.account)
     readonly property var currentPhoto: Statusphere.currentPhotoFor(root.account)
-    readonly property bool hasPhoto: Statusphere.opt("photos") && root.currentPhoto !== null
+    readonly property bool hasPhoto: root.currentPhoto !== null
+    readonly property bool customLayout: Statusphere.hasCustomLayout(root.account)
+    readonly property var rowTiles: root.customLayout ? Statusphere.surfaceTiles(root.account, "row") : []
     readonly property bool canShare: root.isSelf && Statusphere.canShare
     readonly property bool expandable: root.devices.length > 1
     property bool expanded: false
@@ -151,7 +153,7 @@ Rectangle {
             }
 
             Rectangle { // What the picture slot is not showing, and the way back to it
-                visible: root.bothPictures && !root.expanded
+                visible: !root.customLayout && root.bothPictures && !root.expanded
                 Layout.alignment: Qt.AlignVCenter
                 radius: Appearance.rounding.full
                 color: swapArea.containsMouse ? Appearance.colors.colLayer2Hover : Appearance.colors.colLayer2
@@ -227,7 +229,7 @@ Rectangle {
         PresencePhoto {
             Layout.fillWidth: true
             Layout.topMargin: 8
-            visible: root.showPhoto && !root.expanded
+            visible: !root.customLayout && root.showPhoto && !root.expanded
             photo: root.currentPhoto
         }
 
@@ -235,7 +237,7 @@ Rectangle {
             id: game
             Layout.fillWidth: true
             Layout.topMargin: 8
-            visible: root.showGame && !root.expanded
+            visible: !root.customLayout && root.showGame && !root.expanded
             device: root.gaming[0] ?? null
         }
 
@@ -249,11 +251,20 @@ Rectangle {
         PresenceMusic { // One art with the rest of the stack peeking out behind it, unless a photo already fills the space
             id: music
             Layout.fillWidth: true
-            visible: root.playing.length > 0 && !root.expanded
+            visible: !root.customLayout && root.playing.length > 0 && !root.expanded
             compact: root.showPhoto || root.showGame
             device: root.playing[0] ?? null
             stackedDevice: root.playing[1] ?? null
             stackedCount: root.playing.length - 1
+        }
+
+        CardGrid { // The owner's own row layout, in place of the picture/music stack above
+            Layout.fillWidth: true
+            Layout.topMargin: 8
+            visible: root.customLayout && !root.expanded
+            account: root.account
+            tiles: root.rowTiles
+            maxRows: 2
         }
 
         ColumnLayout { // Expanded: the music once per track, then what each device is up to

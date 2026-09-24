@@ -10,6 +10,7 @@ import qs.modules.widgets
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "CardLayouts.js" as CardLayouts
 
 Singleton {
     id: root
@@ -511,8 +512,7 @@ Singleton {
         if (root.isServer(account))
             return root.healthNoteFor(account) || Translation.tr("All good");
         // The game is said here and only here; the card below is the picture of it.
-        // With the card switched off active_window says the same thing, so fall through.
-        if (root.opt("games") && root.gameDevices(account).length > 0)
+        if (root.gameDevices(account).length > 0)
             return root.gameLineFor(account);
         const playing = root.musicDevices(account);
         if (playing.length > 1)
@@ -543,10 +543,6 @@ Singleton {
         if (!device?.spotify_status)
             return "";
         return device.spotify_display || `${device.spotify_track ?? ""} — ${device.spotify_artist ?? ""}`;
-    }
-
-    function weatherFor(account): string {
-        return account?.primary?.weather ?? "";
     }
 
     function canSync(device): bool {
@@ -648,42 +644,121 @@ Singleton {
         return fields;
     }
 
-    // Structured for the right-click detail card: percentage fields become
-    // { percent }, everything else (workspace, weather, uptime) stays text-only.
-    function detailFieldsFor(account): var {
-        if (!account || account.offline)
+    // Structured for the right-click detail card and for a scalar tile's field lookup:
+    // percentage fields become { percent }, everything else (workspace, weather,
+    // uptime) stays text-only.
+    function fieldsFor(device): var {
+        if (!device)
             return [];
-        const p = account.primary;
-        const fields = root.systemFieldsFor(p);
-        if (p?.active_workspace)
+        const fields = root.systemFieldsFor(device);
+        if (device.active_workspace)
             fields.push({
                 "key": "workspace",
                 "icon": "desktop_windows",
                 "label": Translation.tr("Workspace"),
-                "value": String(p.active_workspace),
+                "value": String(device.active_workspace),
                 "percent": null
             });
-        if (root.weatherFor(account))
+        if (device.weather)
             fields.push({
                 "key": "weather",
                 "icon": "sunny",
                 "label": Translation.tr("Weather"),
-                "value": root.weatherFor(account),
+                "value": device.weather,
                 "percent": null
             });
-        for (const key of (p?.custom_fields ?? [])) {
-            if (key === "weather" || !p[key] || root.nativeFieldKeys.includes(key))
+        for (const key of (device.custom_fields ?? [])) {
+            if (key === "weather" || !device[key] || root.nativeFieldKeys.includes(key))
                 continue;
-            const raw = String(p[key]);
+            const raw = String(device[key]);
             fields.push({
                 "key": key,
                 "icon": root.iconForField(key),
                 "label": key,
                 "value": raw,
-                "percent": root.percentForField(key, raw, p)
+                "percent": root.percentForField(key, raw, device)
             });
         }
         return fields;
+    }
+
+    function detailFieldsFor(account): var {
+        if (!account || account.offline)
+            return [];
+        return root.fieldsFor(account.primary);
+    }
+
+    function fieldFor(device, key): var {
+        return root.fieldsFor(device).find(f => f.key === key) ?? null;
+    }
+
+    function graphValuesFor(device, key): var {
+        return device?.[`${key}_history`] ?? [];
+    }
+
+    // A device's own layout is a snapshot field like any other, prefixed the way
+    // _kind/_health are: it never leaves this machine unless the owner published it.
+    function layoutFor(account): var {
+        let best = null;
+        for (const d of account?.devices ?? []) {
+            const l = d._layout;
+            if (l && (best === null || (l.updated_at ?? 0) > (best.updated_at ?? 0)))
+                best = l;
+        }
+        return best;
+    }
+
+    function hasCustomLayout(account): bool {
+        return root.layoutFor(account) !== null;
+    }
+
+    // A "*" field expands to every detail field the layout does not already name,
+    // so an owner's layout does not have to list every custom.json key by hand.
+    function expandWildcardTiles(tiles, account): var {
+        const named = new Set(tiles.filter(t => t.field !== "*").map(t => t.field));
+        const out = [];
+        for (const t of tiles) {
+            if (t.field !== "*") {
+                out.push(t);
+                continue;
+            }
+            for (const f of root.detailFieldsFor(account)) {
+                if (named.has(f.key))
+                    continue;
+                out.push(Object.assign({}, t, {
+                    "field": f.key
+                }));
+            }
+        }
+        return out;
+    }
+
+    function surfaceTiles(account, surface): var {
+        const custom = root.layoutFor(account);
+        if (custom)
+            return root.expandWildcardTiles(custom[surface] ?? [], account);
+        if (surface === "detail")
+            return root.expandWildcardTiles(CardLayouts.standardDetail, account);
+        return [];
+    }
+
+    function deviceForTile(account, tile): var {
+        if (!tile.device)
+            return account?.primary ?? null;
+        return (account?.devices ?? []).find(d => d.device_id === tile.device) ?? null;
+    }
+
+    function tileHasData(account, tile): bool {
+        switch (tile.type) {
+        case "music":
+            return root.musicDevices(account).length > 0;
+        case "game":
+            return root.gameDevices(account).length > 0;
+        case "photo":
+            return root.currentPhotoFor(account) !== null;
+        default:
+            return root.fieldFor(root.deviceForTile(account, tile), tile.field) !== null;
+        }
     }
 
     // The cli's stderr is a raw Go error (eg. "failed to connect: WebSocket dial: expected
