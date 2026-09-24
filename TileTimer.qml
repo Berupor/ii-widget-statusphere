@@ -7,19 +7,23 @@ Item {
     id: form
     required property var card
     readonly property var device: form.card.gameDevice
+    readonly property real iconSize: Math.max(Appearance.font.pixelSize.large, Math.round(form.height * 0.3))
+    readonly property real labelSize: Math.max(Appearance.font.pixelSize.smaller, Math.round(form.height * 0.18))
+    readonly property real valueSize: Math.max(Appearance.font.pixelSize.large, Math.round(form.height * 0.3))
 
     RowLayout {
-        anchors.verticalCenter: parent.verticalCenter
-        width: parent.width
+        anchors.fill: parent
         spacing: 8
 
         MaterialSymbol {
+            Layout.alignment: Qt.AlignVCenter
             text: "sports_esports"
-            iconSize: Appearance.font.pixelSize.large
+            iconSize: form.iconSize
             color: form.card.contentColor
         }
         ColumnLayout {
             Layout.fillWidth: true
+            Layout.alignment: Qt.AlignVCenter
             spacing: 0
 
             StyledText {
@@ -27,7 +31,7 @@ Item {
                 elide: Text.ElideRight
                 text: form.device?.game_source ? Statusphere.labelForKey(form.device.game_source) : (Statusphere.gameFor(form.device) || "-")
                 color: form.card.mutedContentColor
-                font.pixelSize: Appearance.font.pixelSize.smaller
+                font.pixelSize: form.labelSize
             }
             StyledText {
                 Layout.fillWidth: true
@@ -35,7 +39,7 @@ Item {
                 animateChange: true
                 text: form.device ? Statusphere.sessionFor(Statusphere.gameStartedMsFor(form.device)) : ""
                 color: form.card.contentColor
-                font.pixelSize: Appearance.font.pixelSize.large
+                font.pixelSize: form.valueSize
             }
         }
     }

@@ -20,6 +20,7 @@ ColumnLayout {
         Layout.fillHeight: true
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
+        largestSize: Math.max(Appearance.font.pixelSize.huge, Math.round(Math.min(form.width, form.height) * 0.4))
         maxLines: 3
         animateChange: true
         text: form.card.shownValueText

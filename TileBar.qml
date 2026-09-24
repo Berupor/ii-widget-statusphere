@@ -1,3 +1,4 @@
+import qs.modules.common
 import QtQuick
 import QtQuick.Layouts
 
@@ -13,6 +14,8 @@ ColumnLayout {
     ShrinkThenWrapText {
         Layout.fillWidth: true
         Layout.fillHeight: true
+        verticalAlignment: Text.AlignVCenter
+        largestSize: Math.max(Appearance.font.pixelSize.huge, Math.round(form.height * 0.3))
         maxLines: 1
         animateChange: true
         text: form.card.hasData ? Math.round(form.card.percent) + "%" : "-"

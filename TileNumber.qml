@@ -16,7 +16,7 @@ Item {
         ShrinkThenWrapText {
             Layout.fillWidth: true
             horizontalAlignment: Text.AlignHCenter
-            largestSize: Appearance.font.pixelSize.smallest
+            largestSize: Math.max(Appearance.font.pixelSize.smallest, Math.round(form.height * 0.15))
             wrapBelow: Appearance.font.pixelSize.smallest
             text: form.caption
             color: form.card.mutedContentColor
@@ -24,6 +24,7 @@ Item {
         ShrinkThenWrapText {
             Layout.fillWidth: true
             horizontalAlignment: Text.AlignHCenter
+            largestSize: Math.max(Appearance.font.pixelSize.huge, Math.round(form.height * 0.4))
             maxLines: 1
             animateChange: true
             text: form.card.hasData ? form.value : "-"

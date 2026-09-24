@@ -28,6 +28,7 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
         verticalAlignment: Text.AlignVCenter
+        largestSize: Math.max(Appearance.font.pixelSize.huge, Math.round(form.height * 0.3))
         animateChange: true
         text: form.card.shownValueText
         color: form.card.contentColor
