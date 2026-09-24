@@ -72,6 +72,15 @@ Item {
 
     readonly property color tint: root.roleColor(root.tile.color)
     readonly property color contentColor: root.contentRoleColor(root.tile.color)
+    readonly property color mutedContentColor: ColorUtils.transparentize(root.contentColor, 0.35)
+
+    Behavior on opacity {
+        NumberAnimation {
+            duration: Appearance.animation.elementMoveFast.duration
+            easing.type: Appearance.animation.elementMoveFast.type
+            easing.bezierCurve: Appearance.animation.elementMoveFast.bezierCurve
+        }
+    }
 
     // "cover"/"banner" paint their own full-bleed background (PresenceMusic/PresenceGame
     // already do), everything else - including the vinyl/wave/timer sub-forms - takes the
@@ -158,7 +167,7 @@ Item {
         id: silhouette
         visible: !root.fullBleed && !root.shaped
         anchors.fill: parent
-        radius: Appearance.rounding.normal
+        radius: Appearance.rounding.large
         color: root.backgroundSource ? Appearance.colors.colLayer2 : root.tint
         clip: true
 
@@ -234,8 +243,8 @@ Item {
     Item {
         id: content
         anchors.fill: parent
-        anchors.margins: root.fullBleed ? 0 : 10
-        clip: root.fullBleed
+        anchors.margins: root.fullBleed ? 0 : 12
+        clip: true
 
         PresenceMusic {
             anchors.fill: parent
@@ -356,16 +365,17 @@ Item {
                 StyledText {
                     Layout.fillWidth: true
                     elide: Text.ElideRight
-                    text: Statusphere.gameFor(gameTimer.gameDevice) || "-"
-                    color: root.contentColor
-                    font.pixelSize: Appearance.font.pixelSize.small
+                    text: gameTimer.gameDevice?.game_source ? Statusphere.labelForKey(gameTimer.gameDevice.game_source) : (Statusphere.gameFor(gameTimer.gameDevice) || "-")
+                    color: root.mutedContentColor
+                    font.pixelSize: Appearance.font.pixelSize.smaller
                 }
                 StyledText {
                     Layout.fillWidth: true
                     elide: Text.ElideRight
+                    animateChange: true
                     text: gameTimer.gameDevice ? Statusphere.sessionFor(Statusphere.gameStartedMsFor(gameTimer.gameDevice)) : ""
                     color: root.contentColor
-                    font.pixelSize: Appearance.font.pixelSize.smaller
+                    font.pixelSize: Appearance.font.pixelSize.large
                 }
             }
         }
@@ -391,9 +401,10 @@ Item {
 
                 StyledText {
                     anchors.horizontalCenter: parent.horizontalCenter
+                    animateChange: true
                     text: root.hasData ? Math.round(root.percent) + "%" : "-"
                     color: root.contentColor
-                    font.pixelSize: Appearance.font.pixelSize.small
+                    font.pixelSize: Appearance.font.pixelSize.large
                 }
                 StyledText {
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -401,7 +412,7 @@ Item {
                     horizontalAlignment: Text.AlignHCenter
                     elide: Text.ElideRight
                     text: root.labelText
-                    color: root.contentColor
+                    color: root.mutedContentColor
                     font.pixelSize: Appearance.font.pixelSize.smallest
                 }
             }
@@ -418,11 +429,12 @@ Item {
                 elide: Text.ElideRight
                 text: root.labelText
                 font.pixelSize: Appearance.font.pixelSize.smaller
-                color: root.contentColor
+                color: root.mutedContentColor
             }
             StyledText {
                 Layout.fillWidth: true
                 elide: Text.ElideRight
+                animateChange: true
                 text: root.hasData ? Math.round(root.percent) + "%" : "-"
                 font.pixelSize: Appearance.font.pixelSize.huge
                 color: root.contentColor
@@ -433,6 +445,8 @@ Item {
                 to: 100
                 value: root.hasData ? root.percent : 0
                 valueBarHeight: 6
+                wavy: true
+                animateWave: false
                 highlightColor: root.contentColor
                 trackColor: ColorUtils.transparentize(root.contentColor, 0.75)
             }
@@ -441,19 +455,24 @@ Item {
         ColumnLayout {
             visible: root.tile.type === "scalar" && (root.tile.form === "number" || root.tile.form === "weather")
             anchors.centerIn: parent
+            width: parent.width
             spacing: 2
 
             StyledText {
-                Layout.alignment: Qt.AlignHCenter
-                text: root.hasData ? root.numberDisplayValue : "-"
-                font.pixelSize: Appearance.font.pixelSize.huge
-                color: root.contentColor
-            }
-            StyledText {
-                Layout.alignment: Qt.AlignHCenter
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
                 elide: Text.ElideRight
                 text: root.numberDisplayLabel
                 font.pixelSize: Appearance.font.pixelSize.smallest
+                color: root.mutedContentColor
+            }
+            StyledText {
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
+                animateChange: true
+                text: root.hasData ? root.numberDisplayValue : "-"
+                font.pixelSize: Appearance.font.pixelSize.huge
                 color: root.contentColor
             }
         }
@@ -474,9 +493,9 @@ Item {
         }
 
         ColumnLayout {
-            visible: root.tile.type === "scalar" && root.tile.form === "graph"
+            visible: root.tile.type === "scalar" && (root.tile.form === "graph" || root.tile.form === "bars")
             anchors.fill: parent
-            spacing: 2
+            spacing: 4
 
             RowLayout {
                 Layout.fillWidth: true
@@ -487,16 +506,17 @@ Item {
                     elide: Text.ElideRight
                     text: root.labelText
                     font.pixelSize: Appearance.font.pixelSize.smaller
-                    color: root.contentColor
+                    color: root.mutedContentColor
                 }
                 StyledText {
+                    animateChange: true
                     text: root.hasData ? root.valueText : "-"
-                    font.pixelSize: Appearance.font.pixelSize.smaller
+                    font.pixelSize: Appearance.font.pixelSize.small
                     color: root.contentColor
                 }
             }
 
-            Graph {
+            CardGraph {
                 id: graph
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -504,6 +524,7 @@ Item {
                 readonly property var raw: Statusphere.graphValuesFor(root.device, root.tile.field)
                 readonly property real lo: raw.length > 0 ? Math.min(...raw) : 0
                 readonly property real hi: raw.length > 0 ? Math.max(...raw) : 1
+                mode: root.tile.form === "bars" ? "bars" : "line"
                 values: graph.raw.map(v => graph.hi > graph.lo ? (v - graph.lo) / (graph.hi - graph.lo) : 0.5)
                 color: root.contentColor
             }
@@ -517,34 +538,45 @@ Item {
 
             readonly property var raw: Statusphere.graphValuesFor(root.device, root.tile.field)
             readonly property real hi: heatmap.raw.length > 0 ? Math.max(1, ...heatmap.raw) : 1
-            readonly property int cols: Math.min(7, Math.max(1, heatmap.raw.length))
 
             StyledText {
                 Layout.fillWidth: true
                 elide: Text.ElideRight
                 text: root.labelText
                 font.pixelSize: Appearance.font.pixelSize.smaller
-                color: root.contentColor
+                color: root.mutedContentColor
             }
 
-            Grid {
-                id: dots
+            Item {
+                id: dotsArea
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                columns: heatmap.cols
-                spacing: 4
 
-                Repeater {
-                    model: heatmap.raw
+                readonly property int count: heatmap.raw.length
+                // Columns picked off the box's own aspect ratio, not a fixed count, so a
+                // square 2x2 tile packs into a grid instead of one wide, half-empty row.
+                readonly property int cols: dotsArea.count > 0 ? Math.max(1, Math.min(dotsArea.count, Math.round(Math.sqrt(dotsArea.count * dotsArea.width / Math.max(1, dotsArea.height))))) : 1
+                readonly property int rows: dotsArea.count > 0 ? Math.ceil(dotsArea.count / dotsArea.cols) : 1
+                readonly property real dotSize: dotsArea.count > 0 ? Math.min((dotsArea.width - (dotsArea.cols - 1) * 4) / dotsArea.cols, (dotsArea.height - (dotsArea.rows - 1) * 4) / dotsArea.rows) : 0
 
-                    delegate: Rectangle {
-                        id: dot
-                        required property real modelData
-                        width: (dots.width - (heatmap.cols - 1) * dots.spacing) / heatmap.cols
-                        height: dot.width
-                        radius: 3
-                        color: root.contentColor
-                        opacity: 0.15 + 0.75 * (dot.modelData / heatmap.hi)
+                Grid {
+                    id: dots
+                    anchors.centerIn: parent
+                    columns: dotsArea.cols
+                    spacing: 4
+
+                    Repeater {
+                        model: heatmap.raw
+
+                        delegate: Rectangle {
+                            id: dot
+                            required property real modelData
+                            width: dotsArea.dotSize
+                            height: dotsArea.dotSize
+                            radius: dotsArea.dotSize / 3
+                            color: root.contentColor
+                            opacity: 0.15 + 0.75 * (dot.modelData / heatmap.hi)
+                        }
                     }
                 }
             }

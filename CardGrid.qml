@@ -123,7 +123,7 @@ Item {
                 visible: root.selectable && root.selectedIndex === cardTile.modelData.index
                 anchors.fill: parent
                 anchors.margins: -2
-                radius: Appearance.rounding.normal + 2
+                radius: Appearance.rounding.large + 2
                 color: "transparent"
                 border.width: 2
                 border.color: Appearance.colors.colPrimary

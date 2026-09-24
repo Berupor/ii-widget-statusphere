@@ -109,11 +109,13 @@ const presets = {
                 "field": "mood",
                 "form": "big",
                 "size": "1x1",
-                "color": "errorContainer",
+                "color": "primary",
                 "onMissing": "hide"
             })
         ]
     },
+    // Vinyl is the one place the track shows: the row's other tiles and the
+    // detail card stay off spotify_* so the same song doesn't repeat three times.
     "musicHead": {
         "name": "Music Head",
         "row": [
@@ -126,29 +128,22 @@ const presets = {
                 "onMissing": "hide"
             }),
             tile({
-                "type": "music",
-                "form": "wave",
+                "type": "scalar",
+                "field": "top_artist",
+                "form": "text",
                 "size": "2x1",
-                "color": "secondaryContainer",
                 "onMissing": "hide"
             }),
             tile({
                 "type": "scalar",
-                "field": "mood",
-                "form": "big",
+                "field": "streak",
+                "form": "number",
                 "size": "1x1",
                 "color": "tertiaryContainer",
                 "onMissing": "hide"
             })
         ],
         "detail": [
-            tile({
-                "type": "music",
-                "form": "cover",
-                "size": "4x1",
-                "color": "primary",
-                "onMissing": "hide"
-            }),
             tile({
                 "type": "scalar",
                 "field": "quote",
@@ -162,6 +157,14 @@ const presets = {
                 "field": "genre",
                 "form": "text",
                 "size": "2x1",
+                "onMissing": "hide"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "listening",
+                "form": "heatmap",
+                "size": "2x2",
+                "color": "tertiaryContainer",
                 "onMissing": "hide"
             })
         ]
@@ -199,7 +202,7 @@ const presets = {
                 "field": "mood",
                 "form": "big",
                 "size": "1x1",
-                "color": "errorContainer",
+                "color": "tertiary",
                 "onMissing": "hide"
             })
         ],

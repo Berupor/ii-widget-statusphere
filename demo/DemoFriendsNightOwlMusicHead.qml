@@ -2,7 +2,8 @@
 /**
  * Two friend packs on their own, row collapsed and detail expanded: a night
  * gamer (session timer, an active-hours heatmap, a night clock, a mood sticker)
- * next to a music head (a spinning vinyl, a wave strip, a lyric quote).
+ * next to a music head (a spinning vinyl, top artist and streak, a lyric
+ * quote and a listening heatmap in the detail card).
  */
 import ".."
 import "../CardLayouts.js" as CardLayouts
@@ -61,10 +62,13 @@ Item {
                     "spotify_position": 95,
                     "spotify_length": 240,
                     "spotify_art_url": root.cover("nightcall.jpg"),
-                    "custom_fields": ["mood", "quote", "genre"],
-                    "mood": "🎧",
+                    "custom_fields": ["top_artist", "streak", "quote", "genre", "listening"],
+                    "top_artist": "Kavinsky",
+                    "streak": "12",
                     "quote": "Turn it up",
-                    "genre": "Synthwave"
+                    "genre": "Synthwave",
+                    "listening": "38",
+                    "listening_history": [12, 18, 25, 30, 22, 38, 15]
                 }
             ],
             "photos": []

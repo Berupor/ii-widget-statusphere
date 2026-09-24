@@ -186,10 +186,13 @@ Item {
                     "spotify_position": 90,
                     "spotify_length": 240,
                     "spotify_art_url": root.cover("teardrop.jpg"),
-                    "custom_fields": ["mood", "quote", "genre"],
-                    "mood": "🎧",
+                    "custom_fields": ["top_artist", "streak", "quote", "genre", "listening"],
+                    "top_artist": "Preset Artist",
+                    "streak": "9",
                     "quote": "Turn it up",
-                    "genre": "Synthwave"
+                    "genre": "Synthwave",
+                    "listening": "31",
+                    "listening_history": [10, 14, 20, 26, 18, 31, 12]
                 },
                 {
                     "account_id": "acc-hardware",
