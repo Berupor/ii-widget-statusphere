@@ -76,6 +76,10 @@ Item {
     readonly property color tint: root.roleColor(root.tile.color)
     readonly property color contentColor: root.contentRoleColor(root.tile.color)
     readonly property color mutedContentColor: ColorUtils.transparentize(root.contentColor, 0.35)
+    // StyledProgressBar counts waves per bar width and ties their height to the line
+    // width, so a fixed wave length keeps a narrow tile from turning into a zigzag.
+    readonly property real waveLength: 40
+    readonly property real waveLineWidth: 4
 
     Behavior on opacity {
         NumberAnimation {
@@ -327,7 +331,8 @@ Item {
                 from: 0
                 to: 1
                 value: waveForm.progress
-                valueBarHeight: 6
+                valueBarHeight: root.waveLineWidth
+                waveFrequency: width / root.waveLength
                 wavy: true
                 animateWave: waveForm.hasPosition && waveForm.musicDevice?.spotify_status === "playing"
                 highlightColor: root.contentColor
@@ -385,6 +390,7 @@ Item {
         }
 
         CircularProgress {
+            id: ring
             visible: root.tile.type === "scalar" && root.tile.form === "ring" && !root.thumbnail
             anchors.centerIn: parent
             implicitSize: Math.round(Math.min(content.width, content.height))
@@ -402,7 +408,7 @@ Item {
                     animateChange: true
                     text: root.hasData ? Math.round(root.percent) + "%" : "-"
                     color: root.contentColor
-                    font.pixelSize: Appearance.font.pixelSize.large
+                    font.pixelSize: Math.max(Appearance.font.pixelSize.large, ring.implicitSize * 0.2)
                 }
                 StyledText {
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -411,7 +417,7 @@ Item {
                     elide: Text.ElideRight
                     text: root.labelText
                     color: root.mutedContentColor
-                    font.pixelSize: Appearance.font.pixelSize.smallest
+                    font.pixelSize: Math.max(Appearance.font.pixelSize.smallest, ring.implicitSize * 0.08)
                 }
             }
         }
@@ -442,7 +448,8 @@ Item {
                 from: 0
                 to: 100
                 value: root.hasData ? root.percent : 0
-                valueBarHeight: 6
+                valueBarHeight: root.waveLineWidth
+                waveFrequency: width / root.waveLength
                 wavy: true
                 animateWave: false
                 highlightColor: root.contentColor
