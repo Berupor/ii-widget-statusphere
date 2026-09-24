@@ -3,7 +3,7 @@
  * The room drawn with owner-built card layouts: members on the standard layout
  * (no _layout on their device, so they fall back to CardLayouts.standardDetailFor
  * for the detail card and to PresenceRow's own picture/music stack for the row),
- * one per preset, and one fully custom layout exercising a MaterialShape
+ * one per pack, and one fully custom layout exercising a MaterialShape
  * silhouette, a bar tile and a URL background, plus a tile kept (dimmed) and
  * one hidden when its field has no data.
  */
