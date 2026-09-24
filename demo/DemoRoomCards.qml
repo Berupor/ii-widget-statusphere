@@ -416,12 +416,89 @@ Item {
                     "account_name": "Bad Layout Value",
                     "last_seen": root.now,
                     "_layout": "not-an-object"
+                },
+                {
+                    "account_id": "acc-row-only",
+                    "device_id": "dev-row-only",
+                    "device_name": "row-only",
+                    "account_name": "Row Only",
+                    "last_seen": root.now,
+                    "cpu_percent": 33,
+                    "_layout": {
+                        "updated_at": root.now,
+                        "row": [
+                            {
+                                "type": "scalar",
+                                "field": "cpu",
+                                "form": "number",
+                                "size": "1x1"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "account_id": "acc-detail-invalid",
+                    "device_id": "dev-detail-invalid",
+                    "device_name": "detail-invalid",
+                    "account_name": "Detail Invalid",
+                    "last_seen": root.now,
+                    "cpu_percent": 77,
+                    "_layout": {
+                        "updated_at": root.now,
+                        "detail": [
+                            {
+                                "type": "bogus",
+                                "field": "x"
+                            },
+                            {
+                                "type": "scalar",
+                                "field": "mem",
+                                "size": "99x99"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "account_id": "acc-detail-only",
+                    "device_id": "dev-detail-only",
+                    "device_name": "detail-only",
+                    "account_name": "Detail Only",
+                    "last_seen": root.now,
+                    "cpu_percent": 15,
+                    "_layout": {
+                        "updated_at": root.now,
+                        "detail": [
+                            {
+                                "type": "scalar",
+                                "field": "cpu",
+                                "form": "ring",
+                                "size": "1x1"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "account_id": "acc-empty-row",
+                    "device_id": "dev-empty-row",
+                    "device_name": "empty-row",
+                    "account_name": "Empty Row",
+                    "last_seen": root.now,
+                    "_layout": {
+                        "updated_at": root.now,
+                        "row": []
+                    }
                 }
             ],
             "photos": [
                 {
                     "account_id": "acc-gamer",
                     "path": root.cover("sm2-hero.jpg"),
+                    "created_at": "2026-08-07T12:00:00Z",
+                    "expires_at": "2099-01-01T00:00:00Z"
+                },
+                {
+                    "account_id": "acc-empty-row",
+                    "path": root.cover("nightcall.jpg"),
                     "created_at": "2026-08-07T12:00:00Z",
                     "expires_at": "2099-01-01T00:00:00Z"
                 }
@@ -539,6 +616,36 @@ Item {
                 "name": "a non-object _layout value is ignored, not a crash",
                 "got": Statusphere.layoutFor(Statusphere.accountsById["acc-bad-layout-value"]),
                 "want": null
+            },
+            {
+                "name": "a row-only layout still gets the standard detail tiles",
+                "got": Statusphere.surfaceTiles(Statusphere.accountsById["acc-row-only"], "row").length === 1 && Statusphere.surfaceTiles(Statusphere.accountsById["acc-row-only"], "detail").some(t => t.field === "cpu" && t.form === "ring"),
+                "want": true
+            },
+            {
+                "name": "a detail made only of invalid tiles falls back to the standard detail",
+                "got": Statusphere.surfaceTiles(Statusphere.accountsById["acc-detail-invalid"], "detail").some(t => t.field === "cpu" && t.form === "ring"),
+                "want": true
+            },
+            {
+                "name": "a missing row key (detail-only layout) gives friends the default row stack",
+                "got": detailOnlyRowProbe.customLayout === false && detailOnlyRowProbe.rowTiles.length === 0,
+                "want": true
+            },
+            {
+                "name": "row: [] is owned by the layout, not treated as no row at all",
+                "got": Statusphere.ownsSurface(Statusphere.accountsById["acc-empty-row"], "row") && Statusphere.surfaceTiles(Statusphere.accountsById["acc-empty-row"], "row").length === 0,
+                "want": true
+            },
+            {
+                "name": "row: [] renders header only, not the default music/photo/game stack",
+                "got": emptyRowProbe.hasPhoto === true && emptyRowProbe.customLayout === true && emptyRowProbe.rowTiles.length === 0,
+                "want": true
+            },
+            {
+                "name": "row: [] leaves no gap under the header - same height as a stack with nothing to show",
+                "got": Math.abs(emptyRowProbe.implicitHeight - detailOnlyRowProbe.implicitHeight) < 1,
+                "want": true
             }
         ];
     }
@@ -561,6 +668,20 @@ Item {
         width: root.width
         modelData: "acc-thinkpad"
         showDetails: true
+    }
+
+    PresenceRow {
+        id: detailOnlyRowProbe
+        x: root.width
+        width: root.width
+        modelData: "acc-detail-only"
+    }
+
+    PresenceRow {
+        id: emptyRowProbe
+        x: root.width
+        width: root.width
+        modelData: "acc-empty-row"
     }
 
     Repeater {

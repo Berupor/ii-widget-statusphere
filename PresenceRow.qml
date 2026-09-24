@@ -24,7 +24,7 @@ Rectangle {
     readonly property var gaming: Statusphere.gameDevices(root.account)
     readonly property var currentPhoto: Statusphere.currentPhotoFor(root.account)
     readonly property bool hasPhoto: root.currentPhoto !== null
-    readonly property bool customLayout: Statusphere.hasCustomLayout(root.account)
+    readonly property bool customLayout: Statusphere.ownsSurface(root.account, "row")
     readonly property var rowTiles: root.customLayout ? Statusphere.surfaceTiles(root.account, "row") : []
     readonly property bool canShare: root.isSelf && Statusphere.canShare
     readonly property bool expandable: root.devices.length > 1
@@ -261,7 +261,7 @@ Rectangle {
         CardGrid { // The owner's own row layout, in place of the picture/music stack above
             Layout.fillWidth: true
             Layout.topMargin: 8
-            visible: root.customLayout && !root.expanded
+            visible: root.customLayout && root.rowTiles.length > 0 && !root.expanded
             account: root.account
             tiles: root.rowTiles
             maxRows: 2
@@ -347,7 +347,7 @@ Rectangle {
     // only covers a field for the header while its tiles are actually on screen.
     readonly property var visibleSurfaces: {
         const surfaces = [];
-        if (root.customLayout && !root.expanded)
+        if (root.customLayout && root.rowTiles.length > 0 && !root.expanded)
             surfaces.push("row");
         if (root.showDetails || (root.serverDetailsForced && !root.serverDetailsCollapsed))
             surfaces.push("detail");

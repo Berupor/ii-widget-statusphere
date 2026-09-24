@@ -480,6 +480,11 @@ ColumnLayout {
                 }) : t);
     }
 
+    readonly property var previewTiles: {
+        const tiles = root.editSurface === "detail" ? CardLayouts.fallbackDetail(root.editTiles, Statusphere.detailFieldsFor(root.previewAccount)) : root.editTiles;
+        return root.previewSafe(tiles);
+    }
+
     function accountWith(device, photo) {
         return {
             "id": root.ownerAccount?.id ?? "owner",
@@ -921,7 +926,7 @@ ColumnLayout {
             width: parent.width - 32
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
-            text: root.editSurface === "detail" && root.allTiles.length === 0 ? Translation.tr("Friends see the standard detail card until you add a tile") : Translation.tr("No tiles yet - add one or start from a pack")
+            text: root.editSurface === "detail" ? Translation.tr("Friends see the standard detail card until you add a tile") : Translation.tr("No tiles yet - add one or start from a pack")
             color: Appearance.colors.colSubtext
             font.pixelSize: Appearance.font.pixelSize.smaller
         }
@@ -936,7 +941,7 @@ ColumnLayout {
             }
             account: root.previewAccount
             maxRows: root.editSurface === "row" ? 2 : CardLayouts.detailRows
-            tiles: root.previewSafe(root.editTiles)
+            tiles: root.previewTiles
             selectable: true
             reorderable: true
             selectedIndex: root.selectedIndex

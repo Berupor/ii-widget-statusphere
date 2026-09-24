@@ -257,6 +257,17 @@ Item {
         }
         ScriptAction {
             script: {
+                root.editor.selectSurface("detail");
+                root.note("emptyDetailHint", root.visibleTexts(root.editor).includes("Friends see the standard detail card until you add a tile"));
+                root.note("emptyDetailPreviewTiles", root.first(root.editor, it => it.reorderable === true)?.tiles.length ?? 0);
+                root.editor.selectSurface("row");
+            }
+        }
+        PauseAnimation {
+            duration: 200
+        }
+        ScriptAction {
+            script: {
                 const names = CardLayouts.names().map(n => CardLayouts.get(n).name);
                 root.note("packLabelsInside", root.findAllData(root.editor, it => names.includes(it.text) && it.visible && it.mapToItem(root.editor, 0, 0).x + it.width <= root.editor.width, []).length);
                 root.note("packThumbsFull", root.findAllData(root.editor, it => it.thumbnail === true && it.placed !== undefined, []).map(t => t.rowsUsed === t.maxRows && CardLayouts.emptyCells(t.placed) === 0));
@@ -406,6 +417,16 @@ Item {
             {
                 "name": "autosave stamps a fresh updated_at",
                 "got": (s.layoutAfterEdits?.updated_at ?? 0) > 1700000000,
+                "want": true
+            },
+            {
+                "name": "the empty-state hint on an empty Detail tab says friends see the standard card",
+                "got": s.emptyDetailHint,
+                "want": true
+            },
+            {
+                "name": "the Detail preview falls back to the standard detail tiles when empty",
+                "got": s.emptyDetailPreviewTiles > 0,
                 "want": true
             },
             {

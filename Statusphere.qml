@@ -770,6 +770,13 @@ Singleton {
         return root.layoutFor(account) !== null;
     }
 
+    // row: [] is a deliberate "header only" choice, distinct from no row key at all,
+    // which falls back to the default row stack - detail has no such distinction, an
+    // empty or invalid detail always falls back to the standard card.
+    function ownsSurface(account, surface): bool {
+        return Array.isArray(root.layoutFor(account)?.[surface]);
+    }
+
     readonly property var validTileTypes: ["scalar", "music", "game", "photo"]
     readonly property var validSizes: ["1x1", "2x1", "2x2", "4x1"]
     readonly property var validScalarForms: ["ring", "bar", "number", "text", "big", "clock", "weather"]
@@ -826,11 +833,8 @@ Singleton {
 
     function surfaceTiles(account, surface): var {
         const custom = root.layoutFor(account);
-        if (custom)
-            return root.expandWildcardTiles(custom[surface], account);
-        if (surface === "detail")
-            return CardLayouts.standardDetailFor(root.detailFieldsFor(account));
-        return [];
+        const tiles = custom ? root.expandWildcardTiles(custom[surface], account) : [];
+        return surface === "detail" ? CardLayouts.fallbackDetail(tiles, root.detailFieldsFor(account)) : tiles;
     }
 
     function deviceForTile(account, tile): var {

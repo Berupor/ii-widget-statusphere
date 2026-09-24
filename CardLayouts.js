@@ -148,6 +148,13 @@ function scoresBelow(a, b) {
 // a few of them, the one that packs with the fewest holes wins, then the one that drops
 // the fewest tiles, then the one that changes the least. fields is
 // Statusphere.detailFieldsFor(account).
+// An empty detail surface - no _layout, or one whose detail tiles are all missing or
+// invalid - reads the same as the standard card everywhere it's shown: on the friend's
+// card and in the owner's own editor preview.
+function fallbackDetail(tiles, fields) {
+    return tiles.length > 0 ? tiles : standardDetailFor(fields);
+}
+
 function standardDetailFor(fields) {
     let gauges = 0;
     const tiles = fields.map(f => standardTileFor(f, f.percent !== null && f.percent !== undefined ? gauges++ : 0));
