@@ -317,12 +317,21 @@ Rectangle {
             onEditingFinished: root.editor.updateSelectedTile({
                 "url": pictureUrlField.text.trim()
             })
+            onTextChanged: pictureUrlDebounce.restart()
 
             Binding {
                 target: pictureUrlField
                 property: "text"
                 value: root.tile?.url ?? ""
             }
+        }
+
+        Timer {
+            id: pictureUrlDebounce
+            interval: 1000
+            onTriggered: root.editor.updateSelectedTile({
+                "url": pictureUrlField.text.trim()
+            })
         }
 
         ContentSubsectionLabel {
@@ -449,12 +458,24 @@ Rectangle {
                         "value": backgroundUrlField.text
                     }
                 })
+                onTextChanged: backgroundUrlDebounce.restart()
 
                 Binding {
                     target: backgroundUrlField
                     property: "text"
                     value: root.tile?.background?.kind === "url" ? (root.tile?.background?.value ?? "") : ""
                 }
+            }
+
+            Timer {
+                id: backgroundUrlDebounce
+                interval: 1000
+                onTriggered: root.editor.updateSelectedTile({
+                    "background": {
+                        "kind": "url",
+                        "value": backgroundUrlField.text
+                    }
+                })
             }
 
             ConfigSwitch {
