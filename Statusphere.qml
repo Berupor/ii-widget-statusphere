@@ -508,7 +508,18 @@ Singleton {
         return session ? Translation.tr("Playing %1 · %2").arg(name).arg(session) : Translation.tr("Playing %1").arg(name);
     }
 
-    function statusFor(account): string {
+    // Fields a currently visible tile already renders for this account, so the header
+    // above it does not say the same thing twice on the same surface.
+    function coveredFields(account, surfaces): var {
+        const fields = new Set();
+        for (const surface of surfaces ?? [])
+            for (const t of root.surfaceTiles(account, surface))
+                if (t.field)
+                    fields.add(t.field);
+        return fields;
+    }
+
+    function statusFor(account, visibleSurfaces): string {
         if (!account || account.offline)
             return "";
         if (root.hiddenFor(account))
@@ -521,10 +532,11 @@ Singleton {
         const playing = root.musicDevices(account);
         if (playing.length > 1)
             return Translation.tr("Listening on %1 devices").arg(playing.length);
+        const covered = root.coveredFields(account, visibleSurfaces);
         const p = account.primary;
-        if (p?.active_window)
+        if (p?.active_window && !covered.has("active_window"))
             return p.active_window;
-        if (p?.active_app)
+        if (p?.active_app && !covered.has("active_app"))
             return p.active_app;
         if (p?.spotify_status)
             return "";

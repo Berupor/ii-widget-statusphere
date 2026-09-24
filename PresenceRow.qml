@@ -138,7 +138,7 @@ Rectangle {
                                 return Appearance.colors.colTertiary;
                             return Appearance.colors.colSubtext;
                         }
-                        text: root.offline ? Statusphere.offlineLineFor(root.account) : Statusphere.statusFor(root.account)
+                        text: root.offline ? Statusphere.offlineLineFor(root.account) : Statusphere.statusFor(root.account, root.visibleSurfaces)
                     }
                 }
 
@@ -342,6 +342,17 @@ Rectangle {
     readonly property bool serverDetailsForced: root.isServer && !root.offline && Statusphere.opt("serverMetrics")
     // Kept in the singleton, not here: a reconnect resorts accountIds and rebuilds this row
     readonly property bool serverDetailsCollapsed: Statusphere.detailsCollapsedFor(root.modelData)
+
+    // Must track the CardGrid/PresenceDetailCard `visible:` conditions below - a surface
+    // only covers a field for the header while its tiles are actually on screen.
+    readonly property var visibleSurfaces: {
+        const surfaces = [];
+        if (root.customLayout && !root.expanded)
+            surfaces.push("row");
+        if (root.showDetails || (root.serverDetailsForced && !root.serverDetailsCollapsed))
+            surfaces.push("detail");
+        return surfaces;
+    }
 
     onCanShareChanged: if (!root.canShare)
         root.showActions = false
