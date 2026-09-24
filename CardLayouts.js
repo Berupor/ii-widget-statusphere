@@ -286,8 +286,15 @@ const presets = {
             tile({
                 "type": "scalar",
                 "field": "workspace",
-                "form": "text",
-                "size": "2x1",
+                "form": "number",
+                "size": "1x1",
+                "onMissing": "hide"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "uptime",
+                "form": "number",
+                "size": "1x1",
                 "onMissing": "hide"
             })
         ],

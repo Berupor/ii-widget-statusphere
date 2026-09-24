@@ -33,11 +33,11 @@ Item {
                         "row": CardLayouts.presets.traveler.row,
                         "detail": CardLayouts.presets.traveler.detail
                     },
-                    "weather": "9° Rain · Lisbon, PT",
+                    "weather": "9° Rain · Tokyo, JP",
                     "custom_fields": ["local_time", "flag", "region", "trip_day", "caption", "distance"],
                     "local_time": "13:15",
-                    "flag": "🇵🇹",
-                    "region": "PT-11",
+                    "flag": "🇯🇵",
+                    "region": "JP-13",
                     "trip_day": "42",
                     "caption": "Somewhere new",
                     "distance": "1240 km"
@@ -57,6 +57,7 @@ Item {
                     "memory_used_mb": 5200,
                     "memory_total_mb": 16384,
                     "active_workspace": 4,
+                    "uptime_hours": 3,
                     "custom_fields": ["project", "commits", "focus", "note", "language"],
                     "project": "statusphere · nvim",
                     "commits": "5",
@@ -142,6 +143,11 @@ Item {
             {
                 "name": "a 1x1 number value shrinks to fit instead of eliding",
                 "got": notTruncated("1240 km"),
+                "want": true
+            },
+            {
+                "name": "a weather tile's city caption is not truncated",
+                "got": notTruncated("Tokyo, JP"),
                 "want": true
             },
             {

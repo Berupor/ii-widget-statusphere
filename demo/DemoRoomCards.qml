@@ -214,6 +214,7 @@ Item {
                     "disk_used_percent": 47,
                     "disk_free_gb": 210,
                     "active_workspace": 3,
+                    "uptime_hours": 6,
                     "custom_fields": ["project", "commits", "focus", "workspace", "note"],
                     "project": "statusphere · nvim",
                     "commits": "4",

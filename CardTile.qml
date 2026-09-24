@@ -124,11 +124,14 @@ Item {
 
     readonly property var weatherTempMatch: root.valueText.match(/-?\d+°/)
     readonly property string numberDisplayValue: root.tile.form === "weather" && root.weatherTempMatch ? root.weatherTempMatch[0] : root.valueText
+    // weatherShapeName() already reads the condition into the silhouette, so the
+    // caption only needs the city - the full "condition · city" string elides at
+    // 1x1 otherwise.
     readonly property string numberDisplayLabel: {
         if (root.tile.form !== "weather")
             return root.labelText;
-        const stripped = root.valueText.replace(root.weatherTempMatch ? root.weatherTempMatch[0] : "", "");
-        return stripped.replace(/^[\s·,-]+|[\s·,-]+$/g, "");
+        const stripped = root.valueText.replace(root.weatherTempMatch ? root.weatherTempMatch[0] : "", "").replace(/^[\s·,-]+|[\s·,-]+$/g, "");
+        return stripped.includes("·") ? stripped.split("·").pop().trim() : stripped;
     }
 
     // A deterministic squiggle per track, not a real spectrum - there is no audio data on
