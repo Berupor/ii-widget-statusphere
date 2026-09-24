@@ -720,6 +720,11 @@ Item {
                 "want": ["command", root.handEditedWeather.cmd]
             },
             {
+                "name": "every template's refresh is one of the sheet's refresh choices",
+                "got": Templates.kinds.filter(k => k.repeat > 0 && !(root.sheet?.repeatOptions ?? []).some(o => o.value === k.repeat)).map(k => k.id),
+                "want": []
+            },
+            {
                 "name": "Your command writes its cmd with a repeat_seconds",
                 "got": s.customAfterCommand?.output,
                 "want": {

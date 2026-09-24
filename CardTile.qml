@@ -29,7 +29,8 @@ Item {
     readonly property bool pictureFailed: root.type?.art === "picture" && photoArt.item?.status === Image.Error
     readonly property bool hasData: Statusphere.tileHasData(root.account, root.tile) && !root.pictureFailed
     readonly property bool dimmed: !root.hasData && root.tile.onMissing === "dim"
-    opacity: root.dimmed ? 0.45 : 1
+    readonly property real dimmedOpacity: 0.45
+    opacity: root.dimmed ? root.dimmedOpacity : 1
 
     readonly property var field: root.type?.needsField ? Statusphere.fieldFor(root.device, root.tile.field) : null
     readonly property real percent: root.field?.percent ?? 0
@@ -100,6 +101,7 @@ Item {
     }
 
     readonly property bool showsPhotoArt: (root.type?.art ?? "") !== ""
+    readonly property real artScrimOpacity: 0.6
     readonly property bool hasArt: root.showsPhotoArt || root.backgroundSource.length > 0
 
     Item {
@@ -169,7 +171,7 @@ Item {
             visible: root.backgroundSource.length > 0
             anchors.fill: parent
             color: Appearance.colors.colScrim
-            opacity: 0.6
+            opacity: root.artScrimOpacity
         }
     }
 

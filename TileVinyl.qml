@@ -9,6 +9,7 @@ Item {
     readonly property var device: form.card.musicDevice
     readonly property bool hasPosition: (form.device?.spotify_length ?? 0) > 0
     readonly property real progress: form.hasPosition ? (form.device.spotify_position ?? 0) / form.device.spotify_length : 0
+    readonly property int turnDurationMs: 9000
 
     CircularProgress {
         visible: form.hasPosition
@@ -46,7 +47,7 @@ Item {
             loops: Animation.Infinite
             from: 0
             to: 360
-            duration: 9000
+            duration: form.turnDurationMs
         }
     }
 }

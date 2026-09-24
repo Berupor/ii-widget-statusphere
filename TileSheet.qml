@@ -55,28 +55,18 @@ Rectangle {
     ]
     readonly property string plainBackground: "none"
     readonly property string defaultLiveBackground: CardLayouts.typeOf(root.tile)?.reads ?? "photo"
-    readonly property var repeatOptions: [
-        {
-            "displayName": Translation.tr("30s"),
-            "value": 30
-        },
-        {
-            "displayName": Translation.tr("1m"),
-            "value": 60
-        },
-        {
-            "displayName": Translation.tr("5m"),
-            "value": 300
-        },
-        {
-            "displayName": Translation.tr("15m"),
-            "value": 900
-        },
-        {
-            "displayName": Translation.tr("1h"),
-            "value": 3600
-        }
-    ]
+    readonly property var repeatOptions: Templates.repeatChoices.map(seconds => ({
+                "displayName": root.durationLabel(seconds),
+                "value": seconds
+            }))
+
+    function durationLabel(seconds) {
+        if (seconds % 3600 === 0)
+            return Translation.tr("%1h").arg(seconds / 3600);
+        if (seconds % 60 === 0)
+            return Translation.tr("%1m").arg(seconds / 60);
+        return Translation.tr("%1s").arg(seconds);
+    }
 
     function commitAnswer() {
         root.editor.setAnswer(root.fieldKey, root.kindId, answerField.text);
