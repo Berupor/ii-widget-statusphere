@@ -169,6 +169,11 @@ Item {
                 "want": [1, false]
             },
             {
+                "name": "only a lone symbol or emoji is glued to its word, plain words keep their space",
+                "got": ["◐ Personalization", "driving home 🎧", "🇯🇵 Tokyo", "Somewhere new", "up 3 hours"].map(t => root.tileAt(4)?.withSymbolsAttached(t)),
+                "want": ["◐\u00A0Personalization", "driving home\u00A0🎧", "🇯🇵\u00A0Tokyo", "Somewhere new", "up 3 hours"]
+            },
+            {
                 "name": "a long single word shrinks instead of eliding",
                 "got": [word?.truncated, word?.lineCount, (word?.fontInfo.pixelSize ?? 99) < Appearance.font.pixelSize.huge],
                 "want": [false, 1, true]

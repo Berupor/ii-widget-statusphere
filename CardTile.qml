@@ -29,8 +29,10 @@ Item {
     readonly property string notedLabelText: root.field?.note ? `${root.labelText} · ${root.field.note}` : root.labelText
     readonly property string shownValueText: root.hasData ? root.withSymbolsAttached(root.valueText) : "-"
 
+    readonly property var symbolCodeRanges: [[0x21, 0x2F], [0x3A, 0x40], [0x5B, 0x60], [0x7B, 0x7E], [0x2000, 0x2BFF], [0xFE00, 0xFE0F], [0x1F000, 0x1FAFF]]
+
     function isSymbol(token: string): bool {
-        return !/[\p{L}\p{N}]/u.test(token);
+        return [...token].every(ch => root.symbolCodeRanges.some(([from, to]) => ch.codePointAt(0) >= from && ch.codePointAt(0) <= to));
     }
 
     function withSymbolsAttached(text: string): string {
