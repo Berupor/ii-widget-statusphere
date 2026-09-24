@@ -7,17 +7,22 @@ import qs.modules.widgets
 import QtQuick
 import Qt5Compat.GraphicalEffects
 
-/** A friend's current shared photo, with a relative-time corner label. No captions, no reactions. */
+/** A friend's current shared photo, with a relative-time corner label, or a picture by url. No captions, no reactions. */
 Rectangle {
     id: root
     property var photo: null // { account_id, path, created_at, expires_at }
     property bool thumbnail: false
     property bool cropped: false
+    property string url: ""
+
+    readonly property bool showsUrl: root.url.length > 0
+    readonly property Image shownImage: root.showsUrl ? remoteImage : image
+    readonly property int status: root.shownImage.status
 
     readonly property int minHeight: 100
     readonly property int maxHeight: 320
     // Shared regions come in every shape, so the card follows the image instead of cropping it to a fixed strip
-    readonly property real naturalHeight: image.implicitHeight > 0 ? root.width * image.implicitHeight / image.implicitWidth : 0
+    readonly property real naturalHeight: root.shownImage.implicitHeight > 0 ? root.width * root.shownImage.implicitHeight / root.shownImage.implicitWidth : 0
 
     implicitHeight: root.naturalHeight > 0 ? Math.round(Math.max(root.minHeight, Math.min(root.maxHeight, root.naturalHeight))) : root.minHeight
     radius: Appearance.rounding.normal
@@ -27,30 +32,42 @@ Rectangle {
         animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
     }
 
-    ThumbnailImage {
-        id: image
+    Item {
+        id: art
         anchors.fill: parent
-        sourcePath: root.photo?.path ?? ""
-        thumbnailSizeName: "x-large" // The default sizes itself off sourceSize, which is 0 before the first load
-        // Panoramas get letterboxed rather than gutted; anything taller is cropped to maxHeight
-        fillMode: !root.cropped && root.naturalHeight > 0 && root.naturalHeight < root.minHeight ? Image.PreserveAspectFit : Image.PreserveAspectCrop
 
-        layer.enabled: true
+        layer.enabled: root.radius > 0
         layer.effect: OpacityMask {
             maskSource: Rectangle {
-                width: image.width
-                height: image.height
+                width: art.width
+                height: art.height
                 radius: root.radius
             }
+        }
+
+        ThumbnailImage {
+            id: image
+            anchors.fill: parent
+            sourcePath: root.photo?.path ?? ""
+            thumbnailSizeName: "x-large" // The default sizes itself off sourceSize, which is 0 before the first load
+            // Panoramas get letterboxed rather than gutted; anything taller is cropped to maxHeight
+            fillMode: !root.cropped && root.naturalHeight > 0 && root.naturalHeight < root.minHeight ? Image.PreserveAspectFit : Image.PreserveAspectCrop
+        }
+
+        StyledImage {
+            id: remoteImage
+            anchors.fill: parent
+            source: root.showsUrl && width > 0 && height > 0 ? root.url : ""
+            fillMode: Image.PreserveAspectCrop
         }
     }
 
     MaterialSymbol {
-        visible: image.status !== Image.Ready
+        visible: root.shownImage.status !== Image.Ready
         anchors.centerIn: parent
         iconSize: Math.round(root.height * 0.3)
         color: Appearance.colors.colSubtext
-        text: "photo_camera"
+        text: root.showsUrl ? "image" : "photo_camera"
     }
 
     Rectangle {

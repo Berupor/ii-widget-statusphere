@@ -18,7 +18,8 @@ Item {
     property bool thumbnail: false
 
     readonly property var device: Statusphere.deviceForTile(root.account, root.tile)
-    readonly property bool hasData: Statusphere.tileHasData(root.account, root.tile)
+    readonly property bool isPicture: root.tile.type === "picture"
+    readonly property bool hasData: Statusphere.tileHasData(root.account, root.tile) && !(root.isPicture && photoArt.status === Image.Error)
     readonly property bool dimmed: !root.hasData && root.tile.onMissing === "dim"
     opacity: root.dimmed ? 0.45 : 1
 
@@ -168,7 +169,7 @@ Item {
     // tile's own silhouette and colour like a scalar tile.
     readonly property string musicForm: root.tile.form || "cover"
     readonly property string gameForm: root.tile.form || "banner"
-    readonly property bool fullBleed: (root.tile.type === "music" && root.musicForm === "cover") || (root.tile.type === "game" && root.gameForm === "banner") || root.tile.type === "photo"
+    readonly property bool fullBleed: (root.tile.type === "music" && root.musicForm === "cover") || (root.tile.type === "game" && root.gameForm === "banner") || root.tile.type === "photo" || root.isPicture
 
     readonly property int clockHour: {
         const m = root.valueText.match(/^(\d{1,2}):/);
@@ -238,36 +239,6 @@ Item {
         anchors.fill: parent
         radius: Appearance.rounding.large
         color: root.backgroundSource ? Appearance.colors.colLayer2 : root.tint
-        clip: true
-
-        ThumbnailImage {
-            visible: root.backgroundIsLocal
-            anchors.fill: parent
-            sourcePath: root.backgroundIsLocal ? root.backgroundSource : ""
-            fillMode: Image.PreserveAspectCrop
-
-            layer.enabled: true
-            layer.effect: OpacityMask {
-                maskSource: Rectangle {
-                    width: silhouette.width
-                    height: silhouette.height
-                    radius: silhouette.radius
-                }
-            }
-        }
-
-        PresenceArt {
-            visible: root.backgroundSource.length > 0 && !root.backgroundIsLocal
-            anchors.fill: parent
-            source: root.backgroundIsLocal ? "" : root.backgroundSource
-        }
-
-        Rectangle { // A form's own text needs to read over whatever art landed underneath it
-            visible: root.backgroundSource.length > 0
-            anchors.fill: parent
-            color: Appearance.colors.colScrim
-            opacity: 0.6
-        }
     }
 
     function silhouetteShape(name: string): int {
@@ -307,6 +278,74 @@ Item {
         implicitSize: Math.min(parent.width, parent.height)
         shape: root.silhouetteShape(root.resolvedShape)
         color: root.tint
+    }
+
+    readonly property bool showsPhotoArt: root.tile.type === "photo" || root.isPicture
+    readonly property bool hasArt: root.showsPhotoArt || root.backgroundSource.length > 0
+
+    Item {
+        id: artMask
+        objectName: "tileArtMask"
+        anchors.fill: parent
+        visible: false
+
+        Rectangle {
+            opacity: root.resolvedShape === "default" ? 1 : 0
+            anchors.fill: parent
+            radius: silhouette.radius
+        }
+
+        MaterialShape {
+            opacity: root.resolvedShape === "default" ? 0 : 1
+            anchors.centerIn: parent
+            implicitSize: Math.min(parent.width, parent.height)
+            shape: root.silhouetteShape(root.resolvedShape)
+            color: "white"
+        }
+    }
+
+    Item {
+        id: art
+        objectName: "tileArt"
+        visible: root.hasArt
+        anchors.fill: parent
+
+        layer.enabled: root.hasArt
+        layer.effect: OpacityMask {
+            maskSource: artMask
+        }
+
+        ThumbnailImage {
+            visible: root.backgroundIsLocal
+            anchors.fill: parent
+            sourcePath: root.backgroundIsLocal ? root.backgroundSource : ""
+            fillMode: Image.PreserveAspectCrop
+        }
+
+        PresenceArt {
+            visible: root.backgroundSource.length > 0 && !root.backgroundIsLocal
+            anchors.fill: parent
+            radius: 0
+            source: root.backgroundIsLocal ? "" : root.backgroundSource
+        }
+
+        PresencePhoto {
+            id: photoArt
+            anchors.fill: parent
+            visible: root.showsPhotoArt
+            radius: 0
+            photo: root.tile.type === "photo" ? Statusphere.currentPhotoFor(root.account) : null
+            url: root.isPicture ? Statusphere.pictureUrlOf(root.tile) : ""
+            thumbnail: root.thumbnail
+            cropped: true
+        }
+
+        Rectangle { // A form's own text needs to read over whatever art landed underneath it
+            visible: root.backgroundSource.length > 0
+            anchors.fill: parent
+            color: Appearance.colors.colScrim
+            opacity: 0.6
+        }
     }
 
     Item {
@@ -451,14 +490,6 @@ Item {
                     font.pixelSize: Appearance.font.pixelSize.large
                 }
             }
-        }
-
-        PresencePhoto {
-            anchors.fill: parent
-            visible: root.tile.type === "photo"
-            photo: Statusphere.currentPhotoFor(root.account)
-            thumbnail: root.thumbnail
-            cropped: true
         }
 
         CircularProgress {

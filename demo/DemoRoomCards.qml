@@ -1,4 +1,4 @@
-//@ probe statusphere -g 430x900 -s 2000
+//@ probe statusphere -g 430x900 -s 3000
 /**
  * The room drawn with owner-built card layouts: members on the standard layout
  * (no _layout on their device, so they fall back to CardLayouts.standardDetailFor
@@ -10,6 +10,7 @@
 import ".."
 import "../CardLayouts.js" as CardLayouts
 import qs.modules.common
+import Quickshell
 import QtQuick
 
 Item {
@@ -21,6 +22,71 @@ Item {
     }
 
     readonly property int now: 1780000000
+
+    readonly property string pictureUrl: "https://upload.wikimedia.org/wikipedia/commons/3/3f/JPEG_example_flower.jpg"
+    readonly property var notHttpsUrls: ["http://example.org/a.jpg", "ftp://example.org/a.jpg", "file:///etc/hostname", "javascript:alert(1)", "https://", " https://example.org/a.jpg", 42]
+    readonly property var photoBackground: ({
+            "kind": "live",
+            "value": "photo"
+        })
+
+    readonly property var pictureRow: [
+        CardLayouts.tile({
+            "type": "picture",
+            "url": root.pictureUrl,
+            "size": "2x1"
+        }),
+        CardLayouts.tile({
+            "type": "picture",
+            "url": root.pictureUrl,
+            "size": "1x1",
+            "shape": "Cookie9Sided"
+        }),
+        CardLayouts.tile({
+            "type": "picture",
+            "url": "http://example.org/a.jpg",
+            "size": "1x1",
+            "onMissing": "dim"
+        })
+    ]
+
+    readonly property var pictureDetail: [
+        CardLayouts.tile({
+            "type": "scalar",
+            "field": "active_window",
+            "form": "text",
+            "size": "2x1",
+            "background": root.photoBackground
+        }),
+        CardLayouts.tile({
+            "type": "scalar",
+            "field": "cpu",
+            "form": "number",
+            "size": "1x1",
+            "shape": "Cookie9Sided",
+            "background": root.photoBackground
+        }),
+        CardLayouts.tile({
+            "type": "photo",
+            "size": "1x1"
+        }),
+        CardLayouts.tile({
+            "type": "picture",
+            "url": "ftp://example.org/a.jpg",
+            "size": "1x1"
+        }),
+        CardLayouts.tile({
+            "type": "picture",
+            "url": root.pictureUrl,
+            "size": "2x2",
+            "shape": "Circle"
+        }),
+        CardLayouts.tile({
+            "type": "picture",
+            "url": root.pictureUrl,
+            "size": "4x1"
+        })
+    ]
 
     readonly property var customRow: [
         {
@@ -487,9 +553,29 @@ Item {
                         "updated_at": root.now,
                         "row": []
                     }
+                },
+                {
+                    "account_id": "acc-pictures",
+                    "device_id": "dev-pictures",
+                    "device_name": "pictures",
+                    "account_name": "Pictures",
+                    "last_seen": root.now,
+                    "cpu_percent": 42,
+                    "active_window": "Firefox",
+                    "_layout": {
+                        "updated_at": root.now,
+                        "row": root.pictureRow,
+                        "detail": root.pictureDetail
+                    }
                 }
             ],
             "photos": [
+                {
+                    "account_id": "acc-pictures",
+                    "path": root.cover("rdr2-hero.jpg"),
+                    "created_at": "2026-08-07T12:00:00Z",
+                    "expires_at": "2099-01-01T00:00:00Z"
+                },
                 {
                     "account_id": "acc-gamer",
                     "path": root.cover("sm2-hero.jpg"),
@@ -511,9 +597,132 @@ Item {
         return standardCards.itemAt(root.standardAccounts.indexOf(accountId))?.children[0] ?? null;
     }
 
+    function findAll(item, pred, out) {
+        if (!item)
+            return out;
+        if (pred(item))
+            out.push(item);
+        for (const c of item.children ?? [])
+            root.findAll(c, pred, out);
+        return out;
+    }
+
+    function pictureTiles() {
+        return root.findAll(picturesRow, it => it.tile !== undefined && it.hasArt !== undefined && it.visible, []);
+    }
+
+    function pictureTile(pred) {
+        return root.pictureTiles().find(t => pred(t.tile)) ?? null;
+    }
+
+    function shownImages(tile) {
+        return root.findAll(tile, it => it.sourceSize !== undefined && it.status !== undefined && String(it.source).length > 0, []);
+    }
+
+    function tileArtOf(item) {
+        let it = item;
+        while (it && it.objectName !== "tileArt")
+            it = it.parent;
+        return it;
+    }
+
+    function maskShapeOf(tile) {
+        const art = root.findAll(tile, it => it.objectName === "tileArt", [])[0];
+        const mask = art?.layer.enabled ? root.findAll(tile, it => it.objectName === "tileArtMask", [])[0] : null;
+        const shown = mask ? Array.from(mask.children).filter(c => c.opacity > 0) : [];
+        if (shown.length !== 1)
+            return null;
+        return shown[0].shape !== undefined ? shown[0].shape : `radius ${shown[0].radius}`;
+    }
+
+    function drawnThroughTileMask(tile) {
+        const images = root.shownImages(tile);
+        const scrims = root.findAll(tile, it => it.visible && it.color !== undefined && it.opacity > 0 && it.opacity < 1 && it.width === tile.width && it.height === tile.height, []);
+        return images.length > 0 && images.concat(scrims).every(it => root.tileArtOf(it) !== null);
+    }
+
+    readonly property real devicePixelRatio: (QsWindow.window as QsWindow)?.devicePixelRatio ?? 1
+
+    function decodedWithinTile(tile) {
+        const image = root.shownImages(tile)[0];
+        if (!image)
+            return null;
+        return image.sourceSize.width > 0 && image.sourceSize.height > 0 && image.sourceSize.width <= Math.ceil(tile.width * root.devicePixelRatio) && image.sourceSize.height <= Math.ceil(tile.height * root.devicePixelRatio);
+    }
+
+    readonly property var maskedTiles: ({
+            "photoBackgroundRounded": t => t.type === "scalar" && t.field === "active_window",
+            "photoBackgroundCookie": t => t.type === "scalar" && t.field === "cpu",
+            "photoTile": t => t.type === "photo",
+            "pictureRounded": t => t.type === "picture" && t.size === "2x1",
+            "pictureCircle": t => t.type === "picture" && t.shape === "Circle"
+        })
     function checks() {
         const grids = root.standardAccounts.map(id => root.standardGrid(id));
         return [
+            {
+                "name": "a picture tile keeps an https url through sanitizeTile",
+                "got": Statusphere.sanitizeTile({
+                    "type": "picture",
+                    "url": root.pictureUrl,
+                    "size": "2x1"
+                })?.url,
+                "want": root.pictureUrl
+            },
+            {
+                "name": "a picture tile's url that is not https is blanked, the tile itself stays",
+                "got": root.notHttpsUrls.map(url => Statusphere.sanitizeTile({
+                        "type": "picture",
+                        "url": url
+                    })).map(t => [t?.type, t?.url]),
+                "want": root.notHttpsUrls.map(() => ["picture", ""])
+            },
+            {
+                "name": "an https picture renders the image straight from its url",
+                "got": root.pictureTiles().filter(t => t.tile.type === "picture" && t.tile.url === root.pictureUrl).map(t => root.shownImages(t).map(i => String(i.source))),
+                "want": [[root.pictureUrl], [root.pictureUrl], [root.pictureUrl], [root.pictureUrl]]
+            },
+            {
+                "name": "an https picture is decoded no larger than its tile, in 2x1, 1x1, 2x2 and 4x1",
+                "got": root.pictureTiles().filter(t => t.tile.type === "picture" && t.tile.url === root.pictureUrl).map(t => [t.tile.size, root.decodedWithinTile(t)]).sort(),
+                "want": [["1x1", true], ["2x1", true], ["2x2", true], ["4x1", true]]
+            },
+            {
+                "name": "a picture that is not https renders missing: dimmed with no image when kept, dropped when hidden",
+                "got": [(() => {
+                        const t = root.pictureTile(t => t.type === "picture" && t.onMissing === "dim");
+                        return t ? [t.hasData, t.dimmed, root.shownImages(t).length] : null;
+                    })(), root.pictureTiles().some(t => t.tile.type === "picture" && t.tile.onMissing === "hide" && t.tile.url === "")],
+                "want": [[false, true, 0], false]
+            },
+            {
+                "name": "the shared photo tile still shows the account's current photo, not a url",
+                "got": (() => {
+                    const t = root.pictureTile(t => t.type === "photo");
+                    const art = t ? root.findAll(t, it => it.photo !== undefined && it.url !== undefined, [])[0] : null;
+                    return art ? [art.photo?.path, art.url, root.shownImages(t).length] : null;
+                })(),
+                "want": [root.cover("rdr2-hero.jpg"), "", 1]
+            },
+            {
+                "name": "photo backgrounds, the photo tile and the picture tile draw their image and scrim inside the tile's art layer",
+                "got": Object.keys(root.maskedTiles).map(key => {
+                    const t = root.pictureTile(root.maskedTiles[key]);
+                    return [key, t ? root.drawnThroughTileMask(t) : null];
+                }),
+                "want": Object.keys(root.maskedTiles).map(key => [key, true])
+            },
+            {
+                "name": "the art layer is masked by the tile's own shape: a rounded rect for default, the MaterialShape otherwise",
+                "got": Object.keys(root.maskedTiles).map(key => {
+                    const t = root.pictureTile(root.maskedTiles[key]);
+                    return [key, t ? root.maskShapeOf(t) : null];
+                }),
+                "want": Object.keys(root.maskedTiles).map(key => {
+                    const t = root.pictureTile(root.maskedTiles[key]);
+                    return [key, !t ? "no tile" : t.resolvedShape === "default" ? `radius ${Appearance.rounding.large}` : t.silhouetteShape(t.resolvedShape)];
+                })
+            },
             {
                 "name": "the standard detail card packs without holes for every field mix",
                 "got": grids.map(g => g ? CardLayouts.emptyCells(g.placed) : -1),
@@ -675,6 +884,14 @@ Item {
         x: root.width
         width: root.width
         modelData: "acc-detail-only"
+    }
+
+    PresenceRow {
+        id: picturesRow
+        x: root.framed === "pictures" ? 0 : root.width
+        width: root.width
+        modelData: "acc-pictures"
+        showDetails: true
     }
 
     PresenceRow {

@@ -357,18 +357,17 @@ Singleton {
     }
 
     // Reconnecting reorders accountIds (offline sinks to the bottom), which rebuilds the
-    // Repeater's delegates - so the collapsed state for a server's forced detail card has
-    // to live here, keyed by account id, instead of on the row itself.
-    property var collapsedDetailsById: ({})
-
+    // Repeater's delegates, and a shell reload drops the singleton too - so the collapsed
+    // state for a server's forced detail card is a widget option, keyed by account id,
+    // rather than state on the row or an in-memory property here.
     function detailsCollapsedFor(accountId): bool {
-        return root.collapsedDetailsById[accountId] === true;
+        return (root.opt("collapsedDetailIds") ?? []).includes(accountId);
     }
 
     function toggleDetailsCollapsed(accountId): void {
-        const collapsed = Object.assign({}, root.collapsedDetailsById);
-        collapsed[accountId] = !root.detailsCollapsedFor(accountId);
-        root.collapsedDetailsById = collapsed;
+        const ids = root.opt("collapsedDetailIds") ?? [];
+        const next = ids.includes(accountId) ? ids.filter(id => id !== accountId) : ids.concat([accountId]);
+        WidgetsStore.setOption("statusphere", "collapsedDetailIds", next);
     }
 
     // The verdict is the machine's own, from ~/.config/statusphere/health.json there.
@@ -778,7 +777,7 @@ Singleton {
         return Array.isArray(root.layoutFor(account)?.[surface]);
     }
 
-    readonly property var validTileTypes: ["scalar", "music", "game", "photo"]
+    readonly property var validTileTypes: ["scalar", "music", "game", "photo", "picture"]
     readonly property var validSizes: ["1x1", "2x1", "2x2", "4x1"]
     readonly property var validScalarForms: ["ring", "bar", "number", "text", "big", "clock", "weather"]
     readonly property var validMusicForms: ["cover", "vinyl", "wave"]
@@ -788,6 +787,11 @@ Singleton {
     // form the pilot dropped: an unrecognised type/size gets the tile dropped rather
     // than mis-rendered, and a retired history form (graph/bars/heatmap) falls back to
     // a plain number instead of a blank tile.
+    function pictureUrlOf(tile): string {
+        const url = tile?.url;
+        return typeof url === "string" && /^https:\/\/\S+$/.test(url) ? url : "";
+    }
+
     function sanitizeTile(t): var {
         if (!t || typeof t !== "object" || Array.isArray(t) || !root.validTileTypes.includes(t.type))
             return null;
@@ -806,6 +810,10 @@ Singleton {
             return null;
         } else if (t.type === "game" && t.form !== undefined && !root.validGameForms.includes(t.form)) {
             return null;
+        } else if (t.type === "picture") {
+            return Object.assign({}, t, {
+                "url": root.pictureUrlOf(t)
+            });
         }
         return t;
     }
@@ -852,6 +860,8 @@ Singleton {
             return root.gameDevices(account).length > 0;
         case "photo":
             return root.currentPhotoFor(account) !== null;
+        case "picture":
+            return root.pictureUrlOf(tile) !== "";
         default:
             return root.fieldFor(root.deviceForTile(account, tile), tile.field) !== null;
         }
