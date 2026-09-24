@@ -16,6 +16,7 @@ Rectangle {
     property var stackedDevice: null // Peeks out behind the art
     property int stackedCount: 0
     property bool compact: false // A photo already fills the card, so keep this to one thin line
+    property bool tileLayout: false
     readonly property bool animating: root.visible && root.Window.visibility !== Window.Hidden
     property bool _expanded: false // Tapped open out of the compact line
 
@@ -76,6 +77,11 @@ Rectangle {
         root._anchorTrack = track;
     }
 
+    readonly property bool hasTrack: !!root.device?.spotify_status && !!root.device?.spotify_track
+    readonly property string titleText: root.hasTrack ? root.device.spotify_track : Statusphere.trackFor(root.device)
+    readonly property string artistText: root.hasTrack ? (root.device.spotify_artist ?? "") : ""
+    readonly property real artSide: root.tileLayout ? Math.min(root.height - 24, root.width * 0.4) : 56
+
     MouseArea { // Tap the opened-up card to collapse it back to the compact line
         anchors.fill: content
         enabled: root.compact && !root.showingCompact
@@ -118,8 +124,8 @@ Rectangle {
                     left: parent.left
                     verticalCenter: parent.verticalCenter
                 }
-                width: 56
-                height: 56
+                width: root.artSide
+                height: root.artSide
             }
 
             MouseArea {
@@ -222,6 +228,7 @@ Rectangle {
 
         ColumnLayout {
             Layout.fillWidth: true
+            Layout.alignment: root.tileLayout ? Qt.AlignVCenter : 0
             visible: !root.showingCompact
             spacing: 6
 
@@ -231,7 +238,17 @@ Rectangle {
                 textFormat: Text.PlainText
                 font.pixelSize: Appearance.font.pixelSize.normal
                 color: Appearance.colors.colOnLayer2
-                text: Statusphere.trackFor(root.device)
+                text: root.tileLayout ? root.titleText : Statusphere.trackFor(root.device)
+            }
+
+            StyledText {
+                Layout.fillWidth: true
+                visible: root.tileLayout && root.artistText !== ""
+                elide: Text.ElideRight
+                textFormat: Text.PlainText
+                font.pixelSize: Appearance.font.pixelSize.smaller
+                color: Appearance.colors.colSubtext
+                text: root.artistText
             }
 
             RowLayout {
