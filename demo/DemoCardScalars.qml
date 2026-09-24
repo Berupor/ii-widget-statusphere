@@ -1,4 +1,4 @@
-//@ probe statusphere -g 620x480 -s 1500
+//@ probe statusphere -g 620x620 -s 1500
 /**
  * A close-up of the scalar forms at a size where the bar fill, the ring gap
  * and the headline value are actually legible - the friend packs only ever
@@ -86,6 +86,28 @@ Item {
             "size": "1x1",
             "color": "primaryContainer",
             "onMissing": "hide"
+        }),
+        CardLayouts.tile({
+            "type": "scalar",
+            "field": "mem",
+            "form": "bar",
+            "size": "1x1",
+            "color": "tertiaryContainer",
+            "onMissing": "hide"
+        }),
+        CardLayouts.tile({
+            "type": "music",
+            "form": "wave",
+            "size": "2x1",
+            "color": "primary",
+            "onMissing": "hide"
+        }),
+        CardLayouts.tile({
+            "type": "music",
+            "form": "vinyl",
+            "size": "1x1",
+            "color": "primaryContainer",
+            "onMissing": "hide"
         })
     ]
 
@@ -112,6 +134,12 @@ Item {
                     "disk_used_percent": 47,
                     "disk_free_gb": 120,
                     "active_window": root.symbolTitle,
+                    "spotify_status": "playing",
+                    "spotify_track": "Nightcall",
+                    "spotify_artist": "Kavinsky",
+                    "spotify_position": 40,
+                    "spotify_length": 200,
+                    "spotify_art_url": String(Qt.resolvedUrl("covers/nightcall.jpg")),
                     "custom_fields": ["word", "battery"],
                     "word": "Donaudampfschifffahrtsgesellschaft",
                     "battery": "82%"
@@ -146,6 +174,18 @@ Item {
         const valueBottom = value.mapToItem(null, 0, value.height).y;
         const captionTop = caption.mapToItem(null, 0, 0).y;
         return caption.visible && !caption.truncated && !value.truncated && valueBottom <= captionTop;
+    }
+
+    function waveBandInside(index) {
+        const line = root.findAll(root.tileAt(index), it => it.valueBarHeight !== undefined && it.visible, [])[0] ?? null;
+        if (!line)
+            return null;
+        let box = line.parent;
+        while (box && !box.clip)
+            box = box.parent;
+        const reach = line.valueBarHeight / 2 + line.valueBarHeight * line.waveAmplitudeMultiplier;
+        const centre = line.mapToItem(box, 0, line.height / 2).y;
+        return centre - reach >= -0.5 && centre + reach <= box.height + 0.5;
     }
 
     function checks() {
@@ -189,6 +229,16 @@ Item {
                 "want": [true, true, true]
             },
             {
+                "name": "a wave line keeps its troughs: the whole wave sits inside the tile, in a 2x1 bar, a 1x1 bar and the music wave",
+                "got": [root.waveBandInside(0), root.waveBandInside(9), root.waveBandInside(10)],
+                "want": [true, true, true]
+            },
+            {
+                "name": "with a known track length the vinyl shows its progress ring",
+                "got": root.findAll(root.tileAt(11), it => it.lineWidth !== undefined && it.value !== undefined && it.visible, []).length,
+                "want": 1
+            },
+            {
                 "name": "the bar tile's fill percent comes from cpu_percent",
                 "got": Statusphere.fieldFor(Statusphere.deviceForTile(Statusphere.accountsById["acc-scalars"], root.scalarTiles[0]), "cpu")?.percent,
                 "want": 63
@@ -214,6 +264,6 @@ Item {
         anchors.margins: 16
         account: Statusphere.accountsById["acc-scalars"]
         tiles: root.scalarTiles
-        maxRows: 3
+        maxRows: 4
     }
 }

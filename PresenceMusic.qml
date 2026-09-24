@@ -32,6 +32,7 @@ Rectangle {
     }
 
     readonly property real length: root.device?.spotify_length ?? 0
+    readonly property bool lengthKnown: root.length > 0
     readonly property real interpolatedPosition: root.device?.spotify_status ? root.projectedPosition(root._nowMs) : 0
 
     property real _nowMs: Date.now()
@@ -54,7 +55,7 @@ Rectangle {
         let pos = root._anchorPos;
         if (root._anchorStatus === "playing")
             pos += (nowMs - root._anchorMs) / 1000;
-        if (root.length > 0)
+        if (root.lengthKnown)
             pos = Math.min(pos, root.length);
         return Math.max(0, pos);
     }
@@ -198,13 +199,14 @@ Rectangle {
                 }
 
                 StyledProgressBar {
+                    visible: root.lengthKnown
                     Layout.preferredWidth: 64
                     Layout.alignment: Qt.AlignVCenter
                     valueBarHeight: 3
                     wavy: root.device?.spotify_status === "playing"
                     highlightColor: Appearance.colors.colPrimary
                     trackColor: Appearance.colors.colSecondaryContainer
-                    value: (root.length > 0) ? (root.interpolatedPosition / root.length) : 0
+                    value: root.lengthKnown ? root.interpolatedPosition / root.length : 0
                 }
             }
 
@@ -231,6 +233,7 @@ Rectangle {
 
             RowLayout {
                 Layout.fillWidth: true
+                visible: root.lengthKnown
                 spacing: 8
 
                 StyledProgressBar {
@@ -238,7 +241,7 @@ Rectangle {
                     wavy: root.device?.spotify_status === "playing"
                     highlightColor: Appearance.colors.colPrimary
                     trackColor: Appearance.colors.colSecondaryContainer
-                    value: (root.length > 0) ? (root.interpolatedPosition / root.length) : 0
+                    value: root.lengthKnown ? root.interpolatedPosition / root.length : 0
                 }
 
                 Row { // Digits in equal cells, else the bar resizes on every tick

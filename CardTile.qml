@@ -65,6 +65,27 @@ Item {
         }
     }
 
+    // StyledProgressBar draws its line as thick as the bar item is tall and swings the wave
+    // past that height, so the wave gets its room from a wrapper instead of a taller bar.
+    component WaveBar: Item {
+        property alias value: waveBarLine.value
+        property alias to: waveBarLine.to
+        property alias animateWave: waveBarLine.animateWave
+        implicitHeight: waveBarLine.valueBarHeight * (1 + 2 * waveBarLine.waveAmplitudeMultiplier)
+
+        StyledProgressBar {
+            id: waveBarLine
+            anchors.verticalCenter: parent.verticalCenter
+            width: parent.width
+            from: 0
+            valueBarHeight: root.waveLineWidth
+            waveFrequency: width / root.waveLength
+            wavy: true
+            highlightColor: root.contentColor
+            trackColor: ColorUtils.transparentize(root.contentColor, 0.75)
+        }
+    }
+
     component NotedLabel: ShrinkThenWrapText {
         id: notedLabel
         largestSize: Appearance.font.pixelSize.smaller
@@ -309,9 +330,11 @@ Item {
             visible: root.tile.type === "music" && root.musicForm === "vinyl" && !root.thumbnail
 
             readonly property var musicDevice: Statusphere.musicDevices(root.account)[0] ?? null
-            readonly property real progress: (vinylForm.musicDevice?.spotify_length ?? 0) > 0 ? (vinylForm.musicDevice.spotify_position ?? 0) / vinylForm.musicDevice.spotify_length : 0
+            readonly property bool hasPosition: (vinylForm.musicDevice?.spotify_length ?? 0) > 0
+            readonly property real progress: vinylForm.hasPosition ? (vinylForm.musicDevice.spotify_position ?? 0) / vinylForm.musicDevice.spotify_length : 0
 
             CircularProgress {
+                visible: vinylForm.hasPosition
                 anchors.centerIn: parent
                 implicitSize: Math.round(Math.min(vinylForm.width, vinylForm.height))
                 lineWidth: Math.max(3, implicitSize * 0.06)
@@ -379,17 +402,12 @@ Item {
                 }
             }
 
-            StyledProgressBar {
+            WaveBar {
                 Layout.fillWidth: true
-                from: 0
+                visible: waveForm.hasPosition
                 to: 1
                 value: waveForm.progress
-                valueBarHeight: root.waveLineWidth
-                waveFrequency: width / root.waveLength
-                wavy: true
-                animateWave: waveForm.hasPosition && waveForm.musicDevice?.spotify_status === "playing"
-                highlightColor: root.contentColor
-                trackColor: ColorUtils.transparentize(root.contentColor, 0.75)
+                animateWave: waveForm.musicDevice?.spotify_status === "playing"
             }
         }
 
@@ -503,17 +521,11 @@ Item {
                 text: root.hasData ? Math.round(root.percent) + "%" : "-"
                 color: root.contentColor
             }
-            StyledProgressBar {
+            WaveBar {
                 Layout.fillWidth: true
-                from: 0
                 to: 100
                 value: root.hasData ? root.percent : 0
-                valueBarHeight: root.waveLineWidth
-                waveFrequency: width / root.waveLength
-                wavy: true
                 animateWave: false
-                highlightColor: root.contentColor
-                trackColor: ColorUtils.transparentize(root.contentColor, 0.75)
             }
         }
 
