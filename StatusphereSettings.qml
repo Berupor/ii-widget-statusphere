@@ -31,9 +31,15 @@ ColumnLayout {
     property int selectedIndex: -1
     property string selectedPresetName: ""
     property string savedSnapshot: "{}"
+    // Typed custom.json values, keyed by field name: unsaved until "Save my card", same
+    // as editRow/editDetail. loadedCustomFields is the last-known contents of the whole
+    // file, kept around so a save only touches the keys the card actually edited.
+    property var editCustomValues: ({})
+    property var loadedCustomFields: ({})
     readonly property bool dirty: JSON.stringify({
         "row": root.editRow,
-        "detail": root.editDetail
+        "detail": root.editDetail,
+        "custom": root.editCustomValues
     }) !== root.savedSnapshot
 
     // Plausible values for every field a catalog entry or preset can name, so a preset
@@ -99,6 +105,32 @@ ColumnLayout {
     }
 
     readonly property var previewTiles: root.previewSafe(root.editTiles)
+
+    // A typed custom-field value has nowhere to live in Statusphere.selfAccount until it's
+    // saved and the cli picks it up, so the preview overlays it onto a copy of the owner's
+    // device instead - same custom_fields/device[key] shape fieldsFor already reads.
+    function withCustomOverrides(device, values) {
+        if (!device)
+            return device;
+        const fields = new Set(device.custom_fields ?? []);
+        const patch = {};
+        for (const key of Object.keys(values)) {
+            patch[key] = values[key];
+            fields.add(key);
+        }
+        patch.custom_fields = [...fields];
+        return Object.assign({}, device, patch);
+    }
+
+    readonly property var previewAccount: {
+        const account = root.ownerAccount;
+        if (!account || Object.keys(root.editCustomValues).length === 0)
+            return account;
+        return Object.assign({}, account, {
+            "primary": root.withCustomOverrides(account.primary, root.editCustomValues),
+            "devices": (account.devices ?? []).map(d => root.withCustomOverrides(d, root.editCustomValues))
+        });
+    }
 
     readonly property var catalog: [
         {
@@ -342,6 +374,29 @@ ColumnLayout {
         root.selectedPresetName = "";
     }
 
+    function normalizeFieldName(name) {
+        return String(name).trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+    }
+
+    // Adds a scalar tile bound to a fresh custom.json field. Refuses a name that normalises
+    // to nothing, to a metric the cli already owns, or to a field already on this card -
+    // same rule CardLayouts.js presets are checked against.
+    function addCustomField(name) {
+        const key = root.normalizeFieldName(name);
+        if (!Statusphere.isCustomFieldKey(key))
+            return false;
+        const used = root.editRow.concat(root.editDetail).some(t => t.type === "scalar" && t.field === key);
+        if (used)
+            return false;
+        root.addTile(CardLayouts.tile({
+            "type": "scalar",
+            "field": key,
+            "form": "text",
+            "size": "2x1"
+        }));
+        return true;
+    }
+
     function updateSelectedTile(patch) {
         if (!root.selectedTile)
             return;
@@ -397,9 +452,92 @@ ColumnLayout {
         }
         if (root.selectedIndex >= root.editTiles.length)
             root.selectedIndex = -1;
+        root.stampSavedSnapshot();
+    }
+
+    // custom.json fields run their "cmd" through sh -c, so a literal value the editor writes
+    // is shell-quoted rather than stored bare. printf avoids the cross-shell echo escaping
+    // differences a plain echo would run into.
+    readonly property string customValueCmdPrefix: "printf '%s' '"
+
+    function shQuote(value) {
+        return `'${String(value).replace(/'/g, "'\\''")}'`;
+    }
+
+    function encodeCustomValueCmd(value) {
+        return `printf '%s' ${root.shQuote(value)}`;
+    }
+
+    // Only unquotes a cmd this editor wrote itself (the exact printf form above) - any other
+    // cmd is a real shell command a field owner set up by hand, left alone and shown blank.
+    function decodeCustomValueCmd(cmd) {
+        if (typeof cmd !== "string" || !cmd.startsWith(root.customValueCmdPrefix))
+            return null;
+        let out = "";
+        let i = root.customValueCmdPrefix.length;
+        while (i < cmd.length) {
+            if (cmd[i] !== "'") {
+                out += cmd[i];
+                i += 1;
+                continue;
+            }
+            if (cmd.slice(i, i + 4) === "'\\''") {
+                out += "'";
+                i += 4;
+                continue;
+            }
+            return i === cmd.length - 1 ? out : null;
+        }
+        return null;
+    }
+
+    function customValueFor(key) {
+        return root.editCustomValues[key] ?? "";
+    }
+
+    function setCustomFieldValue(key, value) {
+        if (!key)
+            return;
+        root.editCustomValues = Object.assign({}, root.editCustomValues, {
+            [key]: value
+        });
+    }
+
+    function loadMyCustomFields() {
+        let raw = {};
+        try {
+            raw = JSON.parse(customFieldsFile.text());
+        } catch (e) {
+            raw = {};
+        }
+        root.loadedCustomFields = raw;
+        const values = {};
+        for (const key of Object.keys(raw)) {
+            const decoded = root.decodeCustomValueCmd(raw[key]?.cmd);
+            if (decoded !== null)
+                values[key] = decoded;
+        }
+        root.editCustomValues = values;
+        root.stampSavedSnapshot();
+    }
+
+    // Merges the typed values into the last-known custom.json - every other key (real shell
+    // commands, fields this card never touched) is carried over exactly as loaded.
+    function mergedCustomFields() {
+        const merged = Object.assign({}, root.loadedCustomFields);
+        for (const key of Object.keys(root.editCustomValues))
+            merged[key] = {
+                "cmd": root.encodeCustomValueCmd(root.editCustomValues[key]),
+                "repeat_seconds": 0
+            };
+        return merged;
+    }
+
+    function stampSavedSnapshot() {
         root.savedSnapshot = JSON.stringify({
             "row": root.editRow,
-            "detail": root.editDetail
+            "detail": root.editDetail,
+            "custom": root.editCustomValues
         });
     }
 
@@ -409,10 +547,9 @@ ColumnLayout {
             "row": root.editRow,
             "detail": root.editDetail
         }, null, 2));
-        root.savedSnapshot = JSON.stringify({
-            "row": root.editRow,
-            "detail": root.editDetail
-        });
+        root.loadedCustomFields = root.mergedCustomFields();
+        customFieldsFile.setText(JSON.stringify(root.loadedCustomFields, null, 2));
+        root.stampSavedSnapshot();
     }
 
     FileView {
@@ -421,6 +558,14 @@ ColumnLayout {
         printErrors: false
         onLoaded: root.loadMyLayout()
         onLoadFailed: root.loadMyLayout()
+    }
+
+    FileView {
+        id: customFieldsFile
+        path: `${Directories.config}/statusphere/custom.json`
+        printErrors: false
+        onLoaded: root.loadMyCustomFields()
+        onLoadFailed: root.loadMyCustomFields()
     }
 
     ContentSubsection {
@@ -732,7 +877,7 @@ ColumnLayout {
 
     ContentSubsection {
         title: Translation.tr("My card")
-        tooltip: Translation.tr("Pick a pack to start from, then add, remove, move or resize tiles.\nSaves to ~/.config/statusphere/layout.json")
+        tooltip: Translation.tr("Pick a pack to start from, then add, remove, move or resize tiles.\nSaves to ~/.config/statusphere/layout.json, and any typed field values to custom.json")
 
         ContentSubsectionLabel {
             text: Translation.tr("Presets")
@@ -827,7 +972,7 @@ ColumnLayout {
                     top: parent.top
                     margins: 8
                 }
-                account: root.ownerAccount
+                account: root.previewAccount
                 maxRows: root.editSurface === "row" ? 2 : 4
                 tiles: root.previewTiles
                 selectable: true
@@ -856,11 +1001,53 @@ ColumnLayout {
             }
         }
 
+        ConfigRow {
+            Layout.fillWidth: true
+
+            MaterialTextField {
+                id: newFieldNameField
+                Layout.fillWidth: true
+                placeholderText: Translation.tr("Or name a new custom field, eg. coffee")
+                onAccepted: if (root.addCustomField(newFieldNameField.text))
+                    newFieldNameField.text = ""
+            }
+
+            RippleButtonWithIcon {
+                materialIcon: "add"
+                mainText: Translation.tr("Add field")
+                onClicked: if (root.addCustomField(newFieldNameField.text))
+                    newFieldNameField.text = ""
+            }
+        }
+
         ColumnLayout {
             Layout.fillWidth: true
             Layout.topMargin: 4
             visible: root.selectedTile !== null
             spacing: 6
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                visible: root.selectedTile?.type === "scalar" && Statusphere.isCustomFieldKey(root.selectedTile?.field ?? "")
+                spacing: 4
+
+                ContentSubsectionLabel {
+                    text: Translation.tr("Value")
+                }
+
+                MaterialTextField {
+                    id: customValueField
+                    Layout.fillWidth: true
+                    placeholderText: Translation.tr("Type a value for this field")
+                    onTextChanged: root.setCustomFieldValue(root.selectedTile?.field ?? "", customValueField.text)
+
+                    Binding {
+                        target: customValueField
+                        property: "text"
+                        value: root.customValueFor(root.selectedTile?.field ?? "")
+                    }
+                }
+            }
 
             ContentSubsectionLabel {
                 text: Translation.tr("Selected tile - source")

@@ -615,7 +615,7 @@ Singleton {
 
     // Metrics the cli collects itself, so custom.json does not have to shell out
     // for them. A custom field of the same name loses to these.
-    readonly property var nativeFieldKeys: ["cpu", "mem", "ram", "memory", "disk", "active_app", "active_window", "package_count"]
+    readonly property var nativeFieldKeys: ["cpu", "mem", "ram", "memory", "disk", "load", "uptime", "workspace", "active_app", "active_window", "package_count"]
 
     function systemFieldsFor(device): var {
         const fields = [];
@@ -722,6 +722,12 @@ Singleton {
     // label is read, so title-case it instead of printing the key verbatim.
     function labelForKey(key: string): string {
         return key.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    }
+
+    // A scalar field the card editor can write a literal value for: not the wildcard,
+    // not a metric the cli collects on its own.
+    function isCustomFieldKey(key: string): bool {
+        return key.length > 0 && key !== "*" && !root.nativeFieldKeys.includes(key);
     }
 
     function detailFieldsFor(account): var {
