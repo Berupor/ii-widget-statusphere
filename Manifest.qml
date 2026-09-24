@@ -25,7 +25,8 @@ WidgetManifest {
         { "key": "wallpaperY", "default": 500 },
         { "key": "wallpaperWidth", "default": 360 },
         { "key": "wallpaperHideOffline", "default": false },
-        { "key": "wallpaperMaxRows", "default": 0 }
+        { "key": "wallpaperMaxRows", "default": 0 },
+        { "key": "editorOwnedFields", "default": [] }
     ]
     slots: ({
         "barIndicator": "StatusphereIncognitoIndicator.qml",
