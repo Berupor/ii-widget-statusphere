@@ -36,7 +36,7 @@ Item {
     readonly property string valueText: root.field?.value ?? "-"
     readonly property string labelText: root.field?.label ?? Statusphere.labelForKey(root.tile.field)
     readonly property string notedLabelText: root.field?.note ? `${root.labelText} · ${root.field.note}` : root.labelText
-    readonly property string shownValueText: root.hasData ? root.withSymbolsAttached(root.valueText) : "-"
+    readonly property string shownValueText: root.hasData ? root.withSymbolsAttached(root.valueText) : (root.hasArt ? "" : "-")
 
     readonly property var symbolCodeRanges: [[0x21, 0x2F], [0x3A, 0x40], [0x5B, 0x60], [0x7B, 0x7E], [0x2000, 0x2BFF], [0xFE00, 0xFE0F], [0x1F000, 0x1FAFF]]
 
@@ -138,9 +138,10 @@ Item {
         Loader {
             active: root.backgroundIsLocal
             anchors.fill: parent
-            sourceComponent: ThumbnailImage {
+            sourceComponent: LocalPicture {
                 sourcePath: root.backgroundSource
                 fillMode: Image.PreserveAspectCrop
+                playing: root.animating
             }
         }
 
@@ -151,6 +152,7 @@ Item {
                 radius: 0
                 source: root.backgroundSource
                 fallbackIcon: root.liveBackground === "music" ? "music_note" : root.liveBackground === "game" ? "sports_esports" : "image"
+                playing: root.animating
             }
         }
 

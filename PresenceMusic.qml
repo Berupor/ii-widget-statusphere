@@ -108,6 +108,7 @@ Rectangle {
             PresenceArt {
                 visible: root.stackedCount > 0
                 source: root.stackedDevice?.spotify_art_url ?? ""
+                playing: root.animating
                 anchors {
                     right: parent.right
                     verticalCenter: parent.verticalCenter
@@ -120,6 +121,7 @@ Rectangle {
             PresenceArt {
                 id: art
                 source: root.device?.spotify_art_url ?? ""
+                playing: root.animating
                 anchors {
                     left: parent.left
                     verticalCenter: parent.verticalCenter

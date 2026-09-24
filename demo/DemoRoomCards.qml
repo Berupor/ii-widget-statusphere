@@ -430,7 +430,10 @@ Item {
                     "custom_fields": ["local_time_day", "local_time_night", "weather_test"],
                     "local_time_day": "13:15",
                     "local_time_night": "02:30",
-                    "weather_test": "9° Rain · Lisbon, PT"
+                    "weather_test": "9° Rain · Lisbon, PT",
+                    "spotify_status": "playing",
+                    "spotify_track": "Test Loop",
+                    "spotify_art_url": root.cover("test-anim.gif")
                 },
                 {
                     "account_id": "acc-empty-layout",
@@ -619,6 +622,10 @@ Item {
 
     function shownVinyls() {
         return root.tilesIn(tab).filter(t => t.tile.form === "vinyl" && t.visible).concat([vinylProbe]);
+    }
+
+    function gifArt(tile) {
+        return root.findAll(tile, it => (it.frameCount ?? 0) > 1, [])[0] ?? null;
     }
 
     // Rotation read a second apart: a spinning cover has moved, a paused one has not
@@ -858,6 +865,16 @@ Item {
                 "name": "a music tile's vinyl and wave forms are not full-bleed, like a scalar tile",
                 "got": vinylProbe.fullBleed || waveProbe.fullBleed,
                 "want": false
+            },
+            {
+                "name": "a music cover that is a GIF plays while its tile is on screen",
+                "got": [(root.gifArt(gifProbe)?.frameCount ?? 0) > 1, root.gifArt(gifProbe)?.playing],
+                "want": [true, true]
+            },
+            {
+                "name": "a picture tile stays on the static image path, no GIF player behind it",
+                "got": root.pictureTiles().every(t => root.gifArt(t) === null),
+                "want": true
             },
             {
                 "name": "a layout with no row/detail keys falls back to empty tiles, not a crash",
@@ -1142,6 +1159,28 @@ Item {
         id: waveProbe
         visible: false
         account: Statusphere.accountsById["acc-music"]
+        tile: ({
+                "type": "music",
+                "field": "",
+                "device": null,
+                "form": "wave",
+                "size": "2x1",
+                "shape": "default",
+                "color": "secondaryContainer",
+                "background": {
+                    "kind": "color",
+                    "value": "secondaryContainer"
+                },
+                "onMissing": "hide"
+            })
+    }
+
+    CardTile {
+        id: gifProbe
+        visible: true
+        width: 200
+        height: 64
+        account: Statusphere.accountsById["acc-probe"]
         tile: ({
                 "type": "music",
                 "field": "",

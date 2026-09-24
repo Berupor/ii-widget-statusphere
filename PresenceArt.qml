@@ -7,7 +7,7 @@ import QtQuick.Window
 import Qt5Compat.GraphicalEffects
 import Quickshell.Io
 
-/** Rounded album art with a music note fallback. */
+/** Rounded album art with a music note fallback; an animated cover plays as a GIF. */
 Rectangle {
     id: root
     required property string source
@@ -16,11 +16,22 @@ Rectangle {
     radius: Appearance.rounding.small
     color: Appearance.colors.colLayer1
 
+    property bool playing: true
+    readonly property int status: image.item?.status ?? Image.Null
+    implicitWidth: image.item?.implicitWidth ?? 0
+    implicitHeight: image.item?.implicitHeight ?? 0
+
     property string cacheFilePath: root.source.length > 0 ? `${Directories.coverArt}/${Qt.md5(root.source)}` : ""
     property bool downloaded: false
+    property bool isGif: false
+
+    readonly property string resolvedSource: root.downloaded ? Qt.resolvedUrl(root.cacheFilePath) : ""
+    readonly property int pixelWidth: Math.ceil(root.width * Screen.devicePixelRatio)
+    readonly property int pixelHeight: Math.ceil(root.height * Screen.devicePixelRatio)
 
     onCacheFilePathChanged: {
         root.downloaded = false;
+        root.isGif = false;
         if (root.cacheFilePath.length === 0)
             return;
         artDownloader.targetUrl = root.source;
@@ -32,18 +43,17 @@ Rectangle {
         id: artDownloader
         property string targetUrl
         property string filePath
-        command: ["bash", "-c", `[ -f ${filePath} ] || curl -4 -sSL '${targetUrl}' -o '${filePath}'`]
+        command: ["bash", "-c", `[ -f ${filePath} ] || curl -4 -sSL '${targetUrl}' -o '${filePath}'; head -c4 '${filePath}' 2>/dev/null`]
+        stdout: StdioCollector {
+            onStreamFinished: root.isGif = text === "GIF8"
+        }
         onExited: root.downloaded = true
     }
 
-    StyledImage {
+    Loader {
         id: image
         anchors.fill: parent
-        source: root.downloaded ? Qt.resolvedUrl(root.cacheFilePath) : ""
-        fillMode: Image.PreserveAspectCrop
-        sourceSize.width: Math.ceil(root.width * Screen.devicePixelRatio)
-        sourceSize.height: Math.ceil(root.height * Screen.devicePixelRatio)
-        cache: true
+        sourceComponent: root.isGif ? animatedArt : staticArt
 
         layer.enabled: true
         layer.effect: OpacityMask {
@@ -55,8 +65,36 @@ Rectangle {
         }
     }
 
+    Component {
+        id: staticArt
+        StyledImage {
+            source: root.resolvedSource
+            fillMode: Image.PreserveAspectCrop
+            sourceSize.width: root.pixelWidth
+            sourceSize.height: root.pixelHeight
+            cache: true
+        }
+    }
+
+    Component {
+        id: animatedArt
+        AnimatedImage {
+            asynchronous: true
+            opacity: status === Image.Ready ? 1 : 0
+            Behavior on opacity {
+                animation: Appearance.animation.elementMoveEnter.numberAnimation.createObject(this)
+            }
+            source: root.resolvedSource
+            fillMode: Image.PreserveAspectCrop
+            sourceSize.width: root.pixelWidth
+            sourceSize.height: root.pixelHeight
+            cache: true
+            playing: root.playing
+        }
+    }
+
     MaterialSymbol {
-        visible: image.status !== Image.Ready
+        visible: root.status !== Image.Ready
         anchors.centerIn: parent
         iconSize: Math.round(root.height * 0.4)
         color: Appearance.colors.colSubtext

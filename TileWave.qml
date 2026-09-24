@@ -23,6 +23,7 @@ Item {
             Layout.preferredHeight: form.artSide
             Layout.alignment: Qt.AlignVCenter
             source: form.device?.spotify_art_url ?? ""
+            playing: form.card.animating
         }
 
         ColumnLayout {

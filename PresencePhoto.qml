@@ -5,7 +5,9 @@ import qs.modules.common.widgets
 import qs.modules.common.functions
 import qs.modules.widgets
 import QtQuick
+import QtQuick.Window
 import Qt5Compat.GraphicalEffects
+import Quickshell.Io
 
 /** A friend's current shared photo, with a relative-time corner label, or a picture by url. No captions, no reactions. */
 Rectangle {
@@ -15,14 +17,30 @@ Rectangle {
     property bool cropped: false
     property string url: ""
 
+    readonly property bool animating: root.visible && root.Window.visibility !== Window.Hidden
     readonly property bool showsUrl: root.url.length > 0
-    readonly property Image shownImage: root.showsUrl ? remoteImage : image
-    readonly property int status: root.shownImage.status
+    readonly property var shownImage: root.showsUrl ? remoteImage.item : image
+    readonly property int status: root.shownImage?.status ?? Image.Null
+
+    property bool remoteIsGif: false
+    onUrlChanged: {
+        root.remoteIsGif = false;
+        if (root.url.length > 0)
+            remoteGifSniff.running = true;
+    }
+
+    Process {
+        id: remoteGifSniff
+        command: ["curl", "-4", "-sSL", "-r", "0-3", root.url]
+        stdout: StdioCollector {
+            onStreamFinished: root.remoteIsGif = text === "GIF8"
+        }
+    }
 
     readonly property int minHeight: 100
     readonly property int maxHeight: 320
     // Shared regions come in every shape, so the card follows the image instead of cropping it to a fixed strip
-    readonly property real naturalHeight: root.shownImage.implicitHeight > 0 ? root.width * root.shownImage.implicitHeight / root.shownImage.implicitWidth : 0
+    readonly property real naturalHeight: (root.shownImage?.implicitHeight ?? 0) > 0 ? root.width * root.shownImage.implicitHeight / root.shownImage.implicitWidth : 0
 
     implicitHeight: root.naturalHeight > 0 ? Math.round(Math.max(root.minHeight, Math.min(root.maxHeight, root.naturalHeight))) : root.minHeight
     radius: Appearance.rounding.normal
@@ -45,25 +63,45 @@ Rectangle {
             }
         }
 
-        ThumbnailImage {
+        Loader {
+            id: remoteImage
+            anchors.fill: parent
+            active: root.showsUrl
+            sourceComponent: root.remoteIsGif ? animatedRemote : staticRemote
+        }
+
+        Component {
+            id: staticRemote
+            StyledImage {
+                source: width > 0 && height > 0 ? root.url : ""
+                fillMode: Image.PreserveAspectCrop
+            }
+        }
+
+        Component {
+            id: animatedRemote
+            AnimatedImage {
+                source: width > 0 && height > 0 ? root.url : ""
+                fillMode: Image.PreserveAspectCrop
+                sourceSize.width: Math.ceil(width * Screen.devicePixelRatio)
+                sourceSize.height: Math.ceil(height * Screen.devicePixelRatio)
+                playing: root.animating
+            }
+        }
+
+        LocalPicture {
             id: image
             anchors.fill: parent
             sourcePath: root.photo?.path ?? ""
+            playing: root.animating
             thumbnailSizeName: "x-large" // The default sizes itself off sourceSize, which is 0 before the first load
             // Panoramas get letterboxed rather than gutted; anything taller is cropped to maxHeight
             fillMode: !root.cropped && root.naturalHeight > 0 && root.naturalHeight < root.minHeight ? Image.PreserveAspectFit : Image.PreserveAspectCrop
         }
-
-        StyledImage {
-            id: remoteImage
-            anchors.fill: parent
-            source: root.showsUrl && width > 0 && height > 0 ? root.url : ""
-            fillMode: Image.PreserveAspectCrop
-        }
     }
 
     MaterialSymbol {
-        visible: root.shownImage.status !== Image.Ready
+        visible: (root.shownImage?.status ?? Image.Null) !== Image.Ready
         anchors.centerIn: parent
         iconSize: Math.round(root.height * 0.3)
         color: Appearance.colors.colSubtext

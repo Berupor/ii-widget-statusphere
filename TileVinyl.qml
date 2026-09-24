@@ -39,6 +39,7 @@ Item {
         PresenceArt {
             anchors.fill: parent
             source: form.device?.spotify_art_url ?? ""
+            playing: form.card.animating
         }
 
         RotationAnimation on rotation {
