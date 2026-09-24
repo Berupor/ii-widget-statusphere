@@ -2,11 +2,9 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
-import Quickshell.Io
 import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
-import qs.modules.widgets
 import "CardLayouts.js" as CardLayouts
 
 ColumnLayout {
@@ -14,27 +12,29 @@ ColumnLayout {
     spacing: 8
 
     readonly property var ownerAccount: Statusphere.selfAccount
-    property var editRow: []
-    property var editDetail: []
+    readonly property var editRow: store.row
+    readonly property var editDetail: store.detail
     property string editSurface: "row"
     property int selectedIndex: -1
     property bool galleryOpen: false
     property bool packsOpen: false
-    property var customEntries: ({})
+    readonly property var customEntries: store.entries
     property var testedValues: ({})
     property var chosenKinds: ({})
-    property var undoState: null
-    readonly property var ownedFields: Statusphere.opt("editorOwnedFields") ?? []
+    readonly property var undoState: store.undoState
 
     readonly property var editTiles: root.editSurface === "row" ? root.editRow : root.editDetail
     readonly property var allTiles: root.editRow.concat(root.editDetail)
     readonly property var selectedTile: (root.selectedIndex >= 0 && root.selectedIndex < root.editTiles.length) ? root.editTiles[root.selectedIndex] : null
 
-    readonly property int autosaveDelayMs: 500
-    property bool layoutPending: false
-    property bool customPending: false
-    property bool savedOnce: false
-    readonly property bool saving: root.layoutPending || root.customPending
+    CardStore {
+        id: store
+        onLayoutLoaded: {
+            if (root.selectedIndex >= root.editTiles.length)
+                root.selectedIndex = -1;
+            root.packsOpen = root.allTiles.length === 0;
+        }
+    }
 
     // Plausible values for every field a pack or gallery tile can name, so a thumbnail
     // reads at a glance instead of showing "-" for data this machine has none of.
@@ -654,30 +654,17 @@ ColumnLayout {
         const current = root.customEntries[key];
         if (current && current.cmd === entry.cmd && current.repeat_seconds === entry.repeat_seconds)
             return;
-        root.customEntries = Object.assign({}, root.customEntries, {
-            [key]: entry
-        });
-        if (!root.ownedFields.includes(key))
-            root.setOwnedFields(root.ownedFields.concat([key]));
-        root.markCustomChanged();
+        store.setEntry(key, entry);
     }
 
     function isOwned(key) {
-        return root.ownedFields.includes(key) || (root.sourceOf(key)?.kind ?? "command") !== "command";
+        return store.ownedFields.includes(key) || (root.sourceOf(key)?.kind ?? "command") !== "command";
     }
 
     function dropEntry(key) {
         if (root.customEntries[key] === undefined || !root.isOwned(key))
             return;
-        const next = Object.assign({}, root.customEntries);
-        delete next[key];
-        root.customEntries = next;
-        root.setOwnedFields(root.ownedFields.filter(k => k !== key));
-        root.markCustomChanged();
-    }
-
-    function setOwnedFields(keys) {
-        WidgetsStore.setOption("statusphere", "editorOwnedFields", keys);
+        store.removeEntry(key);
     }
 
     // A "*" tile shows every field the layout does not name, so while one is on the card
@@ -708,10 +695,8 @@ ColumnLayout {
     }
 
     function setLayout(row, detail) {
-        root.editRow = row;
-        root.editDetail = detail;
+        store.setLayout(row, detail);
         root.dropUnusedEntries();
-        root.markLayoutChanged();
     }
 
     function setSurfaceTiles(tiles) {
@@ -736,32 +721,18 @@ ColumnLayout {
         root.galleryOpen = !root.galleryOpen;
     }
 
-    function rememberUndo() {
-        root.undoState = {
-            "row": root.editRow,
-            "detail": root.editDetail,
-            "entries": root.customEntries,
-            "owned": root.ownedFields
-        };
-    }
-
     function undo() {
-        const state = root.undoState;
-        if (!state)
-            return;
-        root.undoState = null;
-        root.selectedIndex = -1;
-        root.customEntries = state.entries;
-        root.setOwnedFields(state.owned);
-        root.markCustomChanged();
-        root.setLayout(state.row, state.detail);
+        if (store.undo()) {
+            root.selectedIndex = -1;
+            root.dropUnusedEntries();
+        }
     }
 
     function applyPack(id) {
         const pack = CardLayouts.packFor(root.editSurface, id);
         if (!pack)
             return;
-        root.rememberUndo();
+        store.rememberUndo();
         root.selectedIndex = -1;
         root.packsOpen = false;
         root.setSurfaceTiles(pack.tiles);
@@ -803,7 +774,7 @@ ColumnLayout {
     }
 
     function removeTileAt(index) {
-        root.rememberUndo();
+        store.rememberUndo();
         const tiles = root.editTiles.slice();
         tiles.splice(index, 1);
         if (root.selectedIndex === index)
@@ -824,84 +795,6 @@ ColumnLayout {
         tiles.splice(insertAt, 0, moved);
         root.setSurfaceTiles(tiles);
         root.selectedIndex = insertAt;
-    }
-
-    function markLayoutChanged() {
-        root.layoutPending = true;
-        autosave.restart();
-    }
-
-    function markCustomChanged() {
-        root.customPending = true;
-        autosave.restart();
-    }
-
-    function flush() {
-        autosave.stop();
-        if (root.layoutPending) {
-            root.layoutPending = false;
-            layoutFile.setText(JSON.stringify({
-                "updated_at": Math.floor(Date.now() / 1000),
-                "row": root.editRow,
-                "detail": root.editDetail
-            }, null, 2));
-        }
-        if (root.customPending) {
-            root.customPending = false;
-            customFieldsFile.setText(JSON.stringify(root.customEntries, null, 2));
-        }
-        root.savedOnce = true;
-    }
-
-    function loadMyLayout() {
-        if (root.layoutPending)
-            return;
-        try {
-            const saved = JSON.parse(layoutFile.text());
-            root.editRow = (saved.row ?? []).map(CardLayouts.withKnownBackground);
-            root.editDetail = (saved.detail ?? []).map(CardLayouts.withKnownBackground);
-        } catch (e) {
-            root.editRow = [];
-            root.editDetail = [];
-        }
-        if (root.selectedIndex >= root.editTiles.length)
-            root.selectedIndex = -1;
-        root.packsOpen = root.allTiles.length === 0;
-    }
-
-    function loadMyCustomFields() {
-        if (root.customPending)
-            return;
-        try {
-            const raw = JSON.parse(customFieldsFile.text());
-            root.customEntries = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
-        } catch (e) {
-            root.customEntries = {};
-        }
-    }
-
-    Component.onDestruction: root.flush()
-
-    Timer {
-        id: autosave
-        interval: root.autosaveDelayMs
-        onTriggered: root.flush()
-    }
-
-    FileView {
-        id: layoutFile
-        path: `${Directories.config}/statusphere/${CardLayouts.layoutFileName}`
-        printErrors: false
-        onLoaded: root.loadMyLayout()
-        onLoadFailed: root.loadMyLayout()
-    }
-
-    FileView {
-        id: customFieldsFile
-        path: `${Directories.config}/statusphere/${CardLayouts.customFileName}`
-        printErrors: false
-        onLoaded: root.loadMyCustomFields()
-        onLoadFailed: root.loadMyCustomFields()
     }
 
     SecondaryTabBar {
@@ -985,8 +878,8 @@ ColumnLayout {
         }
 
         StyledText {
-            visible: root.saving || root.savedOnce
-            text: root.saving ? Translation.tr("Saving") : Translation.tr("Saved")
+            visible: store.saving || store.savedOnce
+            text: store.saving ? Translation.tr("Saving") : Translation.tr("Saved")
             color: Appearance.colors.colSubtext
             font.pixelSize: Appearance.font.pixelSize.smaller
         }
