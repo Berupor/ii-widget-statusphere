@@ -96,38 +96,40 @@ Singleton {
     // A client that keeps saying "playing" while its position sits still lost the Spotify Connect
     // session to another device and never noticed, so watch the position advance per device.
     readonly property int stallTimeout: 8000
-    property var progressByDevice: ({})
+    // Mutated in place on every snapshot, never reassigned, so nothing binds to it:
+    // bindings read stalledDeviceIds, which changes only when a device stalls or recovers.
+    readonly property var progressByDevice: ({})
+    property var stalledDeviceIds: []
 
     function noteProgress(members): void {
         const now = Date.now();
-        const next = {};
-        let changed = false;
+        const progress = root.progressByDevice;
+        const playing = new Set();
         for (const m of members) {
             const id = m.device_id;
             if (!id || m.spotify_status !== "playing")
                 continue;
+            playing.add(id);
             const key = root.trackKey(m);
             const pos = m.spotify_position ?? 0;
-            const prev = root.progressByDevice[id];
-            const entry = (prev && prev.key === key && pos <= prev.pos) ? prev : {
-                "key": key,
-                "pos": pos,
-                "at": now
-            };
-            next[id] = entry;
-            if (entry !== prev)
-                changed = true;
+            const prev = progress[id];
+            if (!prev || prev.key !== key || pos > prev.pos)
+                progress[id] = {
+                    "key": key,
+                    "pos": pos,
+                    "at": now
+                };
         }
-        // Nobody playing is the common case, so skip the reassignment (and the accountsById
-        // recompute it triggers via stalled()) instead of replacing {} with {} every poll.
-        if (!changed && Object.keys(next).length === Object.keys(root.progressByDevice).length)
-            return;
-        root.progressByDevice = next;
+        for (const id of Object.keys(progress))
+            if (!playing.has(id))
+                delete progress[id];
+        const stalled = Object.keys(progress).filter(id => now - progress[id].at > root.stallTimeout).sort();
+        if (stalled.join("\n") !== root.stalledDeviceIds.join("\n"))
+            root.stalledDeviceIds = stalled;
     }
 
     function stalled(device): bool {
-        const seen = root.progressByDevice[device?.device_id];
-        return !!seen && Date.now() - seen.at > root.stallTimeout;
+        return root.stalledDeviceIds.includes(device?.device_id);
     }
 
     function compareDevices(a, b, newest): int {
@@ -935,7 +937,8 @@ Singleton {
         root.noteProgress(members);
         root.noteKinds(members);
         root.members = members;
-        root.photos = photos;
+        if (JSON.stringify(photos) !== JSON.stringify(root.photos))
+            root.photos = photos;
     }
 
     Process {
