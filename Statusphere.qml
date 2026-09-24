@@ -653,7 +653,8 @@ Singleton {
             fields.push({
                 "key": "disk",
                 "icon": "storage",
-                "label": device.disk_free_gb !== undefined ? Translation.tr("Disk · %1G free").arg(Math.round(device.disk_free_gb)) : Translation.tr("Disk"),
+                "label": Translation.tr("Disk"),
+                "note": device.disk_free_gb !== undefined ? Translation.tr("%1G free").arg(Math.round(device.disk_free_gb)) : "",
                 "value": `${Math.round(device.disk_used_percent)}%`,
                 "percent": device.disk_used_percent
             });

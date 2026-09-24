@@ -26,6 +26,57 @@ Item {
     readonly property real percent: root.field?.percent ?? 0
     readonly property string valueText: root.field?.value ?? "-"
     readonly property string labelText: root.field?.label ?? Statusphere.labelForKey(root.tile.field)
+    readonly property string notedLabelText: root.field?.note ? `${root.labelText} · ${root.field.note}` : root.labelText
+    readonly property string shownValueText: root.hasData ? root.withSymbolsAttached(root.valueText) : "-"
+
+    function isSymbol(token: string): bool {
+        return !/[\p{L}\p{N}]/u.test(token);
+    }
+
+    function withSymbolsAttached(text: string): string {
+        const nbsp = "\u00A0";
+        return text.replace(/^(\S+) +(?=\S)/, (whole, first) => root.isSymbol(first) ? first + nbsp : whole).replace(/(\S) +(\S+)$/, (whole, before, last) => root.isSymbol(last) ? before + nbsp + last : whole);
+    }
+
+    component ShrinkThenWrapText: StyledText {
+        id: fitText
+        property real largestSize: Appearance.font.pixelSize.huge
+        property real wrapBelow: Appearance.font.pixelSize.normal
+        property int maxLines: 2
+        readonly property bool canWrap: fitText.maxLines > 1 && /[ \t\n]/.test(fitText.text)
+        readonly property real oneLineSize: Math.min(fitText.largestSize, Math.floor(fitText.largestSize * fitText.width / Math.max(1, oneLineMetrics.advanceWidth)))
+        readonly property real shrinkFloor: fitText.canWrap ? fitText.wrapBelow : Appearance.font.pixelSize.smallest
+        readonly property bool fitsOneLine: fitText.oneLineSize >= fitText.shrinkFloor
+
+        font.pixelSize: fitText.fitsOneLine ? fitText.oneLineSize : fitText.shrinkFloor
+        wrapMode: fitText.fitsOneLine ? Text.NoWrap : Text.WordWrap
+        maximumLineCount: fitText.maxLines
+        fontSizeMode: Text.Fit
+        minimumPixelSize: Appearance.font.pixelSize.smallest
+        elide: Text.ElideRight
+
+        TextMetrics {
+            id: oneLineMetrics
+            font.family: fitText.shouldUseNumberFont ? Appearance.font.family.numbers : Appearance.font.family.main
+            font.pixelSize: fitText.largestSize
+            text: fitText.text
+        }
+    }
+
+    component NotedLabel: ShrinkThenWrapText {
+        id: notedLabel
+        largestSize: Appearance.font.pixelSize.smaller
+        maxLines: 1
+        text: notedMetrics.advanceWidth <= notedLabel.width ? root.notedLabelText : root.labelText
+        color: root.mutedContentColor
+
+        TextMetrics {
+            id: notedMetrics
+            font.family: Appearance.font.family.main
+            font.pixelSize: notedLabel.largestSize
+            text: root.notedLabelText
+        }
+    }
 
     function roleColor(role: string): color {
         switch (role) {
@@ -241,7 +292,7 @@ Item {
         // A fixed 12px eats most of a thumbnail-scale tile (a preset preview packs a
         // whole card into ~40px cells) and leaves nothing for text to fit in - scale
         // it with the tile instead.
-        anchors.margins: root.fullBleed ? 0 : Math.max(4, Math.round(Math.min(width, height) * 0.1))
+        anchors.margins: root.fullBleed ? 0 : Math.max(4, Math.round(Math.min(root.width, root.height) * 0.1))
         clip: true
 
         PresenceMusic {
@@ -317,12 +368,12 @@ Item {
                     Layout.preferredHeight: 28
                     source: waveForm.musicDevice?.spotify_art_url ?? ""
                 }
-                StyledText {
+                ShrinkThenWrapText {
                     Layout.fillWidth: true
-                    elide: Text.ElideRight
+                    largestSize: Appearance.font.pixelSize.smaller
+                    maxLines: 1
                     text: Statusphere.trackFor(waveForm.musicDevice)
                     color: root.contentColor
-                    font.pixelSize: Appearance.font.pixelSize.smaller
                 }
             }
 
@@ -399,48 +450,54 @@ Item {
             colPrimary: root.contentColor
             colSecondary: ColorUtils.transparentize(root.contentColor, 0.75)
 
+            readonly property real innerBox: (ring.implicitSize - 2 * ring.lineWidth) * Math.SQRT1_2
+            readonly property bool captionFits: ringValue.implicitHeight + ringCaption.implicitHeight <= ring.innerBox && ringCaption.fitsOneLine
+
             Column {
                 anchors.centerIn: parent
+                width: ring.innerBox
                 spacing: 0
 
                 StyledText {
-                    anchors.horizontalCenter: parent.horizontalCenter
+                    id: ringValue
+                    objectName: "ringValue"
+                    width: parent.width
+                    horizontalAlignment: Text.AlignHCenter
+                    fontSizeMode: Text.HorizontalFit
+                    minimumPixelSize: Appearance.font.pixelSize.smallest
                     animateChange: true
                     text: root.hasData ? Math.round(root.percent) + "%" : "-"
                     color: root.contentColor
-                    font.pixelSize: Math.max(Appearance.font.pixelSize.large, ring.implicitSize * 0.2)
+                    font.pixelSize: Math.max(Appearance.font.pixelSize.smallest, ring.innerBox * 0.4)
                 }
-                StyledText {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    width: Math.round(Math.min(content.width, content.height) * 0.7)
+                ShrinkThenWrapText {
+                    id: ringCaption
+                    objectName: "ringCaption"
+                    visible: ring.captionFits
+                    width: parent.width
                     horizontalAlignment: Text.AlignHCenter
-                    elide: Text.ElideRight
+                    largestSize: Math.max(Appearance.font.pixelSize.smallest, ring.innerBox * 0.2)
+                    maxLines: 1
                     text: root.labelText
                     color: root.mutedContentColor
-                    font.pixelSize: Math.max(Appearance.font.pixelSize.smallest, ring.implicitSize * 0.08)
                 }
             }
         }
 
         ColumnLayout {
             visible: root.tile.type === "scalar" && root.tile.form === "bar" && !root.thumbnail
-            anchors.verticalCenter: parent.verticalCenter
-            width: parent.width
+            anchors.fill: parent
             spacing: 4
 
-            StyledText {
+            NotedLabel {
                 Layout.fillWidth: true
-                elide: Text.ElideRight
-                text: root.labelText
-                font.pixelSize: Appearance.font.pixelSize.smaller
-                color: root.mutedContentColor
             }
-            StyledText {
+            ShrinkThenWrapText {
                 Layout.fillWidth: true
-                elide: Text.ElideRight
+                Layout.fillHeight: true
+                maxLines: 1
                 animateChange: true
                 text: root.hasData ? Math.round(root.percent) + "%" : "-"
-                font.pixelSize: Appearance.font.pixelSize.huge
                 color: root.contentColor
             }
             StyledProgressBar {
@@ -463,39 +520,31 @@ Item {
             width: parent.width
             spacing: 2
 
-            StyledText {
+            ShrinkThenWrapText {
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignHCenter
-                elide: Text.ElideRight
+                largestSize: Appearance.font.pixelSize.smallest
+                wrapBelow: Appearance.font.pixelSize.smallest
                 text: root.numberDisplayLabel
-                font.pixelSize: Appearance.font.pixelSize.smallest
                 color: root.mutedContentColor
             }
-            StyledText {
+            ShrinkThenWrapText {
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignHCenter
-                elide: Text.ElideRight
-                fontSizeMode: Text.HorizontalFit
-                minimumPixelSize: Appearance.font.pixelSize.smallest
+                maxLines: 1
                 animateChange: true
                 text: root.hasData ? root.numberDisplayValue : "-"
-                font.pixelSize: Appearance.font.pixelSize.huge
                 color: root.contentColor
             }
         }
 
-        StyledText {
+        ShrinkThenWrapText {
             visible: root.tile.type === "scalar" && root.tile.form === "clock" && !root.thumbnail
             anchors.fill: parent
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            wrapMode: Text.WordWrap
-            maximumLineCount: 3
-            elide: Text.ElideRight
-            fontSizeMode: Text.Fit
-            minimumPixelSize: Appearance.font.pixelSize.smallest
-            text: root.hasData ? root.valueText : "-"
-            font.pixelSize: Appearance.font.pixelSize.huge
+            maxLines: 3
+            text: root.shownValueText
             color: root.contentColor
         }
 
@@ -507,27 +556,19 @@ Item {
             anchors.fill: parent
             spacing: 2
 
-            StyledText {
+            NotedLabel {
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignHCenter
-                elide: Text.ElideRight
-                text: root.labelText
-                font.pixelSize: Appearance.font.pixelSize.smallest
-                color: root.mutedContentColor
+                largestSize: Appearance.font.pixelSize.smallest
             }
-            StyledText {
+            ShrinkThenWrapText {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
-                wrapMode: Text.WordWrap
-                maximumLineCount: 3
-                elide: Text.ElideRight
-                fontSizeMode: Text.Fit
-                minimumPixelSize: Appearance.font.pixelSize.smallest
+                maxLines: 3
                 animateChange: true
-                text: root.hasData ? root.valueText : "-"
-                font.pixelSize: Appearance.font.pixelSize.huge
+                text: root.shownValueText
                 color: root.contentColor
             }
         }
@@ -547,26 +588,17 @@ Item {
                     iconSize: Appearance.font.pixelSize.smaller
                     color: root.mutedContentColor
                 }
-                StyledText {
+                NotedLabel {
                     Layout.fillWidth: true
-                    elide: Text.ElideRight
-                    text: root.labelText
-                    font.pixelSize: Appearance.font.pixelSize.smaller
-                    color: root.mutedContentColor
                 }
             }
-            StyledText {
+            ShrinkThenWrapText {
+                objectName: "textValue"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 verticalAlignment: Text.AlignVCenter
-                wrapMode: Text.WordWrap
-                maximumLineCount: 2
-                elide: Text.ElideRight
-                fontSizeMode: Text.Fit
-                minimumPixelSize: Appearance.font.pixelSize.smallest
                 animateChange: true
-                text: root.hasData ? root.valueText : "-"
-                font.pixelSize: Appearance.font.pixelSize.huge
+                text: root.shownValueText
                 color: root.contentColor
             }
         }
