@@ -143,7 +143,8 @@ ColumnLayout {
             "tile": {
                 "form": "weather",
                 "shape": "auto",
-                "size": "1x1"
+                "size": "1x1",
+                "color": "primaryContainer"
             },
             "cmdFor": city => `curl -sf ${root.shQuote(`wttr.in/${encodeURIComponent(city.trim())}?format=%t+·+%C`)}`,
             "answerOf": cmd => {
@@ -162,7 +163,8 @@ ColumnLayout {
             "tile": {
                 "form": "clock",
                 "shape": "auto",
-                "size": "1x1"
+                "size": "1x1",
+                "color": "tertiaryContainer"
             },
             "cmdFor": zone => zone.trim() ? `TZ=${root.shQuote(zone.trim())} ${root.clockCmd}` : root.clockCmd,
             "answerOf": cmd => {
@@ -199,7 +201,8 @@ ColumnLayout {
             "repeat": 120,
             "tile": {
                 "form": "ring",
-                "size": "1x1"
+                "size": "1x1",
+                "color": "tertiaryContainer"
             },
             "cmdFor": () => root.batteryCmd,
             "answerOf": cmd => cmd === root.batteryCmd ? "" : null
@@ -228,7 +231,8 @@ ColumnLayout {
             "repeat": root.defaultCommandRepeat,
             "tile": {
                 "form": "text",
-                "size": "2x1"
+                "size": "2x1",
+                "color": "primaryContainer"
             }
         }
     ]
@@ -267,24 +271,6 @@ ColumnLayout {
                     }
                 },
                 {
-                    "id": "music-vinyl",
-                    "label": Translation.tr("Music - vinyl"),
-                    "tile": {
-                        "type": "music",
-                        "form": "vinyl",
-                        "size": "2x2"
-                    }
-                },
-                {
-                    "id": "music-wave",
-                    "label": Translation.tr("Music - wave"),
-                    "tile": {
-                        "type": "music",
-                        "form": "wave",
-                        "size": "2x1"
-                    }
-                },
-                {
                     "id": "game",
                     "label": Translation.tr("Game"),
                     "tile": {
@@ -298,20 +284,22 @@ ColumnLayout {
                     }
                 },
                 {
+                    "id": "music-wave",
+                    "label": Translation.tr("Music - wave"),
+                    "tile": {
+                        "type": "music",
+                        "form": "wave",
+                        "size": "2x1",
+                        "color": "tertiaryContainer"
+                    }
+                },
+                {
                     "id": "game-timer",
                     "label": Translation.tr("Game - session"),
                     "tile": {
                         "type": "game",
                         "form": "timer",
                         "size": "2x1"
-                    }
-                },
-                {
-                    "id": "photo",
-                    "label": Translation.tr("Photo"),
-                    "tile": {
-                        "type": "photo",
-                        "size": "1x1"
                     }
                 },
                 {
@@ -325,13 +313,32 @@ ColumnLayout {
                     }
                 },
                 {
+                    "id": "music-vinyl",
+                    "label": Translation.tr("Music - vinyl"),
+                    "tile": {
+                        "type": "music",
+                        "form": "vinyl",
+                        "size": "2x2",
+                        "color": "primaryContainer"
+                    }
+                },
+                {
+                    "id": "photo",
+                    "label": Translation.tr("Photo"),
+                    "tile": {
+                        "type": "photo",
+                        "size": "1x1"
+                    }
+                },
+                {
                     "id": "workspace",
                     "label": Translation.tr("Workspace"),
                     "tile": {
                         "type": "scalar",
                         "field": "workspace",
                         "form": "number",
-                        "size": "1x1"
+                        "size": "1x1",
+                        "color": "tertiaryContainer"
                     }
                 }
             ]
@@ -361,7 +368,8 @@ ColumnLayout {
                         "type": "scalar",
                         "field": "mem",
                         "form": "bar",
-                        "size": "2x1"
+                        "size": "2x1",
+                        "color": "primaryContainer"
                     }
                 },
                 {
@@ -386,7 +394,8 @@ ColumnLayout {
                         "type": "scalar",
                         "field": "load",
                         "form": "number",
-                        "size": "1x1"
+                        "size": "1x1",
+                        "color": "tertiaryContainer"
                     }
                 },
                 {
@@ -396,7 +405,8 @@ ColumnLayout {
                         "type": "scalar",
                         "field": "uptime",
                         "form": "number",
-                        "size": "1x1"
+                        "size": "1x1",
+                        "color": "primaryContainer"
                     }
                 },
                 {
@@ -1043,7 +1053,9 @@ ColumnLayout {
         visible: root.galleryOpen
         spacing: 6
 
-        readonly property real cell: 60
+        readonly property real gap: 8
+        readonly property real labelGap: 4
+        readonly property real cell: (gallery.width - (CardLayouts.columns - 1) * gallery.gap) / CardLayouts.columns
 
         Repeater {
             model: root.galleryGroups
@@ -1060,7 +1072,7 @@ ColumnLayout {
 
                 Flow {
                     Layout.fillWidth: true
-                    spacing: 8
+                    spacing: gallery.gap
 
                     Repeater {
                         model: galleryGroup.modelData.entries
@@ -1069,30 +1081,25 @@ ColumnLayout {
                             id: galleryCard
                             required property var modelData
                             readonly property var span: CardLayouts.spanOf(galleryCard.modelData.tile.size)
-                            implicitWidth: Math.max(tileBox.width, cardLabel.implicitWidth) + 12
-                            implicitHeight: tileBox.height + cardLabel.implicitHeight + 16
-                            buttonRadius: Appearance.rounding.small
-                            colBackground: Appearance.colors.colLayer1
+                            implicitWidth: galleryCard.span.cols * gallery.cell + (galleryCard.span.cols - 1) * gallery.gap
+                            implicitHeight: galleryTile.height + cardLabel.implicitHeight + 2 * gallery.labelGap
+                            buttonRadius: Appearance.rounding.large
                             onClicked: root.addFromGallery(galleryCard.modelData.id)
 
-                            Item {
-                                id: tileBox
-                                x: (galleryCard.width - tileBox.width) / 2
-                                y: 6
-                                width: galleryCard.span.cols * gallery.cell + (galleryCard.span.cols - 1) * 6
-                                height: galleryCard.span.rows * gallery.cell + (galleryCard.span.rows - 1) * 6
-
-                                CardTile {
-                                    anchors.fill: parent
-                                    account: root.galleryAccount
-                                    tile: CardLayouts.tile(galleryCard.modelData.tile)
-                                }
+                            CardTile {
+                                id: galleryTile
+                                width: parent.width
+                                height: galleryCard.span.rows * gallery.cell + (galleryCard.span.rows - 1) * gallery.gap
+                                account: root.galleryAccount
+                                tile: CardLayouts.tile(galleryCard.modelData.tile)
                             }
 
                             StyledText {
                                 id: cardLabel
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                y: tileBox.y + tileBox.height + 4
+                                width: parent.width
+                                y: galleryTile.height + gallery.labelGap
+                                horizontalAlignment: Text.AlignHCenter
+                                wrapMode: Text.WordWrap
                                 text: galleryCard.modelData.label
                                 font.pixelSize: Appearance.font.pixelSize.smaller
                                 color: Appearance.colors.colOnLayer1

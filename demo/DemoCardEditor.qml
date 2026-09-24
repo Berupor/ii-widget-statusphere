@@ -110,6 +110,37 @@ Item {
         return root.editor.editRow.findIndex(t => t.field === field);
     }
 
+    function clipAncestor(item, tile) {
+        let it = item.parent;
+        while (it && it !== tile && !it.clip)
+            it = it.parent;
+        return it ?? tile;
+    }
+
+    function inside(item, box) {
+        const at = item.mapToItem(box, 0, 0);
+        return at.x >= -0.5 && at.y >= -0.5 && at.x + item.width <= box.width + 0.5 && at.y + item.height <= box.height + 0.5;
+    }
+
+    function galleryFitProblems() {
+        const problems = [];
+        const cards = root.findAllData(root.gallery, it => it.modelData?.tile !== undefined && it.span !== undefined, []);
+        for (const card of cards) {
+            const name = card.modelData.label;
+            const label = root.first(card, it => it.text === name && it.truncated !== undefined);
+            if (!label || label.truncated || !root.inside(label, card))
+                problems.push(`${name}: label`);
+            if (!root.inside(card, root.gallery))
+                problems.push(`${name}: entry`);
+            const tile = root.first(card, it => it.account !== undefined && it.tile !== undefined);
+            const parts = root.findAllData(tile, it => it.visible && it.width > 0 && (it.truncated !== undefined || it.valueBarHeight !== undefined), []);
+            for (const part of parts)
+                if (part.truncated || !root.inside(part, root.clipAncestor(part, tile)))
+                    problems.push(`${name}: ${part.text ?? "bar"}`);
+        }
+        return cards.length > 0 ? problems : ["no entries"];
+    }
+
     function tooltipsShown(item) {
         return root.findAllData(item, it => it.internalVisibleCondition !== undefined && it.visible, []).length;
     }
@@ -187,11 +218,12 @@ Item {
             }
         }
         PauseAnimation {
-            duration: 100
+            duration: 400
         }
         ScriptAction {
             script: {
                 root.note("galleryTexts", root.visibleTexts(root.gallery));
+                root.note("galleryFit", root.galleryFitProblems());
                 root.note("galleryTooltips", root.tooltipsShown(root.settings));
                 root.editor.addFromGallery("cpu");
                 root.editor.addFromGallery("mem");
@@ -329,6 +361,11 @@ Item {
                 "name": "the gallery names tiles by what they are",
                 "got": ["Music - vinyl", "CPU ring", "Active window", "Photo", "Game"].filter(l => (s.galleryTexts ?? []).includes(l)),
                 "want": ["Music - vinyl", "CPU ring", "Active window", "Photo", "Game"]
+            },
+            {
+                "name": "no gallery entry's tile or label is clipped or elided",
+                "got": s.galleryFit,
+                "want": []
             },
             {
                 "name": "the gallery never says custom or shows a raw field name",
