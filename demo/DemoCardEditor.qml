@@ -1,4 +1,4 @@
-//@ probe statusphere -g 480x900 -s 6000
+//@ probe statusphere -g 480x900 -s 8000
 /**
  * The settings page end to end, through the controls an owner touches: two tabs,
  * the Room tab free of editor controls, the tile gallery, the tile sheet and the
@@ -94,7 +94,7 @@ Item {
     function findParts() {
         root.editor = root.first(root.settings, it => it.editRow !== undefined && it.galleryGroups !== undefined);
         root.sheet = root.first(root.settings, it => it.editor !== undefined && it.fieldKey !== undefined);
-        root.gallery = root.first(root.settings, it => it.cell !== undefined);
+        root.gallery = root.first(root.settings, it => it.entryScale !== undefined);
         root.pageTabs = root.first(root.settings, it => it.currentIndex !== undefined && it.count === 2 && root.first(it, b => b.buttonText === "Room") !== null);
     }
 
@@ -140,6 +140,32 @@ Item {
                     problems.push(`${name}: ${part.text ?? "bar"}`);
         }
         return cards.length > 0 ? problems : ["no entries"];
+    }
+
+    function galleryGroupDelegates() {
+        return root.findAllData(root.gallery, it => it.expanded !== undefined && it.modelData?.title !== undefined, []);
+    }
+
+    function galleryGroupsOpen() {
+        return root.galleryGroupDelegates().map(g => [g.modelData.title, g.expanded]);
+    }
+
+    function openGalleryGroup(title) {
+        const group = root.galleryGroupDelegates().find(g => g.modelData.title === title);
+        root.first(group, it => it.mainText === title && it.clicked !== undefined).clicked();
+    }
+
+    function galleryCard(label) {
+        return root.first(root.gallery, it => it.modelData?.label === label && it.span !== undefined);
+    }
+
+    function unknownLengthMusic() {
+        return ["Music - cover", "Music - wave", "Music - vinyl"].map(label => {
+            const card = root.galleryCard(label);
+            const texts = root.visibleTexts(card);
+            const progress = root.findAllData(card, it => it.visible && (it.valueBarHeight !== undefined || (it.lineWidth !== undefined && it.value !== undefined)), []);
+            return [label, texts.some(t => /\d:\d\d/.test(t)), progress.length];
+        });
     }
 
     function tooltipsShown(item) {
@@ -207,7 +233,7 @@ Item {
                 root.findParts();
                 root.note("tabs", root.findAllData(root.pageTabs, it => it.buttonText !== undefined, []).map(b => b.buttonText));
                 root.note("roomTexts", root.visibleTexts(root.settings));
-                root.note("roomEditorItems", root.findAllData(root.settings, it => it.visible && (it.reorderable !== undefined || it.fieldKey !== undefined || it.cell !== undefined), []).length);
+                root.note("roomEditorItems", root.findAllData(root.settings, it => it.visible && (it.reorderable !== undefined || it.fieldKey !== undefined || it.entryScale !== undefined), []).length);
                 root.note("roomTooltips", root.tooltipsShown(root.settings));
                 root.pageTabs.currentIndex = 1;
 
@@ -223,6 +249,28 @@ Item {
         }
         ScriptAction {
             script: {
+                root.note("groupsOpenAtFirst", root.galleryGroupsOpen());
+                root.note("collapsedGalleryHeight", root.gallery.height);
+                root.openGalleryGroup("Activity");
+            }
+        }
+        PauseAnimation {
+            duration: 200
+        }
+        ScriptAction {
+            script: {
+                root.note("groupsOpenAfterClick", root.galleryGroupsOpen());
+                root.note("activityEntriesShown", root.visibleTexts(root.gallery).includes("Music - vinyl"));
+                root.openGalleryGroup("Your own");
+                root.openGalleryGroup("System");
+            }
+        }
+        PauseAnimation {
+            duration: 400
+        }
+        ScriptAction {
+            script: {
+                root.note("unknownLengthMusic", root.unknownLengthMusic());
                 root.note("galleryTexts", root.visibleTexts(root.gallery));
                 root.note("galleryFit", root.galleryFitProblems());
                 root.note("galleryTooltips", root.tooltipsShown(root.settings));
@@ -328,10 +376,21 @@ Item {
         ScriptAction {
             script: {
                 root.notePackList("detail");
+                root.noteUnsourcedPackFields();
                 root.editor.applyPack("coder");
                 root.note("detailPackApplied", [JSON.stringify(root.editor.editDetail) === JSON.stringify(CardLayouts.packs.detail.coder), JSON.stringify(root.editor.editRow) === root.seen.rowBefore]);
                 root.editor.undo();
                 root.note("detailPackUndone", JSON.stringify(root.editor.editDetail) === root.seen.detailBefore);
+                root.editor.applyPack("traveler");
+            }
+        }
+        PauseAnimation {
+            duration: 800
+        }
+        ScriptAction {
+            script: {
+                root.note("customAfterTraveler", root.readJson(customView));
+                root.editor.undo();
                 root.editor.selectSurface("row");
                 root.arrangeShot();
             }
@@ -341,6 +400,43 @@ Item {
     function tileSignature(tiles) {
         return tiles.map(t => `${t.type}:${t.field}:${t.size}`).join(",");
     }
+
+    function packCustomFields(tiles) {
+        return tiles.filter(t => t.type === "scalar" && Statusphere.isCustomFieldKey(t.field)).map(t => t.field);
+    }
+
+    function noteUnsourcedPackFields() {
+        const unsourced = [];
+        for (const surface of ["row", "detail"]) {
+            root.editor.selectSurface(surface);
+            for (const p of CardLayouts.packsFor(surface)) {
+                root.editor.applyPack(p.id);
+                for (const key of root.packCustomFields(p.tiles))
+                    if (!root.editor.customEntries[key]?.cmd)
+                        unsourced.push(`${surface}.${p.id}.${key}`);
+                root.editor.undo();
+            }
+        }
+        root.editor.selectSurface("detail");
+        root.note("unsourcedPackFields", unsourced);
+    }
+
+    function packShape(surface) {
+        return CardLayouts.packsFor(surface).map(p => {
+            const placed = CardLayouts.pack(p.tiles, CardLayouts.rowsFor(surface));
+            const fields = p.tiles.map(t => t.type === "scalar" ? t.field : t.type);
+            return {
+                "id": p.id,
+                "rows": CardLayouts.rowsUsed(placed),
+                "allPlaced": placed.length === p.tiles.length,
+                "holes": CardLayouts.emptyCells(placed),
+                "repeats": fields.length - new Set(fields).size,
+                "system": fields.filter(f => root.systemFields.includes(f)).length
+            };
+        });
+    }
+
+    readonly property var systemFields: ["cpu", "mem", "disk", "load", "uptime", "package_count"]
 
     function notePackList(surface) {
         const packs = CardLayouts.packsFor(surface);
@@ -357,8 +453,12 @@ Item {
             root.pageTabs.currentIndex = 0;
             return;
         }
-        if (root.shot === "gallery")
+        if (root.shot === "gallery") {
+            root.openGalleryGroup("Your own");
+            root.openGalleryGroup("Activity");
+            root.openGalleryGroup("System");
             root.editor.openGallery();
+        }
         else if (root.shot === "packs-row" || root.shot === "packs-detail") {
             root.editor.selectSurface(root.shot === "packs-row" ? "row" : "detail");
             root.editor.packsOpen = true;
@@ -407,6 +507,26 @@ Item {
                 "name": "the gallery names tiles by what they are",
                 "got": ["Music - vinyl", "CPU ring", "Active window", "Photo", "Game"].filter(l => (s.galleryTexts ?? []).includes(l)),
                 "want": ["Music - vinyl", "CPU ring", "Active window", "Photo", "Game"]
+            },
+            {
+                "name": "the gallery opens with only Live expanded",
+                "got": s.groupsOpenAtFirst,
+                "want": [["Live", true], ["Your own", false], ["Activity", false], ["System", false]]
+            },
+            {
+                "name": "the collapsed gallery stays under 700px at 480 wide",
+                "got": (s.collapsedGalleryHeight ?? 9999) < 700,
+                "want": true
+            },
+            {
+                "name": "clicking a group header expands that group only",
+                "got": [s.groupsOpenAfterClick, s.activityEntriesShown],
+                "want": [[["Live", true], ["Your own", false], ["Activity", true], ["System", false]], true]
+            },
+            {
+                "name": "a track of unknown length shows no time and no progress, on cover, wave and vinyl",
+                "got": s.unknownLengthMusic,
+                "want": [["Music - cover", false, 0], ["Music - wave", false, 0], ["Music - vinyl", false, 0]]
             },
             {
                 "name": "no gallery entry's tile or label is clipped or elided",
@@ -526,6 +646,44 @@ Item {
                 "name": "every row pack thumbnail shows all its tiles with no holes",
                 "got": s.rowPackThumbsWhole,
                 "want": CardLayouts.packsFor("row").map(() => true)
+            },
+            {
+                "name": "every row pack is one row of four cells: all tiles placed, no holes, no 2x2",
+                "got": root.packShape("row").map(p => [p.id, p.rows, p.allPlaced, p.holes, CardLayouts.packFor("row", p.id).tiles.some(t => t.size === "2x2")]),
+                "want": CardLayouts.packsFor("row").map(p => [p.id, 1, true, 0, false])
+            },
+            {
+                "name": "every detail pack fills three or four rows, all tiles placed, no holes",
+                "got": root.packShape("detail").map(p => [p.id, p.rows >= 3 && p.rows <= CardLayouts.detailRows, p.allPlaced, p.holes]),
+                "want": CardLayouts.packsFor("detail").map(p => [p.id, true, true, 0])
+            },
+            {
+                "name": "no pack names a field twice or carries more than two system metrics",
+                "got": root.packShape("row").concat(root.packShape("detail")).filter(p => p.repeats > 0 || p.system > 2).map(p => p.id),
+                "want": []
+            },
+            {
+                "name": "applying any pack gives every custom field it names a custom.json entry",
+                "got": s.unsourcedPackFields,
+                "want": []
+            },
+            {
+                "name": "the Traveler detail pack writes the weather and clock templates and its text after the debounce",
+                "got": [s.customAfterTraveler?.weather, s.customAfterTraveler?.local_time, s.customAfterTraveler?.flag],
+                "want": [
+                    {
+                        "cmd": "curl -sf 'wttr.in/?format=%t+·+%C'",
+                        "repeat_seconds": 900
+                    },
+                    {
+                        "cmd": "date +%H:%M",
+                        "repeat_seconds": 30
+                    },
+                    {
+                        "cmd": "printf '%s' '🇯🇵'",
+                        "repeat_seconds": 0
+                    }
+                ]
             },
             {
                 "name": "applying a pack on Row replaces Row and leaves Detail untouched",

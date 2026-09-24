@@ -1,10 +1,10 @@
 //@ probe statusphere -g 420x1200 -s 1500
 /**
  * Two friend packs on their own, row collapsed and detail expanded: a night
- * owl (a wave visualizer strip, what window is open, a mood sticker, how
- * long they've been up) next to a music head (a spinning vinyl, top artist
- * and a streak, a quote, then what they're listening to, a playlist and a
- * genre in the detail card).
+ * owl (a local clock, what window is open and a mood sticker in the row, the
+ * game, a wave line, the app, uptime and the night weather in the detail)
+ * next to a music head (a spinning vinyl, top artist and a streak) with the
+ * minimal detail card.
  */
 import ".."
 import "../CardLayouts.js" as CardLayouts
@@ -40,9 +40,17 @@ Item {
                     "spotify_position": 40,
                     "spotify_length": 210,
                     "spotify_art_url": root.cover("nightcall.jpg"),
+                    "game_status": "playing",
+                    "game_name": "Cyberpunk 2077",
+                    "game_display": "Cyberpunk 2077",
+                    "game_header_url": root.cover("cp2077-header.jpg"),
+                    "game_session_seconds": 7200,
                     "uptime_hours": 27,
-                    "custom_fields": ["active_window", "mood"],
+                    "active_app": "mpv",
                     "active_window": "mpv - late_night_mix.mkv",
+                    "custom_fields": ["local_time", "mood", "weather"],
+                    "weather": "7° Clear",
+                    "local_time": "03:12",
                     "mood": "🌙"
                 },
                 {
@@ -62,11 +70,13 @@ Item {
                     "spotify_position": 95,
                     "spotify_length": 240,
                     "spotify_art_url": root.cover("nightcall.jpg"),
-                    "custom_fields": ["top_artist", "streak", "quote", "mood"],
+                    "custom_fields": ["top_artist", "streak", "quote", "mood", "local_time", "weather"],
                     "top_artist": "Kavinsky",
                     "streak": "12",
                     "quote": "one more lap",
-                    "mood": "🎧 driving home the long way"
+                    "mood": "🎧 driving home the long way",
+                    "local_time": "21:40",
+                    "weather": "11° Clear"
                 }
             ],
             "photos": []
@@ -133,14 +143,9 @@ Item {
                 "want": true
             },
             {
-                "name": "Nyx's header status does not repeat the active_window field her detail tile shows",
+                "name": "Nyx's header says the game her detail card pictures, not the window her row tile shows",
                 "got": Statusphere.statusFor(Statusphere.accountsById["acc-nyx"], nyxRow.visibleSurfaces),
-                "want": ""
-            },
-            {
-                "name": "without the visible surfaces, the default status would have repeated that field",
-                "got": Statusphere.statusFor(Statusphere.accountsById["acc-nyx"], []),
-                "want": "mpv - late_night_mix.mkv"
+                "want": "Playing Cyberpunk 2077 · 2h"
             }
         ];
     }

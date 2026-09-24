@@ -1,9 +1,9 @@
-//@ probe statusphere -g 420x420 -s 1500
+//@ probe statusphere -g 420x520 -s 1500
 /**
- * The spare end of the spectrum: a quote, a local clock and how long they've
- * been online, one mood line in the detail card - row collapsed and detail
- * expanded, on its own so it reads as restraint rather than emptiness next
- * to a denser pack.
+ * The spare end of the spectrum: one quote across the row, a mood sticker, a
+ * big clock and the weather in the detail card - row collapsed and detail
+ * expanded, on its own so it reads as restraint rather than emptiness next to
+ * a denser pack.
  */
 import ".."
 import "../CardLayouts.js" as CardLayouts
@@ -28,11 +28,11 @@ Item {
                         "row": CardLayouts.packs.row.minimal,
                         "detail": CardLayouts.packs.detail.minimal
                     },
-                    "custom_fields": ["quote", "local_time", "since", "mood"],
+                    "custom_fields": ["quote", "local_time", "mood", "weather"],
+                    "weather": "14° Overcast",
                     "quote": "still here",
                     "local_time": "23:14",
-                    "since": "3d",
-                    "mood": "unbothered, in the moment"
+                    "mood": "unbothered"
                 }
             ],
             "photos": []

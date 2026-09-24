@@ -38,7 +38,7 @@ ColumnLayout {
 
     // Plausible values for every field a pack or gallery tile can name, so a thumbnail
     // reads at a glance instead of showing "-" for data this machine has none of.
-    readonly property var demoDevice: ({
+    readonly property var demoDevice: Object.assign({
             "cpu_percent": 42,
             "memory_used_mb": 6144,
             "memory_total_mb": 16384,
@@ -60,23 +60,10 @@ ColumnLayout {
             "game_display": "Cyberpunk 2077",
             "game_header_url": String(Qt.resolvedUrl("demo/covers/cp2077-header.jpg")),
             "game_session_seconds": 5400,
-            "custom_fields": ["mood", "top_artist", "streak", "quote", "listening", "playlist", "genre", "local_time", "weather", "flag", "trip_day", "region", "distance", "caption", "since"],
-            "mood": "calm",
-            "top_artist": "Robyn",
-            "streak": "9",
-            "quote": "turn it up",
-            "listening": "31",
-            "playlist": "Neon Drive",
-            "genre": "synthwave",
+            "custom_fields": Object.keys(CardLayouts.packTexts).concat(["local_time", "weather"]),
             "local_time": "23:14",
-            "weather": "18° · Clear",
-            "flag": "🇯🇵",
-            "trip_day": "4",
-            "region": "kyoto",
-            "distance": "1240 km",
-            "caption": "temple steps",
-            "since": "3d"
-        })
+            "weather": "18° · Clear"
+        }, CardLayouts.packTexts)
     readonly property var demoPhoto: ({
             "path": String(Qt.resolvedUrl("demo/covers/teardrop.jpg")),
             "created_at": "2026-09-20T12:00:00Z",
@@ -248,6 +235,7 @@ ColumnLayout {
     readonly property var galleryGroups: [
         {
             "title": Translation.tr("Live"),
+            "startsOpen": true,
             "entries": ["weather", "clock", "commits", "battery"].map(id => root.galleryEntryFor(root.ownerKind(id)))
         },
         {
@@ -590,8 +578,8 @@ ColumnLayout {
             "clock": "clock"
         })
 
-    // A pack names a field without writing custom.json: a weather or clock form says which
-    // template it wants, anything else starts out as the owner's own text.
+    // A field with no custom.json entry yet: a weather or clock form says which template it
+    // wants, anything else starts out as the owner's own text.
     function kindFromForm(key) {
         const tile = root.allTiles.find(t => t.type === "scalar" && t.field === key);
         return root.kindByForm[tile?.form] ?? "text";
@@ -781,6 +769,16 @@ ColumnLayout {
         root.selectedIndex = -1;
         root.packsOpen = false;
         root.setSurfaceTiles(pack.tiles);
+        root.seedEntries(pack.tiles);
+    }
+
+    function seedEntries(tiles) {
+        for (const tile of tiles) {
+            if (tile.type !== "scalar" || !Statusphere.isCustomFieldKey(tile.field) || root.customEntries[tile.field])
+                continue;
+            const kindId = root.kindFromForm(tile.field);
+            root.setAnswer(tile.field, kindId, kindId === "text" ? (CardLayouts.packTexts[tile.field] ?? "") : "");
+        }
     }
 
     function addFromGallery(id) {
@@ -1064,11 +1062,13 @@ ColumnLayout {
         id: gallery
         Layout.fillWidth: true
         visible: root.galleryOpen
-        spacing: 6
+        spacing: 2
 
         readonly property real gap: 8
         readonly property real labelGap: 4
-        readonly property real cell: (gallery.width - (CardLayouts.columns - 1) * gallery.gap) / CardLayouts.columns
+        readonly property int miniColumns: 6
+        readonly property real cardCell: (gallery.width - (CardLayouts.columns - 1) * gallery.gap) / CardLayouts.columns
+        readonly property real entryScale: gallery.width / (gallery.miniColumns * gallery.cardCell + (gallery.miniColumns - 1) * gallery.gap)
 
         Repeater {
             model: root.galleryGroups
@@ -1076,16 +1076,21 @@ ColumnLayout {
             delegate: ColumnLayout {
                 id: galleryGroup
                 required property var modelData
+                property bool expanded: galleryGroup.modelData.startsOpen === true
                 Layout.fillWidth: true
                 spacing: 4
 
-                ContentSubsectionLabel {
-                    text: galleryGroup.modelData.title
+                RippleButtonWithIcon {
+                    materialIcon: galleryGroup.expanded ? "expand_less" : "expand_more"
+                    mainText: galleryGroup.modelData.title
+                    onClicked: galleryGroup.expanded = !galleryGroup.expanded
                 }
 
                 Flow {
                     Layout.fillWidth: true
-                    spacing: gallery.gap
+                    Layout.bottomMargin: 6
+                    visible: galleryGroup.expanded
+                    spacing: gallery.gap * gallery.entryScale
 
                     Repeater {
                         model: galleryGroup.modelData.entries
@@ -1094,15 +1099,17 @@ ColumnLayout {
                             id: galleryCard
                             required property var modelData
                             readonly property var span: CardLayouts.spanOf(galleryCard.modelData.tile.size)
-                            implicitWidth: galleryCard.span.cols * gallery.cell + (galleryCard.span.cols - 1) * gallery.gap
-                            implicitHeight: galleryTile.height + cardLabel.implicitHeight + 2 * gallery.labelGap
-                            buttonRadius: Appearance.rounding.large
+                            implicitWidth: galleryTile.width * gallery.entryScale
+                            implicitHeight: galleryTile.height * gallery.entryScale + cardLabel.implicitHeight + 2 * gallery.labelGap
+                            buttonRadius: Appearance.rounding.normal
                             onClicked: root.addFromGallery(galleryCard.modelData.id)
 
                             CardTile {
                                 id: galleryTile
-                                width: parent.width
-                                height: galleryCard.span.rows * gallery.cell + (galleryCard.span.rows - 1) * gallery.gap
+                                width: galleryCard.span.cols * gallery.cardCell + (galleryCard.span.cols - 1) * gallery.gap
+                                height: galleryCard.span.rows * gallery.cardCell + (galleryCard.span.rows - 1) * gallery.gap
+                                scale: gallery.entryScale
+                                transformOrigin: Item.TopLeft
                                 account: root.galleryAccount
                                 tile: CardLayouts.tile(galleryCard.modelData.tile)
                             }
@@ -1110,7 +1117,7 @@ ColumnLayout {
                             StyledText {
                                 id: cardLabel
                                 width: parent.width
-                                y: galleryTile.height + gallery.labelGap
+                                y: galleryTile.height * gallery.entryScale + gallery.labelGap
                                 horizontalAlignment: Text.AlignHCenter
                                 wrapMode: Text.WordWrap
                                 text: galleryCard.modelData.label

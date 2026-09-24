@@ -5,4 +5,4 @@
 # The edge scene is not here on purpose: it is for looking at while working, and
 # `widget-shots.sh -x . -- "-f demo/DemoRoomEdge.qml -n edge -g 430x1180"` draws it.
 -f demo/DemoRoom.qml -n room -g 430x700
--f demo/DemoCardEditor.qml -n StatusphereSettings -p shot=sheet -g 480x900 -s 6000
+-f demo/DemoCardEditor.qml -n StatusphereSettings -p shot=sheet -g 480x900 -s 8000

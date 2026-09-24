@@ -1,11 +1,11 @@
 //@ probe statusphere -g 420x1200 -s 2500
 /**
  * Two more friend packs on their own, row collapsed and detail expanded: a
- * travelling photographer (a shared photo, a local clock, the weather, a
- * flag and a trip day, then a region, a distance and a caption in the detail
- * card - all custom.json fields, no system metrics) next to a coder (what
- * window and app are open, workspace and package count, cpu and mem as a
- * small accent).
+ * travelling photographer (a shared photo, a local clock and the weather in
+ * the row, then the photo and weather large, a clock, a flag, a caption and
+ * a trip day in the detail card - no system metrics) next to a coder (what
+ * window is open, workspace and cpu in the row, the app, what's playing and a
+ * local clock in the detail, package count and load as the accent).
  */
 import ".."
 import "../CardLayouts.js" as CardLayouts
@@ -35,13 +35,11 @@ Item {
                         "row": CardLayouts.packs.row.traveler,
                         "detail": CardLayouts.packs.detail.traveler
                     },
-                    "custom_fields": ["local_time", "weather", "flag", "trip_day", "region", "distance", "caption"],
+                    "custom_fields": ["local_time", "weather", "flag", "trip_day", "caption"],
                     "local_time": "13:15",
                     "weather": "9° Rain · Tokyo, JP",
                     "flag": "🇯🇵",
-                    "trip_day": "42",
-                    "region": "JP-13",
-                    "distance": "1240 km",
+                    "trip_day": "day 42",
                     "caption": "Somewhere new"
                 },
                 {
@@ -60,8 +58,18 @@ Item {
                     "active_workspace": 4,
                     "package_count": 1523,
                     "cpu_percent": 34,
+                    "load_avg_1m": 1.2,
+                    "cpu_count": 8,
+                    "custom_fields": ["local_time"],
+                    "local_time": "16:05",
                     "memory_used_mb": 5200,
-                    "memory_total_mb": 16384
+                    "memory_total_mb": 16384,
+                    "spotify_status": "playing",
+                    "spotify_track": "Midnight City",
+                    "spotify_artist": "M83",
+                    "spotify_position": 120,
+                    "spotify_length": 244,
+                    "spotify_art_url": root.cover("nightcall.jpg")
                 }
             ],
             "photos": [
@@ -140,7 +148,7 @@ Item {
             },
             {
                 "name": "a 1x1 number value shrinks to fit instead of eliding",
-                "got": notTruncated("1240 km"),
+                "got": notTruncated("day 42"),
                 "want": true
             },
             {
@@ -177,7 +185,7 @@ Item {
             {
                 "name": "Turing's header status does not repeat active_window (row tile) or active_app (detail tile)",
                 "got": Statusphere.statusFor(Statusphere.accountsById["acc-turing"], turingRow.visibleSurfaces),
-                "want": "Online"
+                "want": ""
             }
         ];
     }

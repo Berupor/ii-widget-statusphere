@@ -176,13 +176,13 @@ function standardDetailFor(fields) {
 }
 
 // A friend's pack: self-expression, not a system monitor. Music, game and photo carry
-// the personality, active_app/active_window/package_count read what the cli already
-// collects about the machine's own use, and a custom.json field (mood, quote, a hand-
-// rolled local clock) reaches for whatever the friend shells out for - onMissing "hide"
-// or "dim" lets a pack name a field before it exists. System metrics (cpu/mem/disk/
-// load/uptime/workspace) stay a small accent, at most one or two a pack, some none at
-// all. A pack fills one surface: no field twice in it and no holes in its grid, while a
-// row pack and a detail pack may name the same field.
+// the personality, active_app/active_window/workspace read what the cli already
+// collects about the machine's own use, and a custom.json field (mood, quote, a local
+// clock, the weather) reaches for whatever the friend shells out for. System metrics
+// (cpu/mem/disk/load/uptime/package_count) stay an accent, at most two a pack. A row
+// pack is the one line every friend sees in the room list, so it fills exactly one row;
+// a detail pack fills three or four. No field twice in a pack and no holes in its grid,
+// while a row pack and a detail pack may name the same field.
 const packNames = {
     "nightOwl": "Night Owl",
     "musicHead": "Music Head",
@@ -191,26 +191,53 @@ const packNames = {
     "minimal": "Minimal"
 };
 
+// What a "Your text" field a pack names starts out as, so it has a custom.json entry and
+// a value from the moment the pack is applied. Weather and clock forms get their
+// template instead.
+const packTexts = {
+    "mood": "🌙",
+    "quote": "back in five",
+    "top_artist": "Robyn",
+    "streak": "9",
+    "playlist": "Neon Drive",
+    "flag": "🇯🇵",
+    "trip_day": "4",
+    "caption": "temple steps"
+};
+
 const packs = {
     "row": {
-        // Late, not necessarily gaming: what's playing right now.
         "nightOwl": [
             tile({
-                "type": "music",
-                "form": "wave",
-                "size": "4x1",
-                "color": "primary",
+                "type": "scalar",
+                "field": "local_time",
+                "form": "clock",
+                "size": "1x1",
+                "shape": "auto",
+                "color": "tertiaryContainer",
+                "onMissing": "hide"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "active_window",
+                "form": "text",
+                "size": "2x1",
+                "onMissing": "hide"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "mood",
+                "form": "big",
+                "size": "1x1",
+                "color": "primaryContainer",
                 "onMissing": "hide"
             })
         ],
-        // Vinyl is the one place the track shows: the other tiles and the Music Head
-        // detail stay off spotify_* so the same song doesn't repeat three times.
         "musicHead": [
             tile({
                 "type": "music",
                 "form": "vinyl",
-                "size": "2x2",
-                "shape": "default",
+                "size": "1x1",
                 "color": "primaryContainer",
                 "onMissing": "hide"
             }),
@@ -228,21 +255,12 @@ const packs = {
                 "size": "1x1",
                 "color": "tertiaryContainer",
                 "onMissing": "hide"
-            }),
-            tile({
-                "type": "scalar",
-                "field": "quote",
-                "form": "big",
-                "size": "1x1",
-                "color": "secondaryContainer",
-                "onMissing": "hide"
             })
         ],
         "traveler": [
             tile({
                 "type": "photo",
-                "size": "2x2",
-                "shape": "default",
+                "size": "2x1",
                 "color": "secondaryContainer",
                 "onMissing": "hide"
             }),
@@ -263,26 +281,8 @@ const packs = {
                 "shape": "auto",
                 "color": "primaryContainer",
                 "onMissing": "hide"
-            }),
-            tile({
-                "type": "scalar",
-                "field": "flag",
-                "form": "big",
-                "size": "1x1",
-                "color": "tertiary",
-                "onMissing": "hide"
-            }),
-            tile({
-                "type": "scalar",
-                "field": "trip_day",
-                "form": "number",
-                "size": "1x1",
-                "color": "secondaryContainer",
-                "onMissing": "hide"
             })
         ],
-        // What the machine is for: what's open, where, how many packages it carries - cpu
-        // and mem stay a one-tile-each accent, not the point.
         "coder": [
             tile({
                 "type": "scalar",
@@ -313,9 +313,106 @@ const packs = {
                 "type": "scalar",
                 "field": "quote",
                 "form": "big",
-                "size": "2x1",
+                "size": "4x1",
                 "color": "secondaryContainer",
                 "onMissing": "hide"
+            })
+        ]
+    },
+    "detail": {
+        "nightOwl": [
+            tile({
+                "type": "game",
+                "form": "banner",
+                "size": "4x1",
+                "onMissing": "hide"
+            }),
+            tile({
+                "type": "music",
+                "form": "wave",
+                "size": "4x1",
+                "color": "primary",
+                "onMissing": "hide"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "active_app",
+                "form": "text",
+                "size": "2x1",
+                "onMissing": "dim"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "uptime",
+                "form": "number",
+                "size": "1x1",
+                "color": "secondaryContainer",
+                "onMissing": "dim"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "weather",
+                "form": "weather",
+                "size": "1x1",
+                "shape": "auto",
+                "color": "tertiaryContainer",
+                "onMissing": "dim"
+            })
+        ],
+        "musicHead": [
+            tile({
+                "type": "music",
+                "form": "cover",
+                "size": "4x1",
+                "onMissing": "hide"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "playlist",
+                "form": "big",
+                "size": "2x2",
+                "color": "tertiaryContainer",
+                "onMissing": "dim"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "top_artist",
+                "form": "text",
+                "size": "2x1",
+                "onMissing": "dim"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "streak",
+                "form": "number",
+                "size": "1x1",
+                "color": "primaryContainer",
+                "onMissing": "dim"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "mood",
+                "form": "big",
+                "size": "1x1",
+                "color": "secondaryContainer",
+                "onMissing": "dim"
+            })
+        ],
+        "traveler": [
+            tile({
+                "type": "photo",
+                "size": "2x2",
+                "color": "secondaryContainer",
+                "onMissing": "hide"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "weather",
+                "form": "weather",
+                "size": "2x2",
+                "shape": "auto",
+                "color": "primaryContainer",
+                "onMissing": "dim"
             }),
             tile({
                 "type": "scalar",
@@ -324,117 +421,71 @@ const packs = {
                 "size": "1x1",
                 "shape": "auto",
                 "color": "tertiaryContainer",
-                "onMissing": "hide"
-            }),
-            tile({
-                "type": "scalar",
-                "field": "since",
-                "form": "number",
-                "size": "1x1",
-                "color": "primaryContainer",
-                "onMissing": "hide"
-            })
-        ]
-    },
-    "detail": {
-        // What's open right now, and how long the machine's been up as the one hint
-        // of the hour.
-        "nightOwl": [
-            tile({
-                "type": "scalar",
-                "field": "active_window",
-                "form": "text",
-                "size": "2x1",
-                "onMissing": "hide"
-            }),
-            tile({
-                "type": "scalar",
-                "field": "mood",
-                "form": "big",
-                "size": "1x1",
-                "color": "primaryContainer",
                 "onMissing": "dim"
             }),
             tile({
                 "type": "scalar",
-                "field": "uptime",
-                "form": "number",
-                "size": "1x1",
-                "color": "tertiaryContainer",
-                "onMissing": "hide"
-            })
-        ],
-        "musicHead": [
-            tile({
-                "type": "scalar",
-                "field": "listening",
-                "form": "number",
-                "size": "2x2",
-                "color": "tertiaryContainer",
-                "onMissing": "hide"
-            }),
-            tile({
-                "type": "scalar",
-                "field": "playlist",
+                "field": "flag",
                 "form": "big",
-                "size": "2x1",
-                "color": "secondaryContainer",
-                "onMissing": "hide"
-            }),
-            tile({
-                "type": "scalar",
-                "field": "genre",
-                "form": "text",
-                "size": "2x1",
-                "onMissing": "hide"
-            })
-        ],
-        "traveler": [
-            tile({
-                "type": "scalar",
-                "field": "region",
-                "form": "text",
-                "size": "2x1",
-                "onMissing": "hide"
-            }),
-            tile({
-                "type": "scalar",
-                "field": "distance",
-                "form": "number",
                 "size": "1x1",
-                "color": "secondaryContainer",
-                "onMissing": "hide"
+                "color": "tertiary",
+                "onMissing": "dim"
             }),
             tile({
                 "type": "scalar",
                 "field": "caption",
                 "form": "big",
                 "size": "1x1",
-                "color": "tertiaryContainer",
-                "onMissing": "hide"
+                "color": "secondaryContainer",
+                "onMissing": "dim"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "trip_day",
+                "form": "number",
+                "size": "1x1",
+                "color": "primaryContainer",
+                "onMissing": "dim"
             })
         ],
         "coder": [
             tile({
                 "type": "scalar",
                 "field": "active_app",
-                "form": "text",
-                "size": "2x1",
-                "onMissing": "hide"
+                "form": "big",
+                "size": "2x2",
+                "color": "primaryContainer",
+                "onMissing": "dim"
             }),
             tile({
                 "type": "scalar",
                 "field": "package_count",
                 "form": "number",
-                "size": "1x1",
-                "onMissing": "hide"
+                "size": "2x1",
+                "onMissing": "dim"
             }),
             tile({
                 "type": "scalar",
-                "field": "mem",
-                "form": "ring",
+                "field": "load",
+                "form": "number",
                 "size": "1x1",
                 "color": "tertiaryContainer",
+                "onMissing": "dim"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "local_time",
+                "form": "clock",
+                "size": "1x1",
+                "shape": "auto",
+                "color": "secondaryContainer",
+                "onMissing": "dim"
+            }),
+            tile({
+                "type": "music",
+                "form": "wave",
+                "size": "4x1",
+                "color": "tertiary",
                 "onMissing": "hide"
             })
         ],
@@ -442,9 +493,27 @@ const packs = {
             tile({
                 "type": "scalar",
                 "field": "mood",
-                "form": "text",
+                "form": "big",
+                "size": "2x2",
+                "color": "secondaryContainer",
+                "onMissing": "dim"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "local_time",
+                "form": "clock",
+                "size": "2x2",
+                "shape": "auto",
+                "color": "tertiaryContainer",
+                "onMissing": "dim"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "weather",
+                "form": "weather",
                 "size": "4x1",
-                "onMissing": "hide"
+                "color": "secondaryContainer",
+                "onMissing": "dim"
             })
         ]
     }
