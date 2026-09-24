@@ -16,6 +16,8 @@ WidgetManifest {
         { "key": "incognitoIndicator", "default": true },
         { "key": "serverMetrics", "default": true },
         { "key": "serverPingSeconds", "default": 60 },
+        { "key": "away", "default": true },
+        { "key": "awayMinutes", "default": 5 },
         { "key": "games", "default": true },
         { "key": "photos", "default": true },
         { "key": "photoMinHeight", "default": 100 },

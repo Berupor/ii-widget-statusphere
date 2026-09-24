@@ -30,7 +30,8 @@ Item {
                     "device_name": "thinkpad",
                     "account_name": "You",
                     "_role": "owner",
-                    "last_seen": root.now
+                    "last_seen": root.now,
+                    "idle_seconds": 640 // Stepped away; dims the dot without touching the status line
                 },
                 {
                     "account_id": "acc-mira",
@@ -224,6 +225,11 @@ Item {
                 "name": "the status line names the game, so the card is only its picture",
                 "got": Statusphere.statusFor(Statusphere.accountsById[root.scenario === "edge" ? "acc-nameless" : "acc-mira"]),
                 "want": root.scenario === "edge" ? "Playing Cyberpunk 2077 · Now" : "Playing Red Dead Redemption 2 · 1h"
+            },
+            {
+                "name": "an idle device marks its account away without hiding what it's doing",
+                "got": root.scenario === "plain" ? [Statusphere.awayFor(Statusphere.accountsById["acc-you"]), Statusphere.statusFor(Statusphere.accountsById["acc-you"])] : [true, ""],
+                "want": root.scenario === "plain" ? [true, "Away · 10m"] : [true, ""]
             },
             {
                 "name": "every row got drawn",

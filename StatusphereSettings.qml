@@ -73,6 +73,33 @@ ColumnLayout {
     }
 
     ContentSubsection {
+        title: Translation.tr("Away")
+
+        ConfigSwitch {
+            buttonIcon: "bedtime"
+            text: Translation.tr('Mark idle friends away')
+            checked: Statusphere.opt("away")
+            onCheckedChanged: setOption("away", checked)
+            StyledToolTip {
+                text: Translation.tr("A dimmer dot once a device has sat untouched past the minutes below.\nA game or a call still counts as present, so the status line keeps saying what it was saying")
+            }
+        }
+
+        ConfigSpinBox {
+            enabled: Statusphere.opt("away")
+            icon: "hourglass_empty"
+            text: Translation.tr("Idle minutes before away")
+            value: Statusphere.opt("awayMinutes")
+            from: 1
+            to: 60
+            stepSize: 1
+            onValueChanged: {
+                setOption("awayMinutes", value);
+            }
+        }
+    }
+
+    ContentSubsection {
         title: Translation.tr("Games")
 
         ConfigSwitch {

@@ -356,6 +356,14 @@ Singleton {
         return account?.primary?._health_note ?? "";
     }
 
+    // The agent reports how long the primary device has sat untouched; a game or a
+    // call still counts as present, so this never overrides what's already on the line.
+    function awayFor(account): bool {
+        if (!root.opt("away") || !account || account.offline || root.isServer(account))
+            return false;
+        return (account.primary?.idle_seconds ?? 0) >= root.opt("awayMinutes") * 60;
+    }
+
     readonly property var serverIds: root.accountIds.filter(id => root.isServer(root.accountsById[id]))
 
     // A silent agent and a dead machine look the same from here, so say which one it is.
@@ -497,6 +505,8 @@ Singleton {
             return p.active_app;
         if (p?.spotify_status)
             return "";
+        if (root.awayFor(account))
+            return Translation.tr("Away · %1").arg(root.sessionFor(Date.now() - (p?.idle_seconds ?? 0) * 1000));
         return Translation.tr("Online");
     }
 

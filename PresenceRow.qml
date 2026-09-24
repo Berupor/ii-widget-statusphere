@@ -14,6 +14,7 @@ Rectangle {
     readonly property var account: Statusphere.accountsById[root.modelData] ?? null
     readonly property bool offline: root.account?.offline ?? true
     readonly property bool hidden: Statusphere.hiddenFor(root.account)
+    readonly property bool away: Statusphere.awayFor(root.account)
     readonly property bool isSelf: root.modelData === Statusphere.selfAccountId
     readonly property bool isServer: Statusphere.isServer(root.account)
     readonly property string health: root.offline ? "" : Statusphere.healthFor(root.account)
@@ -80,6 +81,7 @@ Rectangle {
                 account: root.account
                 offline: root.offline
                 hidden: root.hidden
+                away: root.away
                 interactive: root.canPick
                 onHoldStarted: picker.open = true
                 onHoldMoved: (x, y) => {
