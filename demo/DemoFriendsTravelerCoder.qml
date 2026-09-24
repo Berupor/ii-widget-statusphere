@@ -32,8 +32,8 @@ Item {
                     "last_seen": root.now,
                     "_layout": {
                         "updated_at": root.now,
-                        "row": CardLayouts.presets.traveler.row,
-                        "detail": CardLayouts.presets.traveler.detail
+                        "row": CardLayouts.packs.row.traveler,
+                        "detail": CardLayouts.packs.detail.traveler
                     },
                     "custom_fields": ["local_time", "weather", "flag", "trip_day", "region", "distance", "caption"],
                     "local_time": "13:15",
@@ -52,8 +52,8 @@ Item {
                     "last_seen": root.now,
                     "_layout": {
                         "updated_at": root.now,
-                        "row": CardLayouts.presets.coder.row,
-                        "detail": CardLayouts.presets.coder.detail
+                        "row": CardLayouts.packs.row.coder,
+                        "detail": CardLayouts.packs.detail.coder
                     },
                     "active_window": "nvim - main.go",
                     "active_app": "kitty",
@@ -83,6 +83,10 @@ Item {
             root.findAll(c, pred, out);
         return out;
     }
+
+    readonly property var allPacks: ["row", "detail"].reduce((all, surface) => all.concat(CardLayouts.packsFor(surface).map(p => Object.assign({
+                        "surface": surface
+                    }, p))), [])
 
     function checks() {
         const grids = root.findAll(root, it => it.rowsUsed !== undefined && it.placed !== undefined, []);
@@ -146,20 +150,29 @@ Item {
             },
             {
                 "name": "no pack tile uses the error role",
-                "got": CardLayouts.names().every(n => {
-                    const p = CardLayouts.get(n);
-                    return [...p.row, ...p.detail].every(t => t.color !== "error" && (t.background?.value ?? "") !== "error");
-                }),
-                "want": true
+                "got": root.allPacks.reduce((all, p) => all.concat(p.tiles), []).filter(t => t.color === "error" || (t.background?.value ?? "") === "error").length,
+                "want": 0
             },
             {
-                "name": "no field repeats within a pack across row and detail",
-                "got": CardLayouts.names().every(n => {
-                    const p = CardLayouts.get(n);
-                    const fields = [...p.row, ...p.detail].filter(t => t.type === "scalar" && t.field !== "*").map(t => t.field);
-                    return new Set(fields).size === fields.length;
-                }),
-                "want": true
+                "name": "no field repeats within a pack",
+                "got": root.allPacks.filter(p => {
+                    const fields = p.tiles.filter(t => t.type === "scalar" && t.field !== "*").map(t => t.field);
+                    return new Set(fields).size !== fields.length;
+                }).map(p => `${p.surface} ${p.name}`),
+                "want": []
+            },
+            {
+                "name": "every pack fits its surface whole, with no holes",
+                "got": root.allPacks.filter(p => {
+                    const placed = CardLayouts.pack(p.tiles, CardLayouts.rowsFor(p.surface));
+                    return placed.length !== p.tiles.length || CardLayouts.emptyCells(placed) !== 0;
+                }).map(p => `${p.surface} ${p.name}`),
+                "want": []
+            },
+            {
+                "name": "row and detail each offer the five characters",
+                "got": [CardLayouts.packsFor("row").map(p => p.name), CardLayouts.packsFor("detail").map(p => p.name)],
+                "want": [["Night Owl", "Music Head", "Traveler", "Coder", "Minimal"], ["Night Owl", "Music Head", "Traveler", "Coder", "Minimal"]]
             },
             {
                 "name": "Turing's header status does not repeat active_window (row tile) or active_app (detail tile)",

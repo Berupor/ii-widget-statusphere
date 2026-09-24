@@ -4,7 +4,8 @@
  * the Room tab free of editor controls, the tile gallery, the tile sheet and the
  * files autosave writes. Starts from a layout.json and a custom.json already on
  * disk, one field in them written by hand, the way a cli user set it up before
- * the editor existed. `-p shot=room|card|gallery|sheet` picks what the frame shows.
+ * the editor existed. `-p shot=room|card|gallery|sheet|packs-row|packs-detail`
+ * picks what the frame shows.
  */
 import ".."
 import "../CardLayouts.js" as CardLayouts
@@ -300,12 +301,44 @@ Item {
         }
         ScriptAction {
             script: {
-                const names = CardLayouts.names().map(n => CardLayouts.get(n).name);
-                root.note("packLabelsInside", root.findAllData(root.editor, it => names.includes(it.text) && it.visible && it.mapToItem(root.editor, 0, 0).x + it.width <= root.editor.width, []).length);
-                root.note("packThumbsFull", root.findAllData(root.editor, it => it.thumbnail === true && it.placed !== undefined, []).map(t => t.rowsUsed === t.maxRows && CardLayouts.emptyCells(t.placed) === 0));
+                root.notePackList("row");
+                root.note("rowBefore", JSON.stringify(root.editor.editRow));
+                root.note("detailBefore", JSON.stringify(root.editor.editDetail));
+                root.editor.applyPack("nightOwl");
+                root.note("rowPackApplied", [JSON.stringify(root.editor.editRow) === JSON.stringify(CardLayouts.packs.row.nightOwl), JSON.stringify(root.editor.editDetail) === root.seen.detailBefore]);
+                root.editor.undo();
+                root.note("rowPackUndone", JSON.stringify(root.editor.editRow) === root.seen.rowBefore);
+                root.editor.selectSurface("detail");
+                root.editor.packsOpen = true;
+            }
+        }
+        PauseAnimation {
+            duration: 200
+        }
+        ScriptAction {
+            script: {
+                root.notePackList("detail");
+                root.editor.applyPack("coder");
+                root.note("detailPackApplied", [JSON.stringify(root.editor.editDetail) === JSON.stringify(CardLayouts.packs.detail.coder), JSON.stringify(root.editor.editRow) === root.seen.rowBefore]);
+                root.editor.undo();
+                root.note("detailPackUndone", JSON.stringify(root.editor.editDetail) === root.seen.detailBefore);
+                root.editor.selectSurface("row");
                 root.arrangeShot();
             }
         }
+    }
+
+    function tileSignature(tiles) {
+        return tiles.map(t => `${t.type}:${t.field}:${t.size}`).join(",");
+    }
+
+    function notePackList(surface) {
+        const packs = CardLayouts.packsFor(surface);
+        const names = packs.map(p => p.name);
+        const thumbs = root.findAllData(root.editor, it => it.thumbnail === true && it.placed !== undefined && it.visible, []);
+        root.note(`${surface}PackLabelsInside`, root.findAllData(root.editor, it => names.includes(it.text) && it.visible && it.mapToItem(root.editor, 0, 0).x + it.width <= root.editor.width, []).length);
+        root.note(`${surface}PackThumbs`, thumbs.map(t => root.tileSignature(t.tiles)));
+        root.note(`${surface}PackThumbsWhole`, thumbs.map(t => t.placed.length === t.tiles.length && CardLayouts.emptyCells(t.placed) === 0));
     }
 
     function arrangeShot() {
@@ -316,7 +349,10 @@ Item {
         }
         if (root.shot === "gallery")
             root.editor.openGallery();
-        else if (root.shot === "sheet") {
+        else if (root.shot === "packs-row" || root.shot === "packs-detail") {
+            root.editor.selectSurface(root.shot === "packs-row" ? "row" : "detail");
+            root.editor.packsOpen = true;
+        } else if (root.shot === "sheet") {
             root.editor.selectTile(root.tileIndex("output"));
             root.sheet.moreOpen = false;
             root.sheet.runTest();
@@ -467,14 +503,44 @@ Item {
                 "want": true
             },
             {
-                "name": "every pack has its name shown inside the page",
-                "got": s.packLabelsInside,
-                "want": CardLayouts.names().length
+                "name": "the Row pack list shows only row packs, each named inside the page",
+                "got": [s.rowPackThumbs, s.rowPackLabelsInside],
+                "want": [CardLayouts.packsFor("row").map(p => root.tileSignature(p.tiles)), CardLayouts.packsFor("row").length]
             },
             {
-                "name": "every pack thumbnail fills both of its rows",
-                "got": s.packThumbsFull,
-                "want": CardLayouts.names().map(() => true)
+                "name": "every row pack thumbnail shows all its tiles with no holes",
+                "got": s.rowPackThumbsWhole,
+                "want": CardLayouts.packsFor("row").map(() => true)
+            },
+            {
+                "name": "applying a pack on Row replaces Row and leaves Detail untouched",
+                "got": s.rowPackApplied,
+                "want": [true, true]
+            },
+            {
+                "name": "undo takes back a pack applied on Row",
+                "got": s.rowPackUndone,
+                "want": true
+            },
+            {
+                "name": "the Detail pack list shows only detail packs, each named inside the page",
+                "got": [s.detailPackThumbs, s.detailPackLabelsInside],
+                "want": [CardLayouts.packsFor("detail").map(p => root.tileSignature(p.tiles)), CardLayouts.packsFor("detail").length]
+            },
+            {
+                "name": "every detail pack thumbnail shows all its tiles with no holes",
+                "got": s.detailPackThumbsWhole,
+                "want": CardLayouts.packsFor("detail").map(() => true)
+            },
+            {
+                "name": "applying a pack on Detail replaces Detail and leaves Row untouched",
+                "got": s.detailPackApplied,
+                "want": [true, true]
+            },
+            {
+                "name": "undo takes back a pack applied on Detail",
+                "got": s.detailPackUndone,
+                "want": true
             },
             {
                 "name": "no tooltip shows without hover, on the Room tab, the gallery or a sheet",

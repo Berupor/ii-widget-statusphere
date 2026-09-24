@@ -249,8 +249,8 @@ Item {
                     "last_seen": root.now,
                     "_layout": {
                         "updated_at": root.now,
-                        "row": CardLayouts.presets.musicHead.row,
-                        "detail": CardLayouts.presets.musicHead.detail
+                        "row": CardLayouts.packs.row.musicHead,
+                        "detail": CardLayouts.packs.detail.musicHead
                     },
                     "spotify_status": "playing",
                     "spotify_track": "Preset Track",
@@ -275,8 +275,8 @@ Item {
                     "last_seen": root.now,
                     "_layout": {
                         "updated_at": root.now,
-                        "row": CardLayouts.presets.coder.row,
-                        "detail": CardLayouts.presets.coder.detail
+                        "row": CardLayouts.packs.row.coder,
+                        "detail": CardLayouts.packs.detail.coder
                     },
                     "active_window": "nvim - server.go",
                     "active_app": "tmux",
@@ -294,8 +294,8 @@ Item {
                     "last_seen": root.now,
                     "_layout": {
                         "updated_at": root.now,
-                        "row": CardLayouts.presets.nightOwl.row,
-                        "detail": CardLayouts.presets.nightOwl.detail
+                        "row": CardLayouts.packs.row.nightOwl,
+                        "detail": CardLayouts.packs.detail.nightOwl
                     },
                     "spotify_status": "playing",
                     "spotify_track": "Night Drive",

@@ -773,14 +773,14 @@ ColumnLayout {
         root.setLayout(state.row, state.detail);
     }
 
-    function applyPreset(name) {
-        const preset = CardLayouts.get(name);
-        if (!preset)
+    function applyPack(id) {
+        const pack = CardLayouts.packFor(root.editSurface, id);
+        if (!pack)
             return;
         root.rememberUndo();
         root.selectedIndex = -1;
         root.packsOpen = false;
-        root.setLayout(preset.row, preset.detail);
+        root.setSurfaceTiles(pack.tiles);
     }
 
     function addFromGallery(id) {
@@ -950,7 +950,7 @@ ColumnLayout {
                 margins: 8
             }
             account: root.previewAccount
-            maxRows: root.editSurface === "row" ? 2 : CardLayouts.detailRows
+            maxRows: CardLayouts.rowsFor(root.editSurface)
             tiles: root.previewTiles
             selectable: true
             reorderable: true
@@ -997,22 +997,28 @@ ColumnLayout {
     }
 
     Flow {
+        id: packList
         Layout.fillWidth: true
         visible: root.packsOpen
         spacing: 8
 
+        readonly property var packs: CardLayouts.packsFor(root.editSurface)
+        readonly property int maxRows: CardLayouts.rowsFor(root.editSurface)
+        readonly property int thumbRows: Math.max(1, ...packList.packs.map(p => CardLayouts.rowsUsed(CardLayouts.pack(p.tiles, packList.maxRows))))
+        readonly property real thumbWidth: 112
+        readonly property real thumbPadding: 4
+
         Repeater {
-            model: CardLayouts.names()
+            model: packList.packs
 
             delegate: ColumnLayout {
                 id: packDelegate
-                required property string modelData
-                readonly property var pack: CardLayouts.get(packDelegate.modelData)
+                required property var modelData
                 spacing: 4
 
                 Rectangle {
-                    implicitWidth: 112
-                    implicitHeight: 58
+                    implicitWidth: packList.thumbWidth
+                    implicitHeight: packThumb.cellSize * packList.thumbRows + packThumb.spacing * (packList.thumbRows - 1) + 2 * packList.thumbPadding
                     radius: Appearance.rounding.small
                     color: Appearance.colors.colLayer2
                     border.width: packArea.containsMouse ? 2 : 1
@@ -1020,12 +1026,17 @@ ColumnLayout {
                     clip: true
 
                     CardGrid {
-                        anchors.fill: parent
-                        anchors.margins: 4
+                        id: packThumb
+                        anchors {
+                            left: parent.left
+                            right: parent.right
+                            top: parent.top
+                            margins: packList.thumbPadding
+                        }
                         account: root.demoAccount
-                        maxRows: 2
+                        maxRows: packList.maxRows
                         thumbnail: true
-                        tiles: root.previewSafe(packDelegate.pack.row.concat(packDelegate.pack.detail))
+                        tiles: root.previewSafe(packDelegate.modelData.tiles)
                     }
 
                     MouseArea {
@@ -1033,13 +1044,13 @@ ColumnLayout {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: root.applyPreset(packDelegate.modelData)
+                        onClicked: root.applyPack(packDelegate.modelData.id)
                     }
                 }
 
                 StyledText {
                     Layout.alignment: Qt.AlignHCenter
-                    text: packDelegate.pack.name
+                    text: packDelegate.modelData.name
                     font.pixelSize: Appearance.font.pixelSize.smaller
                     color: Appearance.colors.colSubtext
                 }

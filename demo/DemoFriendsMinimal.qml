@@ -25,8 +25,8 @@ Item {
                     "last_seen": root.now,
                     "_layout": {
                         "updated_at": root.now,
-                        "row": CardLayouts.presets.minimal.row,
-                        "detail": CardLayouts.presets.minimal.detail
+                        "row": CardLayouts.packs.row.minimal,
+                        "detail": CardLayouts.packs.detail.minimal
                     },
                     "custom_fields": ["quote", "local_time", "since", "mood"],
                     "quote": "still here",

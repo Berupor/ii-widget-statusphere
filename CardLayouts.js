@@ -28,6 +28,7 @@ function tile(props) {
 }
 
 const columns = 4;
+const rowRows = 2;
 const detailRows = 4;
 const shortValueLength = 8;
 const wideTextFields = ["active_window"];
@@ -180,13 +181,20 @@ function standardDetailFor(fields) {
 // rolled local clock) reaches for whatever the friend shells out for - onMissing "hide"
 // or "dim" lets a pack name a field before it exists. System metrics (cpu/mem/disk/
 // load/uptime/workspace) stay a small accent, at most one or two a pack, some none at
-// all. Picked in the editor later - kept in one place so it lands there unchanged.
-const presets = {
-    // Late, not necessarily gaming: what's playing and what's open right now, plus how
-    // long the machine's been up as the one hint of the hour.
-    "nightOwl": {
-        "name": "Night Owl",
-        "row": [
+// all. A pack fills one surface: no field twice in it and no holes in its grid, while a
+// row pack and a detail pack may name the same field.
+const packNames = {
+    "nightOwl": "Night Owl",
+    "musicHead": "Music Head",
+    "traveler": "Traveler",
+    "coder": "Coder",
+    "minimal": "Minimal"
+};
+
+const packs = {
+    "row": {
+        // Late, not necessarily gaming: what's playing right now.
+        "nightOwl": [
             tile({
                 "type": "music",
                 "form": "wave",
@@ -195,37 +203,9 @@ const presets = {
                 "onMissing": "hide"
             })
         ],
-        "detail": [
-            tile({
-                "type": "scalar",
-                "field": "active_window",
-                "form": "text",
-                "size": "2x1",
-                "onMissing": "hide"
-            }),
-            tile({
-                "type": "scalar",
-                "field": "mood",
-                "form": "big",
-                "size": "1x1",
-                "color": "primaryContainer",
-                "onMissing": "dim"
-            }),
-            tile({
-                "type": "scalar",
-                "field": "uptime",
-                "form": "number",
-                "size": "1x1",
-                "color": "tertiaryContainer",
-                "onMissing": "hide"
-            })
-        ]
-    },
-    // Vinyl is the one place the track shows: the row's other tiles and the
-    // detail card stay off spotify_* so the same song doesn't repeat three times.
-    "musicHead": {
-        "name": "Music Head",
-        "row": [
+        // Vinyl is the one place the track shows: the other tiles and the Music Head
+        // detail stay off spotify_* so the same song doesn't repeat three times.
+        "musicHead": [
             tile({
                 "type": "music",
                 "form": "vinyl",
@@ -258,35 +238,7 @@ const presets = {
                 "onMissing": "hide"
             })
         ],
-        "detail": [
-            tile({
-                "type": "scalar",
-                "field": "listening",
-                "form": "number",
-                "size": "2x2",
-                "color": "tertiaryContainer",
-                "onMissing": "hide"
-            }),
-            tile({
-                "type": "scalar",
-                "field": "playlist",
-                "form": "big",
-                "size": "2x1",
-                "color": "secondaryContainer",
-                "onMissing": "hide"
-            }),
-            tile({
-                "type": "scalar",
-                "field": "genre",
-                "form": "text",
-                "size": "2x1",
-                "onMissing": "hide"
-            })
-        ]
-    },
-    "traveler": {
-        "name": "Traveler",
-        "row": [
+        "traveler": [
             tile({
                 "type": "photo",
                 "size": "2x2",
@@ -329,37 +281,9 @@ const presets = {
                 "onMissing": "hide"
             })
         ],
-        "detail": [
-            tile({
-                "type": "scalar",
-                "field": "region",
-                "form": "text",
-                "size": "2x1",
-                "onMissing": "hide"
-            }),
-            tile({
-                "type": "scalar",
-                "field": "distance",
-                "form": "number",
-                "size": "1x1",
-                "color": "secondaryContainer",
-                "onMissing": "hide"
-            }),
-            tile({
-                "type": "scalar",
-                "field": "caption",
-                "form": "big",
-                "size": "1x1",
-                "color": "tertiaryContainer",
-                "onMissing": "hide"
-            })
-        ]
-    },
-    // What the machine is for: what's open, where, how many packages it carries - cpu
-    // and mem stay a one-tile-each accent, not the point.
-    "coder": {
-        "name": "Coder",
-        "row": [
+        // What the machine is for: what's open, where, how many packages it carries - cpu
+        // and mem stay a one-tile-each accent, not the point.
+        "coder": [
             tile({
                 "type": "scalar",
                 "field": "active_window",
@@ -384,34 +308,7 @@ const presets = {
                 "onMissing": "hide"
             })
         ],
-        "detail": [
-            tile({
-                "type": "scalar",
-                "field": "active_app",
-                "form": "text",
-                "size": "2x1",
-                "onMissing": "hide"
-            }),
-            tile({
-                "type": "scalar",
-                "field": "package_count",
-                "form": "number",
-                "size": "1x1",
-                "onMissing": "hide"
-            }),
-            tile({
-                "type": "scalar",
-                "field": "mem",
-                "form": "ring",
-                "size": "1x1",
-                "color": "tertiaryContainer",
-                "onMissing": "hide"
-            })
-        ]
-    },
-    "minimal": {
-        "name": "Minimal",
-        "row": [
+        "minimal": [
             tile({
                 "type": "scalar",
                 "field": "quote",
@@ -437,8 +334,111 @@ const presets = {
                 "color": "primaryContainer",
                 "onMissing": "hide"
             })
+        ]
+    },
+    "detail": {
+        // What's open right now, and how long the machine's been up as the one hint
+        // of the hour.
+        "nightOwl": [
+            tile({
+                "type": "scalar",
+                "field": "active_window",
+                "form": "text",
+                "size": "2x1",
+                "onMissing": "hide"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "mood",
+                "form": "big",
+                "size": "1x1",
+                "color": "primaryContainer",
+                "onMissing": "dim"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "uptime",
+                "form": "number",
+                "size": "1x1",
+                "color": "tertiaryContainer",
+                "onMissing": "hide"
+            })
         ],
-        "detail": [
+        "musicHead": [
+            tile({
+                "type": "scalar",
+                "field": "listening",
+                "form": "number",
+                "size": "2x2",
+                "color": "tertiaryContainer",
+                "onMissing": "hide"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "playlist",
+                "form": "big",
+                "size": "2x1",
+                "color": "secondaryContainer",
+                "onMissing": "hide"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "genre",
+                "form": "text",
+                "size": "2x1",
+                "onMissing": "hide"
+            })
+        ],
+        "traveler": [
+            tile({
+                "type": "scalar",
+                "field": "region",
+                "form": "text",
+                "size": "2x1",
+                "onMissing": "hide"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "distance",
+                "form": "number",
+                "size": "1x1",
+                "color": "secondaryContainer",
+                "onMissing": "hide"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "caption",
+                "form": "big",
+                "size": "1x1",
+                "color": "tertiaryContainer",
+                "onMissing": "hide"
+            })
+        ],
+        "coder": [
+            tile({
+                "type": "scalar",
+                "field": "active_app",
+                "form": "text",
+                "size": "2x1",
+                "onMissing": "hide"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "package_count",
+                "form": "number",
+                "size": "1x1",
+                "onMissing": "hide"
+            }),
+            tile({
+                "type": "scalar",
+                "field": "mem",
+                "form": "ring",
+                "size": "1x1",
+                "color": "tertiaryContainer",
+                "onMissing": "hide"
+            })
+        ],
+        "minimal": [
             tile({
                 "type": "scalar",
                 "field": "mood",
@@ -450,10 +450,19 @@ const presets = {
     }
 };
 
-function get(name) {
-    return presets[name] ?? null;
+function rowsFor(surface) {
+    return surface === "detail" ? detailRows : rowRows;
 }
 
-function names() {
-    return Object.keys(presets);
+function packsFor(surface) {
+    const tilesById = packs[surface] ?? {};
+    return Object.keys(tilesById).map(id => ({
+                "id": id,
+                "name": packNames[id],
+                "tiles": tilesById[id]
+            }));
+}
+
+function packFor(surface, id) {
+    return packsFor(surface).find(p => p.id === id) ?? null;
 }

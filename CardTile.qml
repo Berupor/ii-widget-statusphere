@@ -13,7 +13,7 @@ Item {
     id: root
     required property var account
     required property var tile
-    // A preset preview packs a whole card into ~35px cells with no room for text -
+    // A pack preview squeezes a surface into ~20px cells with no room for text -
     // it shows only the tile's silhouette, colour and any cover/banner/photo art.
     property bool thumbnail: false
 
@@ -289,9 +289,9 @@ Item {
     Item {
         id: content
         anchors.fill: parent
-        // A fixed 12px eats most of a thumbnail-scale tile (a preset preview packs a
-        // whole card into ~40px cells) and leaves nothing for text to fit in - scale
-        // it with the tile instead.
+        // A fixed 12px eats most of a thumbnail-scale tile (a pack preview squeezes a
+        // surface into ~20px cells) and leaves nothing for text to fit in - scale it
+        // with the tile instead.
         anchors.margins: root.fullBleed ? 0 : Math.max(4, Math.round(Math.min(root.width, root.height) * 0.1))
         clip: true
 

@@ -31,8 +31,8 @@ Item {
                     "last_seen": root.now,
                     "_layout": {
                         "updated_at": root.now,
-                        "row": CardLayouts.presets.nightOwl.row,
-                        "detail": CardLayouts.presets.nightOwl.detail
+                        "row": CardLayouts.packs.row.nightOwl,
+                        "detail": CardLayouts.packs.detail.nightOwl
                     },
                     "spotify_status": "playing",
                     "spotify_track": "Turn Off the Lights",
@@ -53,8 +53,8 @@ Item {
                     "last_seen": root.now,
                     "_layout": {
                         "updated_at": root.now,
-                        "row": CardLayouts.presets.musicHead.row,
-                        "detail": CardLayouts.presets.musicHead.detail
+                        "row": CardLayouts.packs.row.musicHead,
+                        "detail": CardLayouts.packs.detail.minimal
                     },
                     "spotify_status": "playing",
                     "spotify_track": "Nightcall",
@@ -62,13 +62,11 @@ Item {
                     "spotify_position": 95,
                     "spotify_length": 240,
                     "spotify_art_url": root.cover("nightcall.jpg"),
-                    "custom_fields": ["top_artist", "streak", "quote", "listening", "playlist", "genre"],
+                    "custom_fields": ["top_artist", "streak", "quote", "mood"],
                     "top_artist": "Kavinsky",
                     "streak": "12",
                     "quote": "one more lap",
-                    "listening": "34",
-                    "playlist": "Drive Forever",
-                    "genre": "synthwave"
+                    "mood": "🎧 driving home the long way"
                 }
             ],
             "photos": []
@@ -110,7 +108,7 @@ Item {
                 "want": true
             },
             {
-                "name": "the music head pack counts as a custom layout",
+                "name": "a music head row with a minimal detail counts as a custom layout",
                 "got": Statusphere.hasCustomLayout(Statusphere.accountsById["acc-echo"]),
                 "want": true
             },
