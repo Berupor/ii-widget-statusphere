@@ -133,6 +133,33 @@ ColumnLayout {
         }
 
         ContentSubsection {
+            title: Translation.tr("GIFs")
+
+            ConfigSwitch {
+                buttonIcon: "gif_box"
+                text: Translation.tr("Pause GIFs after a few seconds")
+                checked: Statusphere.opt("pauseGifs")
+                onCheckedChanged: setOption("pauseGifs", checked)
+                StyledToolTip {
+                    text: Translation.tr("A GIF set by link, as a card's background or picture, plays for a few seconds, then stops on its first frame instead of looping forever")
+                }
+            }
+
+            ConfigSpinBox {
+                visible: Statusphere.opt("pauseGifs")
+                icon: "timer"
+                text: Translation.tr("Freeze after (seconds)")
+                value: Statusphere.opt("gifPauseSeconds")
+                from: 1
+                to: 30
+                stepSize: 1
+                onValueChanged: {
+                    setOption("gifPauseSeconds", value);
+                }
+            }
+        }
+
+        ContentSubsection {
             title: Translation.tr("Wallpaper card")
 
             ConfigSwitch {

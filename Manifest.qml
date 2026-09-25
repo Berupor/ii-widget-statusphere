@@ -19,6 +19,8 @@ WidgetManifest {
         { "key": "away", "default": true },
         { "key": "awayMinutes", "default": 5 },
         { "key": "photoShare", "default": true },
+        { "key": "pauseGifs", "default": true },
+        { "key": "gifPauseSeconds", "default": 4 },
         { "key": "wallpaperCard", "default": false },
         { "key": "wallpaperPlacement", "default": "free" },
         { "key": "wallpaperX", "default": 100 },

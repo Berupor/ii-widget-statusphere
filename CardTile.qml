@@ -182,6 +182,8 @@ Item {
                 source: root.backgroundSource
                 fallbackIcon: root.liveBackground === "music" ? "music_note" : root.liveBackground === "game" ? "sports_esports" : "image"
                 playing: root.animating
+                settleGif: Statusphere.opt("pauseGifs") && root.tile.background?.kind === "url"
+                settleSeconds: Statusphere.opt("gifPauseSeconds")
             }
         }
 
@@ -195,6 +197,8 @@ Item {
                 url: root.type?.art === "picture" ? CardLayouts.pictureUrlOf(root.tile) : ""
                 thumbnail: root.thumbnail
                 cropped: true
+                settleGif: Statusphere.opt("pauseGifs")
+                settleSeconds: Statusphere.opt("gifPauseSeconds")
             }
         }
 

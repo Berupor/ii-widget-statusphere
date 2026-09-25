@@ -21,6 +21,8 @@ Rectangle {
     color: Appearance.colors.colLayer1
 
     property bool playing: true
+    property bool settleGif: false
+    property int settleSeconds: 4
     readonly property int status: image.item?.status ?? Image.Null
     readonly property real heightPerWidth: (image.item?.implicitWidth ?? 0) > 0 ? image.item.implicitHeight / image.item.implicitWidth : 0
 
@@ -112,6 +114,7 @@ head -c4 "$target" 2>/dev/null
     Component {
         id: animatedArt
         AnimatedImage {
+            id: gif
             asynchronous: true
             opacity: status === Image.Ready ? 1 : 0
             Behavior on opacity {
@@ -125,6 +128,35 @@ head -c4 "$target" 2>/dev/null
             sourceSize.height: root.pixelHeight
             cache: true
             playing: root.playing
+
+            property bool stopAtFirstFrame: false
+
+            function restartSettle(): void {
+                gif.stopAtFirstFrame = false;
+                gif.paused = false;
+                settleTimer.restart();
+            }
+
+            Component.onCompleted: if (root.settleGif && gif.playing)
+                gif.restartSettle()
+
+            onPlayingChanged: {
+                if (!root.settleGif)
+                    return;
+                if (gif.playing)
+                    gif.restartSettle();
+                else
+                    settleTimer.stop();
+            }
+
+            onCurrentFrameChanged: if (gif.stopAtFirstFrame && gif.currentFrame === 0)
+                gif.paused = true
+
+            Timer {
+                id: settleTimer
+                interval: root.settleSeconds * 1000
+                onTriggered: gif.stopAtFirstFrame = gif.frameCount > 1
+            }
         }
     }
 

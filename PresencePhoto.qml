@@ -15,6 +15,8 @@ Rectangle {
     property bool thumbnail: false
     property bool cropped: false
     property string url: ""
+    property bool settleGif: false
+    property int settleSeconds: 4
 
     readonly property bool animating: root.visible && root.Window.visibility !== Window.Hidden
     readonly property bool showsUrl: root.url.length > 0
@@ -60,6 +62,8 @@ Rectangle {
                 source: root.url
                 playing: root.animating
                 fallbackIcon: "image"
+                settleGif: root.settleGif
+                settleSeconds: root.settleSeconds
             }
         }
 
