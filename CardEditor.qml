@@ -288,7 +288,8 @@ ColumnLayout {
     }
 
     function kindChoicesFor(key) {
-        const ids = [root.sourceOf(key)?.kind ?? root.kindFromForm(key), "text", "command"];
+        const own = root.sourceOf(key)?.kind ?? root.kindFromForm(key);
+        const ids = [own, Templates.kind(own)?.strictValue ? null : "text", "command"].filter(id => id !== null);
         return [...new Set(ids)].map(id => Templates.kind(id)).map(k => ({
                     "displayName": Translation.tr(k.label),
                     "icon": k.icon,

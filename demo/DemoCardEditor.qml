@@ -930,6 +930,11 @@ Item {
                 "name": "deselecting the tile drops the preview state and returns to the real value",
                 "got": s.weatherLiveValueAfterDeselect,
                 "want": null
+            },
+            {
+                "name": "a live weather tile offers its own kind and a command, not free text",
+                "got": root.editor.kindChoicesFor(root.weatherLiveField).map(c => c.value),
+                "want": ["weatherLive", "command"]
             }
         ];
     }

@@ -79,6 +79,7 @@ const kinds = [
         "id": "weatherLive",
         "label": "Live weather",
         "beta": true,
+        "strictValue": true,
         "icon": "partly_cloudy_day",
         "ask": "City",
         "hint": "City, blank for where you are",
