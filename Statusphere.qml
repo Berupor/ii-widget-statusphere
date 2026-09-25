@@ -977,7 +977,7 @@ Singleton {
     }
 
     readonly property int retryMin: 2000
-    readonly property int retryMax: 120000
+    readonly property int retryMax: 30000
     property int retryDelay: root.retryMin
     property bool wantRunning: false
 
