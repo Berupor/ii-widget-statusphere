@@ -214,7 +214,7 @@ Rectangle {
                     Layout.preferredWidth: 64
                     Layout.alignment: Qt.AlignVCenter
                     valueBarHeight: 3
-                    wavy: root.device?.spotify_status === "playing"
+                    wavy: root.animating && root.device?.spotify_status === "playing"
                     animateWave: root.animating && root.showingCompact
                     highlightColor: Appearance.colors.colPrimary
                     trackColor: Appearance.colors.colSecondaryContainer
@@ -261,7 +261,7 @@ Rectangle {
 
                 StyledProgressBar {
                     Layout.fillWidth: true
-                    wavy: root.device?.spotify_status === "playing"
+                    wavy: root.animating && root.device?.spotify_status === "playing"
                     animateWave: root.animating && !root.showingCompact
                     highlightColor: Appearance.colors.colPrimary
                     trackColor: Appearance.colors.colSecondaryContainer
