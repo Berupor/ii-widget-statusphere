@@ -39,10 +39,19 @@ const defaultCommandRepeat = 60;
 
 // weatherLive's cmdFor line out of wttr.in's ?format=j1: temp C, weatherCode, precipMM,
 // windspeedKmph, winddirDegree, is-day (local clock against the clock tile's own day
-// window), city - CardLayouts.weatherFieldsOf/weatherConditionOf are the other end.
-const weatherJqFilter = '.current_condition[0] as $c | (.nearest_area[0].areaName[0].value // "") as $city | [$c.temp_C, $c.weatherCode, $c.precipMM, $c.windspeedKmph, $c.winddirDegree, (if (now|localtime|strftime("%H")|tonumber) >= 6 and (now|localtime|strftime("%H")|tonumber) < 19 then "1" else "0" end), $city] | join(";")';
+// window), moon illumination 0-100, moon phase name, city - CardLayouts.weatherFieldsOf/
+// weatherConditionOf are the other end.
+const weatherJqFilter = '.current_condition[0] as $c | .weather[0].astronomy[0] as $a | (.nearest_area[0].areaName[0].value // "") as $city | [$c.temp_C, $c.weatherCode, $c.precipMM, $c.windspeedKmph, $c.winddirDegree, (if (now|localtime|strftime("%H")|tonumber) >= 6 and (now|localtime|strftime("%H")|tonumber) < 19 then "1" else "0" end), $a.moon_illumination, $a.moon_phase, $city] | join(";")';
 
-const weatherLiveSamples = ["22;113;0;6;180;1;Munich", "15;119;0;10;200;1;Munich", "13;302;3;15;220;1;Munich", "24;389;5;20;90;1;Munich", "-2;332;2;12;320;1;Munich", "7;248;0;3;0;1;Munich", "9;113;0;5;180;0;Munich"];
+const weatherLiveSamples = [
+    { "label": "Clear", "value": "22;113;0;6;180;1;62;Waxing Gibbous;Munich" },
+    { "label": "Clouds", "value": "15;119;0;10;200;1;62;Waxing Gibbous;Munich" },
+    { "label": "Rain", "value": "13;302;3;15;220;1;62;Waxing Gibbous;Munich" },
+    { "label": "Thunder", "value": "24;389;5;20;90;1;62;Waxing Gibbous;Munich" },
+    { "label": "Snow", "value": "-2;332;2;12;320;1;62;Waxing Gibbous;Munich" },
+    { "label": "Fog", "value": "7;248;0;3;0;1;62;Waxing Gibbous;Munich" },
+    { "label": "Night", "value": "9;113;0;5;180;0;28;Waxing Crescent;Munich" }
+];
 
 const kinds = [
     {
@@ -68,7 +77,7 @@ const kinds = [
         "icon": "partly_cloudy_day",
         "ask": "City",
         "hint": "City, blank for where you are",
-        "sample": weatherLiveSamples[0],
+        "sample": weatherLiveSamples[0].value,
         "samples": weatherLiveSamples,
         "repeat": 900,
         "tile": {

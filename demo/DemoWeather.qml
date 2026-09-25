@@ -2,8 +2,9 @@
 /**
  * The animated live weather tile (TileWeatherLive + WeatherSky) at every condition, day
  * and night, both sizes - plus a few tiles that isolate one axis each: light vs heavy
- * rain, windy vs calm, and a cold vs a hot reading. One tile on the old "weather" kind
- * with a legacy-format value closes it out, to keep the untouched path exercised too.
+ * rain, windy vs calm, a cold vs a hot reading, and a waxing crescent vs a waxing
+ * gibbous moon. One tile on the old "weather" kind with a legacy-format value closes
+ * it out, to keep the untouched path exercised too.
  */
 import ".."
 import "../CardLayouts.js" as CardLayouts
@@ -17,8 +18,8 @@ Item {
     readonly property int tileUnit: 96
     readonly property int gap: 8
 
-    function weatherValue(temp, code, precip, wind, windDir, isDay, city) {
-        return `${temp};${code};${precip};${wind};${windDir};${isDay ? 1 : 0};${city}`;
+    function weatherValue(temp, code, precip, wind, windDir, isDay, moonIllum, moonPhase, city) {
+        return `${temp};${code};${precip};${wind};${windDir};${isDay ? 1 : 0};${moonIllum};${moonPhase};${city}`;
     }
 
     readonly property var conditions: [
@@ -30,7 +31,9 @@ Item {
             "precip": 0,
             "wind": 8,
             "windDir": 200,
-            "city": "Barcelona"
+            "city": "Barcelona",
+            "moonIllum": 28,
+            "moonPhase": "Waxing Crescent"
         },
         {
             "key": "clouds",
@@ -40,7 +43,9 @@ Item {
             "precip": 0,
             "wind": 14,
             "windDir": 250,
-            "city": "Amsterdam"
+            "city": "Amsterdam",
+            "moonIllum": 50,
+            "moonPhase": "First Quarter"
         },
         {
             "key": "rain",
@@ -50,7 +55,9 @@ Item {
             "precip": 3.5,
             "wind": 18,
             "windDir": 230,
-            "city": "Seattle"
+            "city": "Seattle",
+            "moonIllum": 50,
+            "moonPhase": "First Quarter"
         },
         {
             "key": "thunder",
@@ -60,7 +67,9 @@ Item {
             "precip": 6,
             "wind": 22,
             "windDir": 90,
-            "city": "Miami"
+            "city": "Miami",
+            "moonIllum": 50,
+            "moonPhase": "First Quarter"
         },
         {
             "key": "snow",
@@ -70,7 +79,9 @@ Item {
             "precip": 2,
             "wind": 12,
             "windDir": 320,
-            "city": "Oslo"
+            "city": "Oslo",
+            "moonIllum": 50,
+            "moonPhase": "First Quarter"
         },
         {
             "key": "fog",
@@ -80,7 +91,9 @@ Item {
             "precip": 0,
             "wind": 3,
             "windDir": 0,
-            "city": "London"
+            "city": "London",
+            "moonIllum": 50,
+            "moonPhase": "First Quarter"
         }
     ]
 
@@ -92,7 +105,9 @@ Item {
             "precip": 0.5,
             "wind": 5,
             "windDir": 180,
-            "city": "Dublin"
+            "city": "Dublin",
+            "moonIllum": 50,
+            "moonPhase": "First Quarter"
         },
         {
             "key": "rain_heavy",
@@ -101,7 +116,9 @@ Item {
             "precip": 8,
             "wind": 10,
             "windDir": 180,
-            "city": "Mumbai"
+            "city": "Mumbai",
+            "moonIllum": 50,
+            "moonPhase": "First Quarter"
         },
         {
             "key": "rain_windy",
@@ -110,7 +127,9 @@ Item {
             "precip": 3,
             "wind": 45,
             "windDir": 90,
-            "city": "Wellington"
+            "city": "Wellington",
+            "moonIllum": 50,
+            "moonPhase": "First Quarter"
         },
         {
             "key": "rain_calm",
@@ -119,7 +138,9 @@ Item {
             "precip": 3,
             "wind": 1,
             "windDir": 0,
-            "city": "Kyoto"
+            "city": "Kyoto",
+            "moonIllum": 50,
+            "moonPhase": "First Quarter"
         },
         {
             "key": "clear_cold",
@@ -128,7 +149,9 @@ Item {
             "precip": 0,
             "wind": 6,
             "windDir": 200,
-            "city": "Yakutsk"
+            "city": "Yakutsk",
+            "moonIllum": 50,
+            "moonPhase": "First Quarter"
         },
         {
             "key": "clear_hot",
@@ -137,7 +160,21 @@ Item {
             "precip": 0,
             "wind": 6,
             "windDir": 200,
-            "city": "Phoenix"
+            "city": "Phoenix",
+            "moonIllum": 50,
+            "moonPhase": "First Quarter"
+        },
+        {
+            "key": "clear_full_moon",
+            "code": 113,
+            "temp": 8,
+            "precip": 0,
+            "wind": 5,
+            "windDir": 180,
+            "city": "Reykjavik",
+            "isDay": false,
+            "moonIllum": 96,
+            "moonPhase": "Waxing Gibbous"
         }
     ]
 
@@ -147,11 +184,11 @@ Item {
     function fieldEntries() {
         const entries = {};
         for (const c of root.conditions) {
-            entries[`${c.key}_day`] = root.weatherValue(c.temp, c.code, c.precip, c.wind, c.windDir, true, c.city);
-            entries[`${c.key}_night`] = root.weatherValue(c.nightTemp, c.code, c.precip, c.wind, c.windDir, false, c.city);
+            entries[`${c.key}_day`] = root.weatherValue(c.temp, c.code, c.precip, c.wind, c.windDir, true, c.moonIllum, c.moonPhase, c.city);
+            entries[`${c.key}_night`] = root.weatherValue(c.nightTemp, c.code, c.precip, c.wind, c.windDir, false, c.moonIllum, c.moonPhase, c.city);
         }
         for (const v of root.variants)
-            entries[v.key] = root.weatherValue(v.temp, v.code, v.precip, v.wind, v.windDir, true, v.city);
+            entries[v.key] = root.weatherValue(v.temp, v.code, v.precip, v.wind, v.windDir, v.isDay ?? true, v.moonIllum, v.moonPhase, v.city);
         entries[root.legacyKey] = root.legacyValue;
         return entries;
     }
@@ -283,8 +320,13 @@ Item {
             },
             {
                 "name": "cycling weatherLive's gallery samples changes its silhouette the way a real tile would, clear day through to clear night",
-                "got": Templates.kind("weatherLive").samples.map(CardLayouts.weatherLiveShape),
+                "got": Templates.kind("weatherLive").samples.map(s => CardLayouts.weatherLiveShape(s.value)),
                 "want": ["Sunny", "Cookie6Sided", "Cookie6Sided", "SoftBurst", "Cookie9Sided", "Pill", "Circle"]
+            },
+            {
+                "name": "the compact value carries moon illumination and phase, a crescent waxing and a gibbous also waxing",
+                "got": [CardLayouts.weatherFieldsOf(root.fields.clear_night).moonIllum, CardLayouts.weatherFieldsOf(root.fields.clear_night).moonPhase, CardLayouts.weatherFieldsOf(root.fields.clear_full_moon).moonIllum, CardLayouts.weatherFieldsOf(root.fields.clear_full_moon).moonPhase],
+                "want": [28, "Waxing Crescent", 96, "Waxing Gibbous"]
             }
         ];
     }
