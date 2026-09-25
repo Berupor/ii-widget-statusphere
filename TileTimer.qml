@@ -29,6 +29,7 @@ Item {
             StyledText {
                 Layout.fillWidth: true
                 elide: Text.ElideRight
+                textFormat: Text.PlainText
                 text: form.device?.game_source ? Statusphere.labelForKey(form.device.game_source) : (Statusphere.gameFor(form.device) || "-")
                 color: form.card.mutedContentColor
                 font.pixelSize: form.labelSize

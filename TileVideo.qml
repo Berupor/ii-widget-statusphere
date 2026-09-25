@@ -29,6 +29,7 @@ Item {
             StyledText {
                 Layout.fillWidth: true
                 elide: Text.ElideRight
+                textFormat: Text.PlainText
                 text: form.device?.video_title ?? "-"
                 color: form.card.contentColor
                 font.pixelSize: Appearance.font.pixelSize.normal
@@ -37,6 +38,7 @@ Item {
                 Layout.fillWidth: true
                 visible: text !== ""
                 elide: Text.ElideRight
+                textFormat: Text.PlainText
                 text: form.device?.video_channel ?? ""
                 color: form.card.mutedContentColor
                 font.pixelSize: Appearance.font.pixelSize.smaller

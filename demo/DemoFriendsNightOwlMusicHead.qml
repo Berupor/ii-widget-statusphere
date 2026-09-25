@@ -8,16 +8,14 @@
  */
 import ".."
 import "../CardLayouts.js" as CardLayouts
+import "lib"
+import "lib/DemoCovers.js" as DemoCovers
 import qs.modules.common
 import QtQuick
 import QtQuick.Layouts
 
 Item {
     id: root
-
-    function cover(file) {
-        return String(Qt.resolvedUrl(`covers/${file}`));
-    }
 
     readonly property int now: 1780000000
 
@@ -39,11 +37,11 @@ Item {
                     "spotify_artist": "Nite Jewel",
                     "spotify_position": 40,
                     "spotify_length": 210,
-                    "spotify_art_url": root.cover("nightcall.jpg"),
+                    "spotify_art_url": DemoCovers.url("nightcall.jpg"),
                     "game_status": "playing",
                     "game_name": "Cyberpunk 2077",
                     "game_display": "Cyberpunk 2077",
-                    "game_header_url": root.cover("cp2077-header.jpg"),
+                    "game_header_url": DemoCovers.url("cp2077-header.jpg"),
                     "game_session_seconds": 7200,
                     "uptime_hours": 27,
                     "active_app": "mpv",
@@ -71,7 +69,7 @@ Item {
                     "spotify_artist": "Kavinsky",
                     "spotify_position": 95,
                     "spotify_length": 240,
-                    "spotify_art_url": root.cover("nightcall.jpg"),
+                    "spotify_art_url": DemoCovers.url("nightcall.jpg"),
                     "custom_fields": ["into_lately", "mood", "local_time", "weather"],
                     "into_lately": "Nightcall on loop",
                     "mood": "🎧 driving home the long way",
@@ -181,7 +179,9 @@ Item {
         ];
     }
 
-    Component.onCompleted: Statusphere.ingest(JSON.stringify(root.room))
+    DemoCoverSeed {
+        onSeeded: Statusphere.ingest(JSON.stringify(root.room))
+    }
 
     ColumnLayout {
         anchors.fill: parent

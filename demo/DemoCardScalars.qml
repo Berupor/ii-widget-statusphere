@@ -7,6 +7,8 @@
  */
 import ".."
 import "../CardLayouts.js" as CardLayouts
+import "lib"
+import "lib/DemoCovers.js" as DemoCovers
 import qs.modules.common
 import QtQuick
 import QtQuick.Layouts
@@ -155,7 +157,7 @@ Item {
                     "spotify_artist": "Kavinsky",
                     "spotify_position": 40,
                     "spotify_length": 200,
-                    "spotify_art_url": String(Qt.resolvedUrl("covers/nightcall.jpg")),
+                    "spotify_art_url": DemoCovers.url("nightcall.jpg"),
                     "custom_fields": ["word", "battery"],
                     "word": "Donaudampfschifffahrtsgesellschaft",
                     "battery": "82%"
@@ -286,7 +288,9 @@ Item {
         ];
     }
 
-    Component.onCompleted: Statusphere.ingest(JSON.stringify(root.room))
+    DemoCoverSeed {
+        onSeeded: Statusphere.ingest(JSON.stringify(root.room))
+    }
 
     Rectangle {
         anchors.fill: parent

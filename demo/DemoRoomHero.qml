@@ -9,6 +9,8 @@
  */
 import ".."
 import "../CardLayouts.js" as CardLayouts
+import "lib"
+import "lib/DemoCovers.js" as DemoCovers
 import qs.modules.common
 import QtQuick
 import QtQuick.Layouts
@@ -38,7 +40,7 @@ Item {
                                 "shape": "default",
                                 "background": {
                                     "kind": "url",
-                                    "value": root.cover("death-note-l.gif")
+                                    "value": DemoCovers.url("death-note-l.gif")
                                 }
                             }),
                             CardLayouts.packs.row.nightOwl[1],
@@ -65,7 +67,7 @@ Item {
                     "spotify_artist": "Kavinsky",
                     "spotify_position": 95,
                     "spotify_length": 240,
-                    "spotify_art_url": root.cover("nightcall.jpg"),
+                    "spotify_art_url": DemoCovers.url("nightcall.jpg"),
                     "custom_fields": ["into_lately", "local_time"],
                     "into_lately": "Nightcall on loop",
                     "local_time": "21:40"
@@ -122,7 +124,7 @@ Item {
                     "game_status": "playing",
                     "game_name": "Warhammer 40,000: Space Marine 2",
                     "game_display": "Warhammer 40,000: Space Marine 2",
-                    "game_hero_url": root.cover("sm2-hero.jpg"),
+                    "game_hero_url": DemoCovers.url("sm2-hero.jpg"),
                     "game_session_seconds": 3600
                 }
             ],
@@ -156,7 +158,9 @@ Item {
         ];
     }
 
-    Component.onCompleted: Statusphere.ingest(JSON.stringify(root.room))
+    DemoCoverSeed {
+        onSeeded: Statusphere.ingest(JSON.stringify(root.room))
+    }
 
     readonly property int columnWidth: 300
 

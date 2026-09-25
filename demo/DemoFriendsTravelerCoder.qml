@@ -11,6 +11,8 @@
 import ".."
 import "../CardLayouts.js" as CardLayouts
 import "../Templates.js" as Templates
+import "lib"
+import "lib/DemoCovers.js" as DemoCovers
 import qs.modules.common
 import QtQuick
 import QtQuick.Layouts
@@ -70,7 +72,7 @@ Item {
                     "spotify_artist": "M83",
                     "spotify_position": 120,
                     "spotify_length": 244,
-                    "spotify_art_url": root.cover("nightcall.jpg")
+                    "spotify_art_url": DemoCovers.url("nightcall.jpg")
                 }
             ],
             "photos": [
@@ -243,7 +245,9 @@ Item {
         ];
     }
 
-    Component.onCompleted: Statusphere.ingest(JSON.stringify(root.room))
+    DemoCoverSeed {
+        onSeeded: Statusphere.ingest(JSON.stringify(root.room))
+    }
 
     ColumnLayout {
         anchors.fill: parent

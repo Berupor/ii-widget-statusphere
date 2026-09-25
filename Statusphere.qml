@@ -613,7 +613,7 @@ Singleton {
     // Same mechanism as the TUI's sync action (client/internal/media/media.go): MPRIS OpenUri.
     function syncSpotify(device): void {
         const uri = device?.spotify_uri;
-        if (!uri)
+        if (!/^spotify:(track|episode|album|playlist):[A-Za-z0-9]+$/.test(uri ?? ""))
             return;
         Quickshell.execDetached(["dbus-send", "--session", "--type=method_call", "--dest=org.mpris.MediaPlayer2.spotify", "/org/mpris/MediaPlayer2", "org.mpris.MediaPlayer2.Player.OpenUri", `string:${uri}`]);
     }

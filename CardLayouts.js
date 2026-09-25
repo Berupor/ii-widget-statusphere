@@ -175,9 +175,12 @@ function formNamesOf(typeName) {
     return Object.keys(tileTypes[typeName]?.forms ?? {});
 }
 
+function isHttpsUrl(url) {
+    return typeof url === "string" && /^https:\/\/\S+$/.test(url);
+}
+
 function pictureUrlOf(t) {
-    const url = t?.url;
-    return typeof url === "string" && /^https:\/\/\S+$/.test(url) ? url : "";
+    return isHttpsUrl(t?.url) ? t.url : "";
 }
 
 function clockShape(value) {
@@ -357,7 +360,10 @@ function tile(props) {
 const backgroundKinds = ["live", "url"];
 
 function withKnownBackground(t) {
-    if (t.background === undefined || backgroundKinds.includes(t.background?.kind))
+    const bg = t.background;
+    if (bg === undefined)
+        return t;
+    if (backgroundKinds.includes(bg?.kind) && (bg.kind !== "url" || isHttpsUrl(bg.value)))
         return t;
     const out = Object.assign({}, t);
     delete out.background;

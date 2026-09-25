@@ -18,6 +18,7 @@ StyledText {
     fontSizeMode: Text.Fit
     minimumPixelSize: Appearance.font.pixelSize.smallest
     elide: Text.ElideRight
+    textFormat: Text.PlainText
 
     TextMetrics {
         id: oneLineMetrics

@@ -6,6 +6,7 @@ import QtQuick
 import QtQuick.Window
 import Qt5Compat.GraphicalEffects
 import Quickshell.Io
+import "CardLayouts.js" as CardLayouts
 
 /** Rounded album art with a music note fallback; an animated cover plays as a GIF. */
 Rectangle {
@@ -41,7 +42,7 @@ Rectangle {
         if (artDownloader.running || root.cacheFilePath.length === 0)
             return;
         artDownloader.filePath = root.cacheFilePath;
-        artDownloader.urls = [root.source, ...root.fallbacks];
+        artDownloader.urls = [root.source, ...root.fallbacks].filter(CardLayouts.isHttpsUrl);
         artDownloader.running = true;
     }
 
@@ -62,7 +63,7 @@ target="$1"; shift
 if [ ! -f "$target" ]; then
     for url in "$@"; do
         tmp="$target.$$"
-        if curl -4 -fsSL "$url" -o "$tmp"; then
+        if curl -4 -fsSL --proto =https --proto-redir =https -m 15 --max-filesize 20M -o "$tmp" -- "$url"; then
             mv "$tmp" "$target"
             break
         fi

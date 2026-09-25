@@ -34,6 +34,7 @@ Item {
             StyledText {
                 Layout.fillWidth: true
                 elide: Text.ElideRight
+                textFormat: Text.PlainText
                 text: form.titleText
                 color: form.card.contentColor
                 font.pixelSize: Appearance.font.pixelSize.normal
@@ -42,6 +43,7 @@ Item {
                 Layout.fillWidth: true
                 visible: form.artistText !== ""
                 elide: Text.ElideRight
+                textFormat: Text.PlainText
                 text: form.artistText
                 color: form.card.mutedContentColor
                 font.pixelSize: Appearance.font.pixelSize.smaller

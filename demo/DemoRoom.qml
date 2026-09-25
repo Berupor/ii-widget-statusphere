@@ -9,13 +9,15 @@
 import ".." // The widget's own types and its Statusphere singleton, via its qmldir
 import qs.modules.common
 import QtQuick
+import "lib"
+import "lib/DemoCovers.js" as DemoCovers
 
 Item {
     id: root
 
     property string scenario: "plain"
 
-    // Art out of demo/covers/, so a shot needs no network and stays the same
+    // Photos play straight off demo/covers/, art urls get their cache from DemoCoverSeed: a shot needs no network
     function cover(file) {
         return String(Qt.resolvedUrl(`covers/${file}`));
     }
@@ -44,15 +46,15 @@ Item {
                     "spotify_artist": "Kavinsky",
                     "spotify_position": 78,
                     "spotify_length": 258,
-                    "spotify_art_url": root.cover("nightcall.jpg"),
+                    "spotify_art_url": DemoCovers.url("nightcall.jpg"),
                     "game_status": "playing",
                     "game_source": "steam",
                     "game_appid": "1174180",
                     "game_name": "Red Dead Redemption 2",
                     "game_display": "Red Dead Redemption 2",
-                    "game_hero_url": root.cover("rdr2-hero.jpg"),
-                    "game_header_url": root.cover("rdr2-header.jpg"),
-                    "game_logo_url": root.cover("rdr2-logo.png"),
+                    "game_hero_url": DemoCovers.url("rdr2-hero.jpg"),
+                    "game_header_url": DemoCovers.url("rdr2-header.jpg"),
+                    "game_logo_url": DemoCovers.url("rdr2-logo.png"),
                     "game_session_seconds": 5040
                 },
                 {
@@ -73,7 +75,7 @@ Item {
                     "spotify_artist": "Massive Attack",
                     "spotify_position": 12,
                     "spotify_length": 330,
-                    "spotify_art_url": root.cover("teardrop.jpg")
+                    "spotify_art_url": DemoCovers.url("teardrop.jpg")
                 },
                 {
                     "account_id": "acc-lena",
@@ -100,9 +102,9 @@ Item {
                     "game_source": "steam",
                     "game_appid": "2183900",
                     "game_name": "Warhammer 40,000: Space Marine 2",
-                    "game_hero_url": root.cover("sm2-hero.jpg"),
-                    "game_header_url": root.cover("sm2-header.jpg"),
-                    "game_logo_url": root.cover("sm2-logo.png"),
+                    "game_hero_url": DemoCovers.url("sm2-hero.jpg"),
+                    "game_header_url": DemoCovers.url("sm2-header.jpg"),
+                    "game_logo_url": DemoCovers.url("sm2-logo.png"),
                     "game_session_seconds": 359999 // The widest the clock ever gets
                 },
                 {
@@ -114,8 +116,8 @@ Item {
                     "game_appid": "1091500",
                     "game_name": "Cyberpunk 2077",
                     // No hero for this one: the card has to walk down to the header
-                    "game_hero_url": root.cover("no-such-hero.jpg"),
-                    "game_header_url": root.cover("cp2077-header.jpg"),
+                    "game_hero_url": DemoCovers.url("no-such-hero.jpg"),
+                    "game_header_url": DemoCovers.url("cp2077-header.jpg"),
                     "game_session_seconds": 47
                 },
                 {
@@ -266,7 +268,10 @@ Item {
         ];
     }
 
-    Component.onCompleted: Statusphere.ingest(JSON.stringify(root.room))
+    DemoCoverSeed {
+        extraSeeds: ({ "no-such-hero.jpg": "cp2077-header.jpg" })
+        onSeeded: Statusphere.ingest(JSON.stringify(root.room))
+    }
 
     PresenceTab {
         id: tab

@@ -9,6 +9,8 @@
  */
 import ".."
 import "../CardLayouts.js" as CardLayouts
+import "lib"
+import "lib/DemoCovers.js" as DemoCovers
 import qs.modules.common
 import qs.modules.common.widgets
 import QtQuick
@@ -168,7 +170,7 @@ Item {
             "color": "primary",
             "background": {
                 "kind": "url",
-                "value": root.cover("teardrop.jpg")
+                "value": DemoCovers.url("teardrop.jpg")
             },
             "onMissing": "hide"
         },
@@ -276,7 +278,7 @@ Item {
                     "spotify_artist": "Standard Artist",
                     "spotify_position": 40,
                     "spotify_length": 200,
-                    "spotify_art_url": root.cover("nightcall.jpg")
+                    "spotify_art_url": DemoCovers.url("nightcall.jpg")
                 },
                 {
                     "account_id": "acc-thinkpad",
@@ -368,7 +370,7 @@ Item {
                     "spotify_artist": "Preset Artist",
                     "spotify_position": 90,
                     "spotify_length": 240,
-                    "spotify_art_url": root.cover("teardrop.jpg"),
+                    "spotify_art_url": DemoCovers.url("teardrop.jpg"),
                     "uptime_hours": 6,
                     "custom_fields": ["into_lately", "local_time", "weather"],
                     "into_lately": "Preset Track on repeat",
@@ -411,7 +413,7 @@ Item {
                     "spotify_artist": "The Midnight",
                     "spotify_position": 60,
                     "spotify_length": 220,
-                    "spotify_art_url": root.cover("nightcall.jpg"),
+                    "spotify_art_url": DemoCovers.url("nightcall.jpg"),
                     "uptime_hours": 31,
                     "custom_fields": ["active_window", "local_time", "weather", "moon", "sun"],
                     "active_window": "Discord",
@@ -477,7 +479,7 @@ Item {
                     "weather_test": "9° Rain · Lisbon, PT",
                     "spotify_status": "playing",
                     "spotify_track": "Test Loop",
-                    "spotify_art_url": root.cover("test-anim.gif")
+                    "spotify_art_url": DemoCovers.url("test-anim.gif")
                 },
                 {
                     "account_id": "acc-empty-layout",
@@ -1071,7 +1073,9 @@ Item {
         ];
     }
 
-    Component.onCompleted: Statusphere.ingest(JSON.stringify(root.room))
+    DemoCoverSeed {
+        onSeeded: Statusphere.ingest(JSON.stringify(root.room))
+    }
 
     // Which part the shot frames, the other one sits just outside it.
     // `-p framed=thinkpad` shoots the standard card with its details open.

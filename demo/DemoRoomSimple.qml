@@ -10,14 +10,12 @@ import ".."
 import qs.modules.common
 import QtQuick
 import QtQuick.Layouts
+import "lib"
+import "lib/DemoCovers.js" as DemoCovers
 
 Item {
     id: root
     readonly property int now: 1780000000
-
-    function cover(file) {
-        return String(Qt.resolvedUrl(`covers/${file}`));
-    }
 
     readonly property var room: ({
             "members": [
@@ -33,7 +31,7 @@ Item {
                     "spotify_artist": "Kavinsky",
                     "spotify_position": 78,
                     "spotify_length": 258,
-                    "spotify_art_url": root.cover("nightcall.jpg")
+                    "spotify_art_url": DemoCovers.url("nightcall.jpg")
                 },
                 {
                     "account_id": "acc-dan",
@@ -44,7 +42,7 @@ Item {
                     "game_status": "playing",
                     "game_name": "Red Dead Redemption 2",
                     "game_display": "Red Dead Redemption 2",
-                    "game_header_url": root.cover("rdr2-header.jpg"),
+                    "game_header_url": DemoCovers.url("rdr2-header.jpg"),
                     "game_session_seconds": 5040
                 },
                 {
@@ -98,7 +96,9 @@ Item {
         ];
     }
 
-    Component.onCompleted: Statusphere.ingest(JSON.stringify(root.room))
+    DemoCoverSeed {
+        onSeeded: Statusphere.ingest(JSON.stringify(root.room))
+    }
 
     PresenceTab {
         anchors.fill: parent
