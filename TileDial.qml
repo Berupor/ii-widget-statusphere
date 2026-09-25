@@ -10,29 +10,32 @@ Item {
     readonly property real smallestAnimatedStep: 0.05
 
     function showProgress(): void {
-        ring.enableAnimation = Math.abs(form.progress - ring.value) >= form.smallestAnimatedStep;
-        ring.value = form.progress;
+        dial.enableAnimation = Math.abs(form.progress - dial.value) >= form.smallestAnimatedStep;
+        dial.value = form.progress;
     }
     onProgressChanged: form.showProgress()
     Component.onCompleted: {
-        ring.enableAnimation = false;
-        ring.value = form.progress;
+        dial.enableAnimation = false;
+        dial.value = form.progress;
     }
 
-    CircularProgress {
-        id: ring
+    WavyRing {
+        id: dial
         anchors.centerIn: parent
         implicitSize: Math.round(Math.min(form.width, form.height))
-        lineWidth: Math.max(3, implicitSize * 0.08)
+        lineWidth: Math.max(2, implicitSize * 0.05)
+        waveAmplitude: Math.max(1.5, implicitSize * 0.012)
+        waveLength: Math.max(12, implicitSize * 0.12)
         colPrimary: form.card.contentColor
         colSecondary: ColorUtils.transparentize(form.card.contentColor, 0.75)
+        animateWave: form.card.animating
 
-        readonly property real innerBox: (ring.implicitSize - 2 * ring.lineWidth) * Math.SQRT1_2
+        readonly property real innerBox: 2 * dial.arcRadius * Math.SQRT1_2
 
         RingCenterText {
             anchors.centerIn: parent
             card: form.card
-            innerBox: ring.innerBox
+            innerBox: dial.innerBox
         }
     }
 }

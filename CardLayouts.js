@@ -14,6 +14,10 @@ const tileTypes = {
                 "label": "Ring",
                 "file": "TileRing.qml"
             },
+            "dial": {
+                "label": "Dial",
+                "file": "TileDial.qml"
+            },
             "bar": {
                 "label": "Bar",
                 "file": "TileBar.qml"

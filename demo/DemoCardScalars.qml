@@ -1,4 +1,4 @@
-//@ probe statusphere -g 620x620 -s 1500
+//@ probe statusphere -g 620x930 -s 1500
 /**
  * A close-up of the scalar forms at a size where the bar fill, the ring gap
  * and the headline value are actually legible - the friend packs only ever
@@ -108,6 +108,22 @@ Item {
             "size": "1x1",
             "color": "primaryContainer",
             "onMissing": "hide"
+        }),
+        CardLayouts.tile({
+            "type": "scalar",
+            "field": "cpu",
+            "form": "dial",
+            "size": "1x1",
+            "color": "secondaryContainer",
+            "onMissing": "hide"
+        }),
+        CardLayouts.tile({
+            "type": "scalar",
+            "field": "disk",
+            "form": "dial",
+            "size": "2x2",
+            "color": "tertiaryContainer",
+            "onMissing": "hide"
         })
     ]
 
@@ -176,6 +192,10 @@ Item {
         return caption.visible && !caption.truncated && !value.truncated && valueBottom <= captionTop;
     }
 
+    function dialSpinning(tile) {
+        return root.findAll(tile, it => it.animateWave !== undefined && it.waveAmplitude !== undefined, [])[0]?.animateWave ?? null;
+    }
+
     function waveBandInside(index) {
         const line = root.findAll(root.tileAt(index), it => it.valueBarHeight !== undefined && it.visible, [])[0] ?? null;
         if (!line)
@@ -239,6 +259,21 @@ Item {
                 "want": 1
             },
             {
+                "name": "a dial tile draws a wavy ring, at a 1x1 and a 2x2 size",
+                "got": [12, 13].map(index => root.findAll(root.tileAt(index), it => it.waveAmplitude !== undefined && it.value !== undefined && it.visible, []).length),
+                "want": [1, 1]
+            },
+            {
+                "name": "a dial caption sits below the value, whole",
+                "got": root.ringCaptionClear(13),
+                "want": true
+            },
+            {
+                "name": "a dial's wave animates while its tile is on screen, stops once hidden",
+                "got": [root.dialSpinning(root.tileAt(12)), root.dialSpinning(dialHiddenProbe)],
+                "want": [true, false]
+            },
+            {
                 "name": "the bar tile's fill percent comes from cpu_percent",
                 "got": Statusphere.fieldFor(Statusphere.deviceForTile(Statusphere.accountsById["acc-scalars"], root.scalarTiles[0]), "cpu")?.percent,
                 "want": 63
@@ -264,6 +299,15 @@ Item {
         anchors.margins: 16
         account: Statusphere.accountsById["acc-scalars"]
         tiles: root.scalarTiles
-        maxRows: 4
+        maxRows: 6
+    }
+
+    CardTile {
+        id: dialHiddenProbe
+        visible: false
+        width: 120
+        height: 120
+        account: Statusphere.accountsById["acc-scalars"]
+        tile: root.scalarTiles[12]
     }
 }
