@@ -52,7 +52,7 @@ Item {
                 color: form.card.contentColor
                 to: 1
                 value: form.progress
-                animateWave: form.card.animating && form.device?.spotify_status === "playing"
+                animateWave: form.hasPosition && form.card.animating && form.device?.spotify_status === "playing"
             }
         }
     }

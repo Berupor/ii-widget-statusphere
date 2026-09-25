@@ -21,19 +21,28 @@ Item {
 
     property bool isGif: false
 
+    function sniff(): void {
+        if (gifSniffer.running || root.sourcePath.length === 0)
+            return;
+        gifSniffer.sniffedPath = root.sourcePath;
+        gifSniffer.running = true;
+    }
+
     onSourcePathChanged: {
         root.isGif = false;
-        if (root.sourcePath.length === 0)
-            return;
-        gifSniffer.running = true;
+        root.sniff();
     }
 
     Process {
         id: gifSniffer
-        command: ["head", "-c4", FileUtils.trimFileProtocol(root.sourcePath)]
+        property string sniffedPath
+        command: ["head", "-c4", FileUtils.trimFileProtocol(gifSniffer.sniffedPath)]
         stdout: StdioCollector {
-            onStreamFinished: root.isGif = text === "GIF8"
+            onStreamFinished: if (gifSniffer.sniffedPath === root.sourcePath)
+                root.isGif = text === "GIF8"
         }
+        onRunningChanged: if (!gifSniffer.running && gifSniffer.sniffedPath !== root.sourcePath)
+            root.sniff()
     }
 
     Loader {

@@ -37,6 +37,7 @@ Rectangle {
     readonly property real length: root.device?.spotify_length ?? 0
     readonly property bool lengthKnown: root.length > 0
     readonly property real interpolatedPosition: root.device?.spotify_status ? root.projectedPosition(root._nowMs) : 0
+    readonly property string timeText: `${StringUtils.friendlyTimeForSeconds(root.interpolatedPosition)} / ${StringUtils.friendlyTimeForSeconds(root.length)}`
 
     property real _nowMs: Date.now()
 
@@ -214,7 +215,7 @@ Rectangle {
                     Layout.alignment: Qt.AlignVCenter
                     valueBarHeight: 3
                     wavy: root.device?.spotify_status === "playing"
-                    animateWave: root.animating
+                    animateWave: root.animating && root.showingCompact
                     highlightColor: Appearance.colors.colPrimary
                     trackColor: Appearance.colors.colSecondaryContainer
                     value: root.lengthKnown ? root.interpolatedPosition / root.length : 0
@@ -261,7 +262,7 @@ Rectangle {
                 StyledProgressBar {
                     Layout.fillWidth: true
                     wavy: root.device?.spotify_status === "playing"
-                    animateWave: root.animating
+                    animateWave: root.animating && !root.showingCompact
                     highlightColor: Appearance.colors.colPrimary
                     trackColor: Appearance.colors.colSecondaryContainer
                     value: root.lengthKnown ? root.interpolatedPosition / root.length : 0
@@ -279,16 +280,16 @@ Rectangle {
                     }
 
                     Repeater {
-                        model: `${StringUtils.friendlyTimeForSeconds(root.interpolatedPosition)} / ${StringUtils.friendlyTimeForSeconds(root.length)}`.split("")
+                        model: root.timeText.length
 
                         delegate: StyledText {
-                            required property string modelData
+                            required property int index
                             shouldUseNumberFont: false
-                            width: /\d/.test(modelData) ? digitCell.width / 10 : implicitWidth
+                            width: /\d/.test(text) ? digitCell.width / 10 : implicitWidth
                             horizontalAlignment: Text.AlignHCenter
                             font.pixelSize: Appearance.font.pixelSize.small
                             color: Appearance.colors.colSubtext
-                            text: modelData
+                            text: root.timeText[index]
                         }
                     }
                 }

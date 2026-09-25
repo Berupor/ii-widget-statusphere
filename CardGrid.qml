@@ -15,16 +15,25 @@ Item {
 
     readonly property int columns: CardLayouts.columns
     readonly property real spacing: CardLayouts.gap
-    readonly property real cellSize: (root.width - (root.columns - 1) * root.spacing) / root.columns
+    readonly property real cellSize: Math.max(0, (root.width - (root.columns - 1) * root.spacing) / root.columns)
 
     readonly property var shownTiles: (root.tiles ?? []).map((tile, index) => ({
                 "tile": tile,
                 "index": index
             })).filter(t => t.tile.onMissing !== "hide" || Statusphere.tileHasData(root.account, t.tile))
-    readonly property var placed: CardLayouts.pack(root.shownTiles.map(t => t.tile), root.maxRows).map(p => Object.assign({}, p, {
+    readonly property var freshPlaced: CardLayouts.pack(root.shownTiles.map(t => t.tile), root.maxRows).map(p => Object.assign({}, p, {
                 "index": root.shownTiles[p.index].index
             }))
     readonly property int rowsUsed: CardLayouts.rowsUsed(root.placed)
+
+    property var placed: []
+    onFreshPlacedChanged: root.keepPlacement()
+    Component.onCompleted: root.keepPlacement()
+
+    function keepPlacement() {
+        if (JSON.stringify(root.placed) !== JSON.stringify(root.freshPlaced))
+            root.placed = root.freshPlaced;
+    }
 
     property bool selectable: false
     property int selectedIndex: -1

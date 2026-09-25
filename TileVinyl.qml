@@ -10,13 +10,24 @@ Item {
     readonly property bool hasPosition: (form.device?.spotify_length ?? 0) > 0
     readonly property real progress: form.hasPosition ? (form.device.spotify_position ?? 0) / form.device.spotify_length : 0
     readonly property int turnDurationMs: 9000
+    readonly property real smallestAnimatedStep: 0.05
+
+    function showProgress(): void {
+        ring.enableAnimation = Math.abs(form.progress - ring.value) >= form.smallestAnimatedStep;
+        ring.value = form.progress;
+    }
+    onProgressChanged: form.showProgress()
+    Component.onCompleted: {
+        ring.enableAnimation = false;
+        ring.value = form.progress;
+    }
 
     CircularProgress {
+        id: ring
         visible: form.hasPosition
         anchors.centerIn: parent
         implicitSize: Math.round(Math.min(form.width, form.height))
         lineWidth: Math.max(3, implicitSize * 0.06)
-        value: form.progress
         colPrimary: form.card.contentColor
         colSecondary: ColorUtils.transparentize(form.card.contentColor, 0.75)
     }

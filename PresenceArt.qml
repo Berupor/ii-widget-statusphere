@@ -18,8 +18,6 @@ Rectangle {
 
     property bool playing: true
     readonly property int status: image.item?.status ?? Image.Null
-    implicitWidth: image.item?.implicitWidth ?? 0
-    implicitHeight: image.item?.implicitHeight ?? 0
 
     property string cacheFilePath: root.source.length > 0 ? `${Directories.coverArt}/${Qt.md5(root.source)}` : ""
     property bool downloaded: false
@@ -29,14 +27,18 @@ Rectangle {
     readonly property int pixelWidth: Math.ceil(root.width * Screen.devicePixelRatio)
     readonly property int pixelHeight: Math.ceil(root.height * Screen.devicePixelRatio)
 
-    onCacheFilePathChanged: {
-        root.downloaded = false;
-        root.isGif = false;
-        if (root.cacheFilePath.length === 0)
+    function fetch(): void {
+        if (artDownloader.running || root.cacheFilePath.length === 0)
             return;
         artDownloader.targetUrl = root.source;
         artDownloader.filePath = root.cacheFilePath;
         artDownloader.running = true;
+    }
+
+    onCacheFilePathChanged: {
+        root.downloaded = false;
+        root.isGif = false;
+        root.fetch();
     }
 
     Process {
@@ -45,9 +47,17 @@ Rectangle {
         property string filePath
         command: ["bash", "-c", `[ -f ${filePath} ] || curl -4 -sSL '${targetUrl}' -o '${filePath}'; head -c4 '${filePath}' 2>/dev/null`]
         stdout: StdioCollector {
-            onStreamFinished: root.isGif = text === "GIF8"
+            onStreamFinished: if (artDownloader.filePath === root.cacheFilePath)
+                root.isGif = text === "GIF8"
         }
-        onExited: root.downloaded = true
+        onRunningChanged: {
+            if (artDownloader.running)
+                return;
+            if (artDownloader.filePath === root.cacheFilePath)
+                root.downloaded = true;
+            else
+                root.fetch();
+        }
     }
 
     Loader {
@@ -55,7 +65,7 @@ Rectangle {
         anchors.fill: parent
         sourceComponent: root.isGif ? animatedArt : staticArt
 
-        layer.enabled: true
+        layer.enabled: root.radius > 0
         layer.effect: OpacityMask {
             maskSource: Rectangle {
                 width: image.width

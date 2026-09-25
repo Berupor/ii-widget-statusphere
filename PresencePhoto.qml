@@ -23,18 +23,29 @@ Rectangle {
     readonly property int status: root.shownImage?.status ?? Image.Null
 
     property bool remoteIsGif: false
+
+    function sniffRemote(): void {
+        if (remoteGifSniff.running || root.url.length === 0)
+            return;
+        remoteGifSniff.sniffedUrl = root.url;
+        remoteGifSniff.running = true;
+    }
+
     onUrlChanged: {
         root.remoteIsGif = false;
-        if (root.url.length > 0)
-            remoteGifSniff.running = true;
+        root.sniffRemote();
     }
 
     Process {
         id: remoteGifSniff
-        command: ["curl", "-4", "-sSL", "-r", "0-3", root.url]
+        property string sniffedUrl
+        command: ["curl", "-4", "-sSL", "-r", "0-3", remoteGifSniff.sniffedUrl]
         stdout: StdioCollector {
-            onStreamFinished: root.remoteIsGif = text === "GIF8"
+            onStreamFinished: if (remoteGifSniff.sniffedUrl === root.url)
+                root.remoteIsGif = text === "GIF8"
         }
+        onRunningChanged: if (!remoteGifSniff.running && remoteGifSniff.sniffedUrl !== root.url)
+            root.sniffRemote()
     }
 
     readonly property int minHeight: 100
@@ -42,7 +53,11 @@ Rectangle {
     // Shared regions come in every shape, so the card follows the image instead of cropping it to a fixed strip
     readonly property real naturalHeight: (root.shownImage?.implicitHeight ?? 0) > 0 ? root.width * root.shownImage.implicitHeight / root.shownImage.implicitWidth : 0
 
-    implicitHeight: root.naturalHeight > 0 ? Math.round(Math.max(root.minHeight, Math.min(root.maxHeight, root.naturalHeight))) : root.minHeight
+    readonly property real settledHeight: root.naturalHeight > 0 ? Math.round(Math.max(root.minHeight, Math.min(root.maxHeight, root.naturalHeight))) : root.minHeight
+    // AnimatedImage re-decodes on every sourceSize change, so the image skips the height ease
+    readonly property real imageHeight: root.cropped ? root.height : root.settledHeight
+
+    implicitHeight: root.settledHeight
     radius: Appearance.rounding.normal
     color: Appearance.colors.colLayer2
 
@@ -65,7 +80,12 @@ Rectangle {
 
         Loader {
             id: remoteImage
-            anchors.fill: parent
+            anchors {
+                left: parent.left
+                right: parent.right
+                verticalCenter: parent.verticalCenter
+            }
+            height: root.imageHeight
             active: root.showsUrl
             sourceComponent: root.remoteIsGif ? animatedRemote : staticRemote
         }
@@ -91,7 +111,12 @@ Rectangle {
 
         LocalPicture {
             id: image
-            anchors.fill: parent
+            anchors {
+                left: parent.left
+                right: parent.right
+                verticalCenter: parent.verticalCenter
+            }
+            height: root.imageHeight
             sourcePath: root.photo?.path ?? ""
             playing: root.animating
             thumbnailSizeName: "x-large" // The default sizes itself off sourceSize, which is 0 before the first load

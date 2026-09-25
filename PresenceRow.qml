@@ -27,6 +27,7 @@ Rectangle {
     readonly property bool hasPhoto: root.currentPhoto !== null
     readonly property bool customLayout: Statusphere.ownsSurface(root.account, "row")
     readonly property var rowTiles: root.customLayout ? Statusphere.surfaceTiles(root.account, "row") : []
+    readonly property var detailTiles: root.detailsShown ? Statusphere.surfaceTiles(root.account, "detail") : []
     readonly property bool canShare: root.isSelf && Statusphere.canShare
     readonly property bool expandable: root.devices.length > 1 && !root.hidden
     property bool expanded: false
@@ -46,6 +47,21 @@ Rectangle {
 
     onExpandableChanged: if (!root.expandable)
         root.expanded = false
+
+    property var playingIds: []
+    property var deviceIds: []
+    onPlayingChanged: root.keepIds("playingIds", root.playing)
+    onDevicesChanged: root.keepIds("deviceIds", root.devices)
+    Component.onCompleted: {
+        root.keepIds("playingIds", root.playing);
+        root.keepIds("deviceIds", root.devices);
+    }
+
+    function keepIds(name, devices) {
+        const ids = devices.map(d => d.device_id);
+        if (JSON.stringify(root[name]) !== JSON.stringify(ids))
+            root[name] = ids;
+    }
 
     Layout.fillWidth: true
     implicitHeight: content.implicitHeight + 24
@@ -278,11 +294,11 @@ Rectangle {
             spacing: 8
 
             Repeater {
-                model: root.expanded ? root.playing : []
+                model: root.expanded ? root.playingIds : []
 
                 delegate: ColumnLayout {
                     id: trackEntry
-                    required property var modelData
+                    required property string modelData
                     required property int index
 
                     Layout.fillWidth: true
@@ -297,7 +313,7 @@ Rectangle {
 
                     PresenceMusic {
                         Layout.fillWidth: true
-                        device: trackEntry.modelData
+                        device: root.playing.find(d => d.device_id === trackEntry.modelData) ?? null
                     }
                 }
             }
@@ -310,16 +326,17 @@ Rectangle {
             }
 
             Repeater {
-                model: root.expanded ? root.devices : []
+                model: root.expanded ? root.deviceIds : []
 
                 delegate: StyledText {
-                    required property var modelData
+                    id: deviceLine
+                    required property string modelData
                     Layout.fillWidth: true
                     elide: Text.ElideRight
                     textFormat: Text.PlainText
                     font.pixelSize: Appearance.font.pixelSize.smaller
                     color: Appearance.colors.colSubtext
-                    text: Statusphere.deviceStatusFor(modelData)
+                    text: Statusphere.deviceStatusFor(root.devices.find(d => d.device_id === deviceLine.modelData) ?? null)
                 }
             }
         }
@@ -331,6 +348,7 @@ Rectangle {
             visible: active
             sourceComponent: PresenceDetailCard {
                 account: root.account
+                tiles: root.detailTiles
             }
         }
 
@@ -355,11 +373,11 @@ Rectangle {
     // Must track the CardGrid `visible:` condition above - a surface only covers a field
     // for the header while its tiles are actually on screen.
     readonly property var visibleSurfaces: {
-        const surfaces = [];
+        const surfaces = {};
         if (root.customLayout && root.rowTiles.length > 0 && !root.expanded)
-            surfaces.push("row");
+            surfaces.row = root.rowTiles;
         if (root.detailsShown)
-            surfaces.push("detail");
+            surfaces.detail = root.detailTiles;
         return surfaces;
     }
 

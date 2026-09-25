@@ -48,7 +48,20 @@ Item {
 
                 Repeater {
                     model: Statusphere.accountIds
-                    delegate: PresenceRow {}
+                    delegate: Item {
+                        id: rowSlot
+                        required property string modelData
+                        readonly property bool inView: rowSlot.y + rowSlot.height > flickable.contentY && rowSlot.y < flickable.contentY + flickable.height
+                        Layout.fillWidth: true
+                        implicitHeight: row.implicitHeight
+
+                        PresenceRow {
+                            id: row
+                            width: rowSlot.width
+                            modelData: rowSlot.modelData
+                            visible: rowSlot.inView
+                        }
+                    }
                 }
             }
         }

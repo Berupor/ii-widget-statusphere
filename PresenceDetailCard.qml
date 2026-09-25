@@ -10,7 +10,7 @@ Item {
     id: root
     required property var account
 
-    readonly property var tiles: Statusphere.surfaceTiles(root.account, "detail")
+    property var tiles: Statusphere.surfaceTiles(root.account, "detail")
 
     implicitHeight: grid.implicitHeight
 

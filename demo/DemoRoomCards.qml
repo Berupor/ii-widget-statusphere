@@ -633,8 +633,20 @@ Item {
 
     Timer {
         running: true
+        interval: 500
+        onTriggered: root.scrollTabTo("acc-music")
+    }
+
+    Timer {
+        running: true
         interval: 1000
         onTriggered: root.earlyRotations = root.shownVinyls().map(t => root.vinylCover(t)?.rotation ?? null)
+    }
+
+    function scrollTabTo(accountId) {
+        const flickable = root.findAll(tab, it => it.contentY !== undefined && it.flickableDirection !== undefined, [])[0];
+        const slot = root.findAll(tab, it => it.inView !== undefined && it.modelData === accountId, [])[0];
+        flickable.contentY = Math.min(slot.y, flickable.contentHeight - flickable.height);
     }
 
     function spun() {
@@ -852,9 +864,9 @@ Item {
                 "want": [true, false]
             },
             {
-                "name": "a hidden wave tile of a playing friend does not animate its wave",
-                "got": root.waving(waveProbe),
-                "want": [false]
+                "name": "a wave tile animates only while it is on screen with a known position: shown, hidden, no track length",
+                "got": [root.waving(waveShownProbe), root.waving(waveProbe), root.waving(gifProbe)],
+                "want": [[true], [false], [false]]
             },
             {
                 "name": "a row builds its detail card only while the details are open",
@@ -1153,6 +1165,15 @@ Item {
                 },
                 "onMissing": "hide"
             })
+    }
+
+    CardTile {
+        id: waveShownProbe
+        x: root.width
+        width: 200
+        height: 64
+        account: Statusphere.accountsById["acc-music"]
+        tile: waveProbe.tile
     }
 
     CardTile {

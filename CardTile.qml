@@ -91,34 +91,40 @@ Item {
         color: root.backgroundSource ? Appearance.colors.colLayer2 : root.tint
     }
 
-    MaterialShape {
-        visible: root.shaped
+    Loader {
+        active: root.shaped
         anchors.centerIn: parent
-        implicitSize: Math.min(parent.width, parent.height)
-        shape: root.shapeEnum
-        color: root.tint
+        sourceComponent: MaterialShape {
+            implicitSize: Math.min(root.width, root.height)
+            shape: root.shapeEnum
+            color: root.tint
+        }
     }
 
     readonly property bool showsPhotoArt: (root.type?.art ?? "") !== ""
     readonly property real artScrimOpacity: 0.6
     readonly property bool hasArt: root.showsPhotoArt || root.backgroundSource.length > 0
 
-    Item {
+    Loader {
         id: artMask
         objectName: "tileArtMask"
         anchors.fill: parent
         visible: false
+        active: root.hasArt
+        sourceComponent: root.resolvedShape === "default" ? roundedArtMask : shapedArtMask
+    }
 
+    Component {
+        id: roundedArtMask
         Rectangle {
-            opacity: root.resolvedShape === "default" ? 1 : 0
-            anchors.fill: parent
             radius: silhouette.radius
         }
+    }
 
+    Component {
+        id: shapedArtMask
+        // Stretched over the whole tile, which is fine because resolvedShape is non-default only on a square one
         MaterialShape {
-            opacity: root.resolvedShape === "default" ? 0 : 1
-            anchors.centerIn: parent
-            implicitSize: Math.min(parent.width, parent.height)
             shape: root.shapeEnum
             color: "white"
         }
@@ -178,13 +184,17 @@ Item {
         }
     }
 
+    // A fixed 12px eats most of a thumbnail-scale tile (a pack preview squeezes a
+    // surface into ~20px cells) and leaves nothing for text to fit in - scale it
+    // with the tile instead.
+    readonly property real contentInset: root.fullBleed ? 0 : Math.max(4, Math.round(Math.min(root.width, root.height) * 0.1))
+
     Item {
         id: content
-        anchors.fill: parent
-        // A fixed 12px eats most of a thumbnail-scale tile (a pack preview squeezes a
-        // surface into ~20px cells) and leaves nothing for text to fit in - scale it
-        // with the tile instead.
-        anchors.margins: root.fullBleed ? 0 : Math.max(4, Math.round(Math.min(root.width, root.height) * 0.1))
+        x: root.contentInset
+        y: root.contentInset
+        width: Math.max(0, root.width - 2 * root.contentInset)
+        height: Math.max(0, root.height - 2 * root.contentInset)
         clip: true
 
         Loader {
