@@ -106,9 +106,7 @@ Item {
             asynchronous: true
             source: root.sourcePath.length > 0 ? Qt.resolvedUrl(root.sourcePath) : ""
             fillMode: root.effectiveFillMode
-            // QMovie's scaledSize has no partial-axis aspect-preserving mode the way
-            // Image.sourceSize does - leaving both unset decodes at native size so cover/blur
-            // keep proportions, and stretch is the only mode that forces them.
+            // QMovie scales to sourceSize exactly, ignoring aspect, and takes 0x0 as a real size; -1 decodes at native size.
             sourceSize.width: root.fit === "stretch" ? Math.ceil(root.width * Screen.devicePixelRatio) : -1
             sourceSize.height: root.fit === "stretch" ? Math.ceil(root.height * Screen.devicePixelRatio) : -1
             playing: root.playing

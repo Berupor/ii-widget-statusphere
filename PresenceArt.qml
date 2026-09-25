@@ -155,7 +155,7 @@ head -c4 "$target" 2>/dev/null
         AnimatedImage {
             id: gif
             asynchronous: true
-            opacity: status === Image.Ready ? 1 : -1
+            opacity: status === Image.Ready ? 1 : 0
             Behavior on opacity {
                 animation: Appearance.animation.elementMoveEnter.numberAnimation.createObject(this)
             }
@@ -163,9 +163,7 @@ head -c4 "$target" 2>/dev/null
             fillMode: root.effectiveFillMode
             horizontalAlignment: root.horizontalAlignment
             verticalAlignment: root.verticalAlignment
-            // QMovie's scaledSize has no partial-axis aspect-preserving mode the way
-            // Image.sourceSize does - leaving both unset decodes at native size so cover/blur
-            // keep proportions, and stretch is the only mode that forces them.
+            // QMovie scales to sourceSize exactly, ignoring aspect, and takes 0x0 as a real size; -1 decodes at native size.
             sourceSize.width: root.fit === "stretch" ? root.pixelWidth : -1
             sourceSize.height: root.fit === "stretch" ? root.pixelHeight : -1
             cache: true
