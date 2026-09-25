@@ -40,11 +40,10 @@ const defaultCommandRepeat = 60;
 // weatherLive's cmdFor line out of wttr.in's ?format=j1: temp C, weatherCode, precipMM,
 // windspeedKmph, winddirDegree, is-day (sunrise <= now < sunset), moon illumination
 // 0-100, moon phase name, sunrise/sunset/now in minutes since midnight, city -
-// CardLayouts.weatherFieldsOf/weatherConditionOf are the other end. Sunrise and sunset
-// are already the queried city's local time, but j1's current_condition[0].observation_time
-// is UTC, so "now" instead comes from a second request for ?format=%T, the city's own
-// clock, passed in as jq's $now.
-const weatherJqFilter = 'def minutesOf(s): (s | strptime("%I:%M %p")) as $t | $t[3] * 60 + $t[4]; ($now | split(":")) as $nowParts | (($nowParts[0] | tonumber) * 60 + ($nowParts[1] | tonumber)) as $nowMin | .current_condition[0] as $c | .weather[0].astronomy[0] as $a | (.nearest_area[0].areaName[0].value // "") as $city | (minutesOf($a.sunrise)) as $sunrise | (minutesOf($a.sunset)) as $sunset | [$c.temp_C, $c.weatherCode, $c.precipMM, $c.windspeedKmph, $c.winddirDegree, (if $nowMin >= $sunrise and $nowMin < $sunset then "1" else "0" end), $a.moon_illumination, $a.moon_phase, $sunrise, $sunset, $nowMin, $city] | join(";")';
+// CardLayouts.weatherFieldsOf/weatherConditionOf are the other end. j1's astronomy runs
+// an hour off the plain %S/%s (Astana: 07:05 vs 06:04) and j1 may resolve another place,
+// so now, sunrise and sunset come from one ?format=%T|%S|%s request as jq's $times.
+const weatherJqFilter = 'def minutesOf(s): (s | split(":")) as $p | ($p[0] | tonumber) * 60 + ($p[1] | tonumber); ($times | split("|")) as $parts | minutesOf($parts[0]) as $nowMin | minutesOf($parts[1]) as $sunrise | minutesOf($parts[2]) as $sunset | .current_condition[0] as $c | .weather[0].astronomy[0] as $a | (if ($city | length) > 0 then $city else (.nearest_area[0].areaName[0].value // "") end) as $cityOut | [$c.temp_C, $c.weatherCode, $c.precipMM, $c.windspeedKmph, $c.winddirDegree, (if $nowMin >= $sunrise and $nowMin < $sunset then "1" else "0" end), $a.moon_illumination, $a.moon_phase, $sunrise, $sunset, $nowMin, $cityOut] | join(";")';
 
 const weatherLiveSamples = [
     { "label": "Clear", "value": "22;113;0;6;180;1;62;Waxing Gibbous;390;1170;720;Munich" },
@@ -73,7 +72,7 @@ const kinds = [
             "size": "1x1",
             "color": "primaryContainer"
         },
-        "cmdFor": city => `curl -sf ${shQuote(`wttr.in/${encodeURIComponent(city.trim())}?format=%t+·+%C`)}`
+        "cmdFor": city => `curl -sf ${shQuote(`wttr.in/${encodeURIComponent(city.trim())}?format=%t+·+%C&m`)}`
     },
     {
         "id": "weatherLive",
@@ -92,7 +91,7 @@ const kinds = [
             "size": "1x1",
             "color": "primaryContainer"
         },
-        "cmdFor": city => `curl -sf ${shQuote(`wttr.in/${encodeURIComponent(city.trim())}?format=j1`)} | jq -r --arg now "$(curl -sf ${shQuote(`wttr.in/${encodeURIComponent(city.trim())}?format=%T`)})" ${shQuote(weatherJqFilter)}`
+        "cmdFor": city => `curl -sf ${shQuote(`wttr.in/${encodeURIComponent(city.trim())}?format=j1`)} | jq -r --arg times "$(curl -sf ${shQuote(`wttr.in/${encodeURIComponent(city.trim())}?format=%T|%S|%s`)})" --arg city ${shQuote(city.trim())} ${shQuote(weatherJqFilter)}`
     },
     {
         "id": "clock",

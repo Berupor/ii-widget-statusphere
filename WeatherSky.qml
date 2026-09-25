@@ -48,7 +48,7 @@ Item {
     readonly property bool showsThunder: sky.condition === "thunder"
 
     readonly property real intensity: Math.max(0, Math.min(1, sky.precipMM / 8))
-    readonly property real windTilt: Math.max(-24, Math.min(24, (sky.windKmph / 40) * 24 * (Math.cos(sky.windDirDeg * Math.PI / 180) >= 0 ? 1 : -1)))
+    readonly property real windTilt: Math.max(-24, Math.min(24, -(sky.windKmph / 40) * 24 * Math.sin(sky.windDirDeg * Math.PI / 180)))
 
     readonly property real coldC: -5
     readonly property real hotC: 32

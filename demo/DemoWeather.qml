@@ -151,6 +151,28 @@ Item {
             "moonPhase": "First Quarter"
         },
         {
+            "key": "wind_ne",
+            "code": 302,
+            "temp": 13,
+            "precip": 3,
+            "wind": 20,
+            "windDir": 43,
+            "city": "Helsinki",
+            "moonIllum": 50,
+            "moonPhase": "First Quarter"
+        },
+        {
+            "key": "wind_w",
+            "code": 302,
+            "temp": 13,
+            "precip": 3,
+            "wind": 20,
+            "windDir": 270,
+            "city": "Lisbon",
+            "moonIllum": 50,
+            "moonPhase": "First Quarter"
+        },
+        {
             "key": "clear_cold",
             "code": 113,
             "temp": -18,
@@ -183,6 +205,39 @@ Item {
             "now": 1320,
             "moonIllum": 96,
             "moonPhase": "Waxing Gibbous"
+        },
+        {
+            "key": "possible_thunder_no_precip",
+            "code": 200,
+            "temp": 20,
+            "precip": 0,
+            "wind": 10,
+            "windDir": 150,
+            "city": "Denver",
+            "moonIllum": 50,
+            "moonPhase": "First Quarter"
+        },
+        {
+            "key": "possible_rain_no_precip",
+            "code": 176,
+            "temp": 17,
+            "precip": 0,
+            "wind": 8,
+            "windDir": 140,
+            "city": "Nairobi",
+            "moonIllum": 50,
+            "moonPhase": "First Quarter"
+        },
+        {
+            "key": "possible_rain_with_precip",
+            "code": 176,
+            "temp": 17,
+            "precip": 1.2,
+            "wind": 8,
+            "windDir": 140,
+            "city": "Nairobi",
+            "moonIllum": 50,
+            "moonPhase": "First Quarter"
         }
     ]
 
@@ -297,8 +352,13 @@ Item {
         const rainHeavy = root.skyFor("rain_heavy");
         const rainWindy = root.skyFor("rain_windy");
         const rainCalm = root.skyFor("rain_calm");
+        const windNE = root.skyFor("wind_ne");
+        const windW = root.skyFor("wind_w");
         const clearCold = root.skyFor("clear_cold");
         const clearHot = root.skyFor("clear_hot");
+        const possibleThunderNoPrecip = root.skyFor("possible_thunder_no_precip");
+        const possibleRainNoPrecip = root.skyFor("possible_rain_no_precip");
+        const possibleRainWithPrecip = root.skyFor("possible_rain_with_precip");
         const arcDayKeys = ["arc_sunrise", "arc_morning", "arc_noon", "arc_late_afternoon", "arc_sunset"];
         const arcNightKeys = ["arc_dusk", "arc_midnight", "arc_predawn"];
         const sunXs = arcDayKeys.map(k => root.bodyOf(k, "2x1", "weatherSun")?.x);
@@ -306,6 +366,8 @@ Item {
         const sunSunriseY = root.bodyOf("arc_sunrise", "2x1", "weatherSun")?.y;
         const arcNoonFields = CardLayouts.weatherFieldsOf(root.fields.arc_noon);
         const weatherLiveCmd = Templates.kind("weatherLive").cmdFor("Tokyo");
+        const weatherLiveCmdTromso = Templates.kind("weatherLive").cmdFor("Tromso");
+        const weatherCmd = Templates.kind("weather").cmdFor("Tromso");
         return [
             {
                 "name": "every wall tile renders one CardTile",
@@ -333,6 +395,26 @@ Item {
                 "want": true
             },
             {
+                "name": "wind tilts rain against its source direction: from the NE or E it drifts left, from the W it drifts right",
+                "got": [windNE?.windTilt < 0, rainWindy?.windTilt < 0, windW?.windTilt > 0],
+                "want": [true, true, true]
+            },
+            {
+                "name": "code 200 ('thundery outbreaks possible') with no measured precipitation reads as clouds, not thunder",
+                "got": [possibleThunderNoPrecip?.condition, possibleThunderNoPrecip?.showsThunder, possibleThunderNoPrecip?.showsRain],
+                "want": ["clouds", false, false]
+            },
+            {
+                "name": "code 176 ('patchy rain nearby') with no measured precipitation reads as clouds",
+                "got": possibleRainNoPrecip?.condition,
+                "want": "clouds"
+            },
+            {
+                "name": "code 176 ('patchy rain nearby') with measured precipitation reads as rain",
+                "got": possibleRainWithPrecip?.condition,
+                "want": "rain"
+            },
+            {
                 "name": "a hot reading warms the tone further than a cold one",
                 "got": clearHot?.warmth > clearCold?.warmth,
                 "want": true
@@ -351,6 +433,11 @@ Item {
                 "name": "the old weather kind keeps its own silhouette rule and builds no sky",
                 "got": [CardLayouts.weatherShape(root.legacyValue), root.skyFor(root.legacyKey, "2x1")],
                 "want": ["Cookie6Sided", null]
+            },
+            {
+                "name": "the old weather kind's free-text silhouette covers wttr.in's other real ?format=%C texts",
+                "got": [CardLayouts.weatherShape("Overcast "), CardLayouts.weatherShape("Mist"), CardLayouts.weatherShape("Light drizzle"), CardLayouts.weatherShape("Blizzard"), CardLayouts.weatherShape("Patchy light rain with thunder")],
+                "want": ["Cookie6Sided", "Pill", "Cookie6Sided", "Cookie9Sided", "SoftBurst"]
             },
             {
                 "name": "weatherLive is a beta kind listed next to weather in the Live gallery group, with more than one sample to cycle",
@@ -383,9 +470,19 @@ Item {
                 "want": [root.sunriseMin, root.sunsetMin, 780]
             },
             {
-                "name": "weatherLive's cmdFor reads \"now\" from the city's local clock (%T), not the UTC observation_time",
-                "got": [weatherLiveCmd.includes("format=%T"), weatherLiveCmd.includes("--arg now"), weatherLiveCmd.includes("observation_time")],
+                "name": "weatherLive's cmdFor reads now, sunrise and sunset off one plain request (%T|%S|%s), not j1's own astronomy or UTC observation_time",
+                "got": [weatherLiveCmd.includes("format=%T|%S|%s"), weatherLiveCmd.includes("--arg times"), weatherLiveCmd.includes("observation_time")],
                 "want": [true, true, false]
+            },
+            {
+                "name": "weatherLive's cmdFor passes the typed city into jq, not just wttr.in's nearest district",
+                "got": weatherLiveCmdTromso.includes("--arg city 'Tromso'"),
+                "want": true
+            },
+            {
+                "name": "weather's cmdFor asks wttr.in for metric units, not USCS on a US IP",
+                "got": weatherCmd.includes("&m"),
+                "want": true
             }
         ];
     }

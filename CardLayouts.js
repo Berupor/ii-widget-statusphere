@@ -154,9 +154,11 @@ function weatherShape(value) {
     const v = String(value).toLowerCase();
     if (/storm|thunder/.test(v))
         return "SoftBurst";
-    if (/snow/.test(v))
+    if (/fog|mist/.test(v))
+        return "Pill";
+    if (/snow|ice|blizzard/.test(v))
         return "Cookie9Sided";
-    if (/rain|cloud/.test(v))
+    if (/drizzle|sleet|overcast|cloud|rain/.test(v))
         return "Cookie6Sided";
     if (/clear|sun/.test(v))
         return "Sunny";
@@ -197,7 +199,7 @@ const weatherConditionByCode = {
     179: "snow",
     182: "snow",
     185: "snow",
-    200: "thunder",
+    200: "clouds",
     227: "snow",
     230: "snow",
     248: "fog",
@@ -238,8 +240,15 @@ const weatherConditionByCode = {
     395: "thunder"
 };
 
+const possiblePrecipCodes = new Set([176, 179, 182, 185]);
+
 function weatherConditionOf(value) {
-    return weatherConditionByCode[weatherFieldsOf(value)?.code] ?? null;
+    const fields = weatherFieldsOf(value);
+    if (!fields)
+        return null;
+    if (possiblePrecipCodes.has(fields.code) && !(fields.precipMM > 0))
+        return "clouds";
+    return weatherConditionByCode[fields.code] ?? null;
 }
 
 function weatherLiveShape(value) {
