@@ -1,10 +1,12 @@
-//@ probe statusphere -g 900x700 -s 2500
+//@ probe statusphere -g 1300x660 -s 2500
 /**
  * The animated live weather tile (TileWeatherLive + WeatherSky) at every condition, day
  * and night, both sizes - plus a few tiles that isolate one axis each: light vs heavy
  * rain, windy vs calm, a cold vs a hot reading, and a waxing crescent vs a waxing
- * gibbous moon. One tile on the old "weather" kind with a legacy-format value closes
- * it out, to keep the untouched path exercised too.
+ * gibbous moon. arcMoments steps the sun and moon around their arcs: sunrise, morning,
+ * noon, late afternoon and sunset by day, dusk, midnight and pre-dawn by night. One
+ * tile on the old "weather" kind with a legacy-format value closes it out, to keep the
+ * untouched path exercised too.
  */
 import ".."
 import "../CardLayouts.js" as CardLayouts
@@ -18,8 +20,14 @@ Item {
     readonly property int tileUnit: 96
     readonly property int gap: 8
 
-    function weatherValue(temp, code, precip, wind, windDir, isDay, moonIllum, moonPhase, city) {
-        return `${temp};${code};${precip};${wind};${windDir};${isDay ? 1 : 0};${moonIllum};${moonPhase};${city}`;
+    readonly property int sunriseMin: 390
+    readonly property int sunsetMin: 1170
+    readonly property int dayNowMin: 720
+    readonly property int nightNowMin: 1320
+
+    function weatherValue(temp, code, precip, wind, windDir, sunrise, sunset, nowMin, moonIllum, moonPhase, city) {
+        const isDay = nowMin >= sunrise && nowMin < sunset ? 1 : 0;
+        return `${temp};${code};${precip};${wind};${windDir};${isDay};${moonIllum};${moonPhase};${sunrise};${sunset};${nowMin};${city}`;
     }
 
     readonly property var conditions: [
@@ -172,10 +180,23 @@ Item {
             "wind": 5,
             "windDir": 180,
             "city": "Reykjavik",
-            "isDay": false,
+            "now": 1320,
             "moonIllum": 96,
             "moonPhase": "Waxing Gibbous"
         }
+    ]
+
+    // Steps the sun (day) or moon (night) around their arcs, at the same sunrise/sunset
+    // as root.sunriseMin/sunsetMin - noon (780) sits exactly at their midpoint.
+    readonly property var arcMoments: [
+        { "key": "arc_sunrise", "temp": 10, "now": root.sunriseMin, "day": true },
+        { "key": "arc_morning", "temp": 14, "now": 540, "day": true },
+        { "key": "arc_noon", "temp": 22, "now": 780, "day": true },
+        { "key": "arc_late_afternoon", "temp": 19, "now": 1020, "day": true },
+        { "key": "arc_sunset", "temp": 15, "now": root.sunsetMin - 1, "day": true },
+        { "key": "arc_dusk", "temp": 12, "now": 1200, "day": false },
+        { "key": "arc_midnight", "temp": 8, "now": 0, "day": false },
+        { "key": "arc_predawn", "temp": 7, "now": 330, "day": false }
     ]
 
     readonly property string legacyKey: "weather_legacy"
@@ -184,11 +205,13 @@ Item {
     function fieldEntries() {
         const entries = {};
         for (const c of root.conditions) {
-            entries[`${c.key}_day`] = root.weatherValue(c.temp, c.code, c.precip, c.wind, c.windDir, true, c.moonIllum, c.moonPhase, c.city);
-            entries[`${c.key}_night`] = root.weatherValue(c.nightTemp, c.code, c.precip, c.wind, c.windDir, false, c.moonIllum, c.moonPhase, c.city);
+            entries[`${c.key}_day`] = root.weatherValue(c.temp, c.code, c.precip, c.wind, c.windDir, root.sunriseMin, root.sunsetMin, root.dayNowMin, c.moonIllum, c.moonPhase, c.city);
+            entries[`${c.key}_night`] = root.weatherValue(c.nightTemp, c.code, c.precip, c.wind, c.windDir, root.sunriseMin, root.sunsetMin, root.nightNowMin, c.moonIllum, c.moonPhase, c.city);
         }
         for (const v of root.variants)
-            entries[v.key] = root.weatherValue(v.temp, v.code, v.precip, v.wind, v.windDir, v.isDay ?? true, v.moonIllum, v.moonPhase, v.city);
+            entries[v.key] = root.weatherValue(v.temp, v.code, v.precip, v.wind, v.windDir, root.sunriseMin, root.sunsetMin, v.now ?? root.dayNowMin, v.moonIllum, v.moonPhase, v.city);
+        for (const a of root.arcMoments)
+            entries[a.key] = root.weatherValue(a.temp, 113, 0, 6, 180, root.sunriseMin, root.sunsetMin, a.now, 62, "Waxing Gibbous", "Berlin");
         entries[root.legacyKey] = root.legacyValue;
         return entries;
     }
@@ -216,6 +239,11 @@ Item {
         }
         for (const v of root.variants)
             tiles.push(root.wallTile(v.key, "1x1", "secondaryContainer"));
+        for (const a of root.arcMoments) {
+            const color = a.day ? "primaryContainer" : "tertiaryContainer";
+            tiles.push(root.wallTile(a.key, "1x1", color));
+            tiles.push(root.wallTile(a.key, "2x1", color));
+        }
         tiles.push(root.wallTile(root.legacyKey, "2x1", "secondaryContainer", "weather"));
         return tiles;
     }
@@ -256,6 +284,10 @@ Item {
         return root.findAll(root.tileFor(field, size), it => it.text !== undefined && it.font !== undefined, []).map(it => it.text);
     }
 
+    function bodyOf(field, size, name) {
+        return root.findAll(root.tileFor(field, size), it => it.objectName === name, [])[0] ?? null;
+    }
+
     function checks() {
         const clearDay = root.skyFor("clear_day", "1x1");
         const clearNight = root.skyFor("clear_night", "1x1");
@@ -267,6 +299,13 @@ Item {
         const rainCalm = root.skyFor("rain_calm");
         const clearCold = root.skyFor("clear_cold");
         const clearHot = root.skyFor("clear_hot");
+        const arcDayKeys = ["arc_sunrise", "arc_morning", "arc_noon", "arc_late_afternoon", "arc_sunset"];
+        const arcNightKeys = ["arc_dusk", "arc_midnight", "arc_predawn"];
+        const sunXs = arcDayKeys.map(k => root.bodyOf(k, "2x1", "weatherSun")?.x);
+        const sunNoonY = root.bodyOf("arc_noon", "2x1", "weatherSun")?.y;
+        const sunSunriseY = root.bodyOf("arc_sunrise", "2x1", "weatherSun")?.y;
+        const arcNoonFields = CardLayouts.weatherFieldsOf(root.fields.arc_noon);
+        const weatherLiveCmd = Templates.kind("weatherLive").cmdFor("Tokyo");
         return [
             {
                 "name": "every wall tile renders one CardTile",
@@ -321,12 +360,32 @@ Item {
             {
                 "name": "cycling weatherLive's gallery samples changes its silhouette the way a real tile would, clear day through to clear night",
                 "got": Templates.kind("weatherLive").samples.map(s => CardLayouts.weatherLiveShape(s.value)),
-                "want": ["Sunny", "Cookie6Sided", "Cookie6Sided", "SoftBurst", "Cookie9Sided", "Pill", "Circle"]
+                "want": ["Sunny", "Cookie6Sided", "Cookie6Sided", "SoftBurst", "Cookie9Sided", "Pill", "Circle", "Sunny", "Sunny"]
             },
             {
                 "name": "the compact value carries moon illumination and phase, a crescent waxing and a gibbous also waxing",
                 "got": [CardLayouts.weatherFieldsOf(root.fields.clear_night).moonIllum, CardLayouts.weatherFieldsOf(root.fields.clear_night).moonPhase, CardLayouts.weatherFieldsOf(root.fields.clear_full_moon).moonIllum, CardLayouts.weatherFieldsOf(root.fields.clear_full_moon).moonPhase],
                 "want": [28, "Waxing Crescent", 96, "Waxing Gibbous"]
+            },
+            {
+                "name": "the sun moves monotonically along its arc as the day progresses, peaking near the top at noon",
+                "got": [sunXs.every((x, i) => i === 0 || x > sunXs[i - 1]), sunNoonY < sunSunriseY],
+                "want": [true, true]
+            },
+            {
+                "name": "isDay follows sunrise/sunset rather than a fixed clock window",
+                "got": arcDayKeys.concat(arcNightKeys).map(k => root.skyFor(k, "1x1")?.isDay),
+                "want": [true, true, true, true, true, false, false, false]
+            },
+            {
+                "name": "the compact value parses sunrise, sunset and now in minutes since midnight",
+                "got": [arcNoonFields.sunriseMin, arcNoonFields.sunsetMin, arcNoonFields.nowMin],
+                "want": [root.sunriseMin, root.sunsetMin, 780]
+            },
+            {
+                "name": "weatherLive's cmdFor reads \"now\" from the city's local clock (%T), not the UTC observation_time",
+                "got": [weatherLiveCmd.includes("format=%T"), weatherLiveCmd.includes("--arg now"), weatherLiveCmd.includes("observation_time")],
+                "want": [true, true, false]
             }
         ];
     }

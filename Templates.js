@@ -38,19 +38,24 @@ const batteryCmd = "printf '%s%%' \"$(cat /sys/class/power_supply/BAT*/capacity 
 const defaultCommandRepeat = 60;
 
 // weatherLive's cmdFor line out of wttr.in's ?format=j1: temp C, weatherCode, precipMM,
-// windspeedKmph, winddirDegree, is-day (local clock against the clock tile's own day
-// window), moon illumination 0-100, moon phase name, city - CardLayouts.weatherFieldsOf/
-// weatherConditionOf are the other end.
-const weatherJqFilter = '.current_condition[0] as $c | .weather[0].astronomy[0] as $a | (.nearest_area[0].areaName[0].value // "") as $city | [$c.temp_C, $c.weatherCode, $c.precipMM, $c.windspeedKmph, $c.winddirDegree, (if (now|localtime|strftime("%H")|tonumber) >= 6 and (now|localtime|strftime("%H")|tonumber) < 19 then "1" else "0" end), $a.moon_illumination, $a.moon_phase, $city] | join(";")';
+// windspeedKmph, winddirDegree, is-day (sunrise <= now < sunset), moon illumination
+// 0-100, moon phase name, sunrise/sunset/now in minutes since midnight, city -
+// CardLayouts.weatherFieldsOf/weatherConditionOf are the other end. Sunrise and sunset
+// are already the queried city's local time, but j1's current_condition[0].observation_time
+// is UTC, so "now" instead comes from a second request for ?format=%T, the city's own
+// clock, passed in as jq's $now.
+const weatherJqFilter = 'def minutesOf(s): (s | strptime("%I:%M %p")) as $t | $t[3] * 60 + $t[4]; ($now | split(":")) as $nowParts | (($nowParts[0] | tonumber) * 60 + ($nowParts[1] | tonumber)) as $nowMin | .current_condition[0] as $c | .weather[0].astronomy[0] as $a | (.nearest_area[0].areaName[0].value // "") as $city | (minutesOf($a.sunrise)) as $sunrise | (minutesOf($a.sunset)) as $sunset | [$c.temp_C, $c.weatherCode, $c.precipMM, $c.windspeedKmph, $c.winddirDegree, (if $nowMin >= $sunrise and $nowMin < $sunset then "1" else "0" end), $a.moon_illumination, $a.moon_phase, $sunrise, $sunset, $nowMin, $city] | join(";")';
 
 const weatherLiveSamples = [
-    { "label": "Clear", "value": "22;113;0;6;180;1;62;Waxing Gibbous;Munich" },
-    { "label": "Clouds", "value": "15;119;0;10;200;1;62;Waxing Gibbous;Munich" },
-    { "label": "Rain", "value": "13;302;3;15;220;1;62;Waxing Gibbous;Munich" },
-    { "label": "Thunder", "value": "24;389;5;20;90;1;62;Waxing Gibbous;Munich" },
-    { "label": "Snow", "value": "-2;332;2;12;320;1;62;Waxing Gibbous;Munich" },
-    { "label": "Fog", "value": "7;248;0;3;0;1;62;Waxing Gibbous;Munich" },
-    { "label": "Night", "value": "9;113;0;5;180;0;28;Waxing Crescent;Munich" }
+    { "label": "Clear", "value": "22;113;0;6;180;1;62;Waxing Gibbous;390;1170;720;Munich" },
+    { "label": "Clouds", "value": "15;119;0;10;200;1;62;Waxing Gibbous;390;1170;600;Munich" },
+    { "label": "Rain", "value": "13;302;3;15;220;1;62;Waxing Gibbous;390;1170;840;Munich" },
+    { "label": "Thunder", "value": "24;389;5;20;90;1;62;Waxing Gibbous;390;1170;960;Munich" },
+    { "label": "Snow", "value": "-2;332;2;12;320;1;62;Waxing Gibbous;450;1020;600;Munich" },
+    { "label": "Fog", "value": "7;248;0;3;0;1;62;Waxing Gibbous;420;1080;450;Munich" },
+    { "label": "Night", "value": "9;113;0;5;180;0;28;Waxing Crescent;390;1170;1320;Munich" },
+    { "label": "Sunrise", "value": "10;113;0;4;150;1;62;Waxing Gibbous;390;1170;390;Munich" },
+    { "label": "Sunset", "value": "18;113;0;5;210;1;62;Waxing Gibbous;390;1170;1169;Munich" }
 ];
 
 const kinds = [
@@ -86,7 +91,7 @@ const kinds = [
             "size": "1x1",
             "color": "primaryContainer"
         },
-        "cmdFor": city => `curl -sf ${shQuote(`wttr.in/${encodeURIComponent(city.trim())}?format=j1`)} | jq -r ${shQuote(weatherJqFilter)}`
+        "cmdFor": city => `curl -sf ${shQuote(`wttr.in/${encodeURIComponent(city.trim())}?format=j1`)} | jq -r --arg now "$(curl -sf ${shQuote(`wttr.in/${encodeURIComponent(city.trim())}?format=%T`)})" ${shQuote(weatherJqFilter)}`
     },
     {
         "id": "clock",

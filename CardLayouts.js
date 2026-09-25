@@ -164,7 +164,7 @@ function weatherShape(value) {
 }
 
 // Keep in sync with Templates.weatherJqFilter.
-const weatherCompactPattern = /^(-?\d+);(\d+);(\d+(?:\.\d+)?);(\d+(?:\.\d+)?);(\d+(?:\.\d+)?);([01]);(\d+);([^;]*);(.*)$/;
+const weatherCompactPattern = /^(-?\d+);(\d+);(\d+(?:\.\d+)?);(\d+(?:\.\d+)?);(\d+(?:\.\d+)?);([01]);(\d+);([^;]*);(\d+);(\d+);(\d+);(.*)$/;
 
 function weatherFieldsOf(value) {
     const m = weatherCompactPattern.exec(String(value));
@@ -179,7 +179,10 @@ function weatherFieldsOf(value) {
         "isDay": m[6] === "1",
         "moonIllum": parseInt(m[7], 10),
         "moonPhase": m[8],
-        "city": m[9]
+        "sunriseMin": parseInt(m[9], 10),
+        "sunsetMin": parseInt(m[10], 10),
+        "nowMin": parseInt(m[11], 10),
+        "city": m[12]
     };
 }
 

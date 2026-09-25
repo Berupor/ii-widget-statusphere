@@ -17,7 +17,6 @@ Item {
     // TileWeatherLive's textFraction, the two split the same tile.
     readonly property bool wide: sky.width > sky.height * 1.5
     readonly property real sceneStart: sky.wide ? sky.width * 0.45 : 0
-    readonly property real sceneCenterX: (sky.sceneStart + sky.width) / 2
 
     readonly property var fields: CardLayouts.weatherFieldsOf(sky.value)
     readonly property string condition: CardLayouts.weatherConditionOf(sky.value) ?? "clouds"
@@ -26,6 +25,16 @@ Item {
     readonly property real precipMM: sky.fields ? sky.fields.precipMM : (sky.condition === "snow" ? 1 : (sky.condition === "rain" || sky.condition === "thunder") ? 2 : 0)
     readonly property real windKmph: sky.fields ? sky.fields.windKmph : 6
     readonly property real windDirDeg: sky.fields ? sky.fields.windDirDeg : 0
+
+    readonly property real sunriseMin: sky.fields ? sky.fields.sunriseMin : 390
+    readonly property real sunsetMin: sky.fields ? sky.fields.sunsetMin : 1170
+    readonly property real nowMin: sky.fields ? sky.fields.nowMin : 780
+    // 0 at sunrise/sunset, up to 1 at the moment itself, over a ~50min approach on
+    // either side - the horizon warms before the tone lifts off the temperature alone.
+    readonly property real twilightWindow: 50
+    readonly property real twilightStrength: Math.max(0, 1 - Math.min(Math.abs(sky.nowMin - sky.sunriseMin), Math.abs(sky.nowMin - sky.sunsetMin)) / sky.twilightWindow)
+    readonly property real dayProgress: sky.arcProgress(sky.nowMin, sky.sunriseMin, sky.sunsetMin)
+    readonly property real nightProgress: sky.arcProgress(((sky.nowMin - sky.sunsetMin) % 1440 + 1440) % 1440, 0, ((sky.sunriseMin - sky.sunsetMin) % 1440 + 1440) % 1440)
 
     readonly property bool showsRain: sky.condition === "rain" || sky.condition === "thunder"
     readonly property bool showsSnow: sky.condition === "snow"
@@ -69,6 +78,27 @@ Item {
         return v - Math.floor(v);
     }
 
+    function arcProgress(pos, start, end) {
+        return end > start ? Math.max(0, Math.min(1, (pos - start) / (end - start))) : 0;
+    }
+
+    // On a tall (1x1) tile TileWeatherLive centers the city and temperature over the
+    // whole tile, so the arc has to stay low, clear of that text - the wide layout
+    // keeps them in a left column instead and can let the arc reach for the top.
+    readonly property real arcPeakFraction: sky.wide ? 0.06 : 0.74
+
+    // A body's arc across the scene: low behind the left edge at progress 0, highest
+    // near the top (sky.arcPeakFraction) at 0.5, low behind the right edge at 1 -
+    // restMargin is how much of the disc sinks below the tile at rest, as a fraction of
+    // its own size.
+    function arcPos(progress, size, restMargin) {
+        const left = sky.sceneStart - size / 2;
+        const right = sky.width - size / 2;
+        const restY = sky.height - (1 - restMargin) * size;
+        const peakY = sky.height * sky.arcPeakFraction;
+        return Qt.point(left + progress * (right - left), restY - (restY - peakY) * Math.sin(progress * Math.PI));
+    }
+
     // A particle drifting by `travel` px over its fall needs its spawn band widened on
     // the upwind side by that much, or the downwind edge goes bare while the upwind one
     // still has particles converging into frame.
@@ -87,21 +117,38 @@ Item {
         color: sky.toneWash
     }
 
+    Rectangle {
+        anchors.fill: parent
+        opacity: sky.twilightStrength * 0.6
+        gradient: Gradient {
+            GradientStop {
+                position: 0
+                color: "transparent"
+            }
+            GradientStop {
+                position: 1
+                color: sky.hotTone
+            }
+        }
+    }
+
     Item {
         anchors.fill: parent
         visible: sky.showsClear
 
-        // Most of the disc sinks below the tile's own clip, in the empty band under the
-        // temperature; the Sunny silhouette's bottom point is shallower than its top one,
-        // so only a third of the disc is hidden (a full half would pinch into a sliver).
+        // At the low ends of the arc (sunrise, sunset) a third of the disc sinks below
+        // the tile's own clip, in the empty band under the temperature; the Sunny
+        // silhouette's bottom point is shallower than its top one, so a full half would
+        // pinch into a sliver.
         Item {
             id: sun
+            objectName: "weatherSun"
             visible: sky.isDay
             width: Math.min(sky.width, sky.height) * 0.28
             height: sun.width
-            x: sky.sceneCenterX - sun.width / 2
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: -sun.height * 0.32
+            readonly property point pos: sky.arcPos(sky.dayProgress, sun.width, 0.32)
+            x: sun.pos.x
+            y: sun.pos.y
 
             Rectangle {
                 anchors.fill: parent
@@ -115,33 +162,26 @@ Item {
                     id: ray
                     required property int index
                     width: sun.width * 0.12
-                    height: sun.width
+                    height: sun.width * 0.75
                     radius: width / 2
                     color: sky.rayColor
                     anchors.horizontalCenter: sun.horizontalCenter
                     transformOrigin: Item.Bottom
                     y: sun.height / 2 - ray.height
                     rotation: ray.index * (360 / 8)
-
-                    RotationAnimation on rotation {
-                        running: sky.running && sky.showsClear && sky.isDay
-                        from: ray.index * (360 / 8)
-                        to: ray.index * (360 / 8) + 360
-                        duration: 26000
-                        loops: Animation.Infinite
-                    }
                 }
             }
         }
 
         Item {
             id: moon
+            objectName: "weatherMoon"
             visible: !sky.isDay
             width: Math.min(sky.width, sky.height) * 0.26
             height: moon.width
-            x: sky.sceneCenterX - moon.width / 2
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: -moon.height * 0.5
+            readonly property point pos: sky.arcPos(sky.nightProgress, moon.width, 0.5)
+            x: moon.pos.x
+            y: moon.pos.y
 
             // Waning Gibbous/Last Quarter/Waning Crescent are the only named phases on
             // the shrinking half; everything else (including New/Full, where the side
@@ -225,7 +265,10 @@ Item {
             delegate: Rectangle {
                 id: haze
                 required property int index
-                width: sky.width * 0.85
+                // Wide enough, and drifting in a narrow enough band, that both edges stay
+                // covered by overflow at every point of the drift - or a still frame (not
+                // sky.running) would freeze on the rest x below and leave the right edge bare.
+                width: sky.width * 1.3
                 height: sky.height * 0.4
                 radius: height / 2
                 color: sky.fogColor
@@ -236,12 +279,12 @@ Item {
                     running: sky.running && sky.showsFog
                     loops: Animation.Infinite
                     NumberAnimation {
-                        to: sky.width * 0.25
+                        to: -sky.width * 0.05
                         duration: 5200 + haze.index * 900
                         easing.type: Easing.InOutSine
                     }
                     NumberAnimation {
-                        to: -sky.width * 0.35
+                        to: -sky.width * 0.25
                         duration: 5200 + haze.index * 900
                         easing.type: Easing.InOutSine
                     }
