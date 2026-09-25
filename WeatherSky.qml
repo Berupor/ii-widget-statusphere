@@ -282,12 +282,6 @@ Item {
         anchors.fill: parent
         visible: sky.showsFog
 
-        layer.enabled: sky.showsFog
-        layer.effect: GaussianBlur {
-            radius: Math.max(sky.width, sky.height) * 0.12
-            samples: 16
-        }
-
         Repeater {
             model: sky.showsFog ? 3 : 0
             delegate: Rectangle {
@@ -302,6 +296,15 @@ Item {
                 color: sky.fogColor
                 y: sky.height * (0.08 + 0.28 * haze.index)
                 x: -sky.width * 0.15
+
+                // Blurred here, on the shape itself, so drifting only moves the cached
+                // layer texture instead of rerunning the blur every frame.
+                layer.enabled: true
+                layer.effect: GaussianBlur {
+                    radius: Math.max(sky.width, sky.height) * 0.12
+                    samples: 16
+                    transparentBorder: true
+                }
 
                 SequentialAnimation on x {
                     running: sky.running && sky.showsFog
@@ -428,12 +431,6 @@ Item {
             anchors.fill: parent
             clip: true
 
-            layer.enabled: sky.showsClouds
-            layer.effect: GaussianBlur {
-                radius: Math.min(sky.width, sky.height) * 0.08
-                samples: 12
-            }
-
             Repeater {
                 model: sky.showsClouds ? 3 : 0
                 delegate: Item {
@@ -450,6 +447,15 @@ Item {
                     y: sky.height * 0.04 * sky.hash(cloud.index + 2) - cloud.height * 0.35
                     opacity: 0.22 + 0.18 * cloud.depth
                     scale: 0.85 + 0.3 * cloud.depth
+
+                    // Blurred here, on the static puffs, so drifting only moves the cached
+                    // layer texture instead of rerunning the blur every frame.
+                    layer.enabled: true
+                    layer.effect: GaussianBlur {
+                        radius: Math.min(sky.width, sky.height) * 0.08
+                        samples: 12
+                        transparentBorder: true
+                    }
 
                     Rectangle {
                         width: cloud.puffSize * 1.3

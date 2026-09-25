@@ -59,7 +59,7 @@ Rectangle {
 
     function keepIds(name, devices) {
         const ids = devices.map(d => d.device_id);
-        if (JSON.stringify(root[name]) !== JSON.stringify(ids))
+        if (!CardLayouts.sameArray(root[name], ids))
             root[name] = ids;
     }
 

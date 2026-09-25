@@ -970,6 +970,10 @@ Singleton {
         onTriggered: root.flush()
     }
 
+    function samePhoto(a, b): bool {
+        return a.account_id === b.account_id && a.path === b.path && a.created_at === b.created_at && a.expires_at === b.expires_at;
+    }
+
     function flush(): void {
         if (root._pendingMembers === null)
             return;
@@ -980,7 +984,7 @@ Singleton {
         root.noteProgress(members);
         root.noteKinds(members);
         root.members = members;
-        if (JSON.stringify(photos) !== JSON.stringify(root.photos))
+        if (!CardLayouts.sameArray(photos, root.photos, root.samePhoto))
             root.photos = photos;
     }
 

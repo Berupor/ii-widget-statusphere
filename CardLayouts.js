@@ -502,6 +502,11 @@ function scoresBelow(a, b) {
     return i >= 0 && a[i] < b[i];
 }
 
+function sameArray(a, b, equal) {
+    const eq = equal ?? ((x, y) => x === y);
+    return a.length === b.length && a.every((v, i) => eq(v, b[i]));
+}
+
 // The fallback detail card for a device with no _layout of its own: rings for
 // percentages, number tiles for short values, text for long ones. Of the ways to grow
 // a few of them, the one that packs with the fewest holes wins, then the one that drops
