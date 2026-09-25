@@ -275,6 +275,12 @@ function resolvedShape(t, value) {
     return formOf(t).autoShape?.(value) ?? "Circle";
 }
 
+const fitKinds = ["cover", "blur", "stretch"];
+
+function fitOf(t) {
+    return fitKinds.includes(t?.fit) ? t.fit : "cover";
+}
+
 // Palette role -> [fill, content on it], keys of Appearance.colors.
 const colorRoles = {
     "primary": ["colPrimary", "colOnPrimary"],

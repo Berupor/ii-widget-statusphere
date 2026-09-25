@@ -96,6 +96,43 @@ Item {
         })
     ]
 
+    // A 2x1 background against a portrait GIF, one tile per fit plus an unknown value,
+    // to pin the GIF aspect-ratio fix: cover/blur must decode the movie at its native
+    // size (no forced sourceSize), only stretch is allowed to distort it.
+    readonly property var gifFitDetail: [
+        CardLayouts.tile({
+            "type": "scalar",
+            "field": "cpu",
+            "form": "number",
+            "size": "2x1",
+            "background": root.photoBackground
+        }),
+        CardLayouts.tile({
+            "type": "scalar",
+            "field": "cpu",
+            "form": "number",
+            "size": "2x1",
+            "background": root.photoBackground,
+            "fit": "blur"
+        }),
+        CardLayouts.tile({
+            "type": "scalar",
+            "field": "cpu",
+            "form": "number",
+            "size": "2x1",
+            "background": root.photoBackground,
+            "fit": "stretch"
+        }),
+        CardLayouts.tile({
+            "type": "scalar",
+            "field": "cpu",
+            "form": "number",
+            "size": "2x1",
+            "background": root.photoBackground,
+            "fit": "sideways"
+        })
+    ]
+
     readonly property var customRow: [
         {
             "type": "scalar",
@@ -579,12 +616,30 @@ Item {
                         "row": root.pictureRow,
                         "detail": root.pictureDetail
                     }
+                },
+                {
+                    "account_id": "acc-gif-fit",
+                    "device_id": "dev-gif-fit",
+                    "device_name": "gif-fit",
+                    "account_name": "GIF Fit",
+                    "last_seen": root.now,
+                    "cpu_percent": 50,
+                    "_layout": {
+                        "updated_at": root.now,
+                        "detail": root.gifFitDetail
+                    }
                 }
             ],
             "photos": [
                 {
                     "account_id": "acc-pictures",
                     "path": root.cover("rdr2-hero.jpg"),
+                    "created_at": "2026-08-07T12:00:00Z",
+                    "expires_at": "2099-01-01T00:00:00Z"
+                },
+                {
+                    "account_id": "acc-gif-fit",
+                    "path": root.cover("test-anim.gif"),
                     "created_at": "2026-08-07T12:00:00Z",
                     "expires_at": "2099-01-01T00:00:00Z"
                 },
@@ -632,7 +687,9 @@ Item {
     }
 
     function gifArt(tile) {
-        return root.findAll(tile, it => (it.frameCount ?? 0) > 1, [])[0] ?? null;
+        // frameCount alone is not AnimatedImage-specific - Image itself reports it for a
+        // multi-frame source, which the blur backdrop loads too; playing narrows it back down.
+        return root.findAll(tile, it => (it.frameCount ?? 0) > 1 && it.playing !== undefined, [])[0] ?? null;
     }
 
     // Rotation read a second apart: a spinning cover has moved, a paused one has not
@@ -679,8 +736,20 @@ Item {
         return root.pictureTiles().find(t => pred(t.tile)) ?? null;
     }
 
+    function gifFitTiles() {
+        return root.findAll(gifFitRow, it => it.tile !== undefined && it.hasArt !== undefined && it.visible, []);
+    }
+
     function shownImages(tile) {
         return root.findAll(tile, it => it.sourceSize !== undefined && it.status !== undefined && String(it.source).length > 0, []);
+    }
+
+    function foregroundImageOf(tile) {
+        return root.shownImages(tile).find(it => it.objectName !== "pictureFitBackdrop") ?? null;
+    }
+
+    function fitBackdropOf(tile) {
+        return root.findAll(tile, it => it.objectName === "pictureFitBackdrop", [])[0] ?? null;
     }
 
     function tileArtOf(item) {
@@ -968,6 +1037,36 @@ Item {
                 "name": "row: [] leaves no gap under the header - same height as a stack with nothing to show",
                 "got": Math.abs(emptyRowProbe.implicitHeight - detailOnlyRowProbe.implicitHeight) < 1,
                 "want": true
+            },
+            {
+                "name": "a static picture's fit sets its fillMode: absent/cover crops, blur fits the whole image inside a blurred backdrop, stretch distorts on purpose",
+                "got": [["cover", coverFitProbe], ["blur", blurFitProbe], ["stretch", stretchFitProbe]].map(([label, probe]) => [label, root.foregroundImageOf(probe)?.fillMode, root.fitBackdropOf(probe)?.visible ?? false]),
+                "want": [["cover", Image.PreserveAspectCrop, false], ["blur", Image.PreserveAspectFit, true], ["stretch", Image.Stretch, false]]
+            },
+            {
+                "name": "blur fit feathers the foreground's edges into the backdrop; cover and stretch leave it unmasked",
+                "got": [["cover", coverFitProbe], ["blur", blurFitProbe], ["stretch", stretchFitProbe]].map(([label, probe]) => [label, root.foregroundImageOf(probe)?.parent?.layer.enabled ?? null]),
+                "want": [["cover", false], ["blur", true], ["stretch", false]]
+            },
+            {
+                "name": "an unknown fit value normalises to cover",
+                "got": [root.foregroundImageOf(unknownFitProbe)?.fillMode, root.fitBackdropOf(unknownFitProbe)?.visible ?? false],
+                "want": [Image.PreserveAspectCrop, false]
+            },
+            {
+                "name": "a background GIF decodes at its native size in cover and blur fit so QMovie cannot distort its proportions - stretch is the only fit that forces both sourceSize axes",
+                "got": root.gifFitTiles().map(t => [t.tile.fit ?? "cover", (root.gifArt(t)?.sourceSize.width ?? 0) > 0 && (root.gifArt(t)?.sourceSize.height ?? 0) > 0]).sort((a, b) => a[0].localeCompare(b[0])),
+                "want": [["blur", false], ["cover", false], ["sideways", false], ["stretch", true]]
+            },
+            {
+                "name": "a background GIF's fillMode and blur backdrop follow the same fit as a static picture",
+                "got": root.gifFitTiles().map(t => [t.tile.fit ?? "cover", root.gifArt(t)?.fillMode, root.fitBackdropOf(t)?.visible ?? false]).sort((a, b) => a[0].localeCompare(b[0])),
+                "want": [["blur", Image.PreserveAspectFit, true], ["cover", Image.PreserveAspectCrop, false], ["sideways", Image.PreserveAspectCrop, false], ["stretch", Image.Stretch, false]]
+            },
+            {
+                "name": "a background GIF plays in every fit - a zero sourceSize would scale QMovie's frames to nothing",
+                "got": root.gifFitTiles().map(t => [t.tile.fit ?? "cover", root.gifArt(t)?.playing ?? false]).sort((a, b) => a[0].localeCompare(b[0])),
+                "want": [["blur", true], ["cover", true], ["sideways", true], ["stretch", true]]
             }
         ];
     }
@@ -1005,6 +1104,14 @@ Item {
         x: root.framed === "pictures" ? 0 : root.width
         width: root.width
         modelData: "acc-pictures"
+        showDetails: true
+    }
+
+    PresenceRow {
+        id: gifFitRow
+        x: root.width
+        width: root.width
+        modelData: "acc-gif-fit"
         showDetails: true
     }
 
@@ -1257,6 +1364,61 @@ Item {
                 "url": root.pictureUrl,
                 "size": "2x1",
                 "shape": "Circle"
+            })
+    }
+
+    CardTile {
+        id: coverFitProbe
+        x: root.width
+        width: 200
+        height: 100
+        account: Statusphere.accountsById["acc-probe"]
+        tile: CardLayouts.tile({
+                "type": "picture",
+                "url": root.pictureUrl,
+                "size": "2x1"
+            })
+    }
+
+    CardTile {
+        id: blurFitProbe
+        x: root.width
+        width: 200
+        height: 100
+        account: Statusphere.accountsById["acc-probe"]
+        tile: CardLayouts.tile({
+                "type": "picture",
+                "url": root.pictureUrl,
+                "size": "2x1",
+                "fit": "blur"
+            })
+    }
+
+    CardTile {
+        id: stretchFitProbe
+        x: root.width
+        width: 200
+        height: 100
+        account: Statusphere.accountsById["acc-probe"]
+        tile: CardLayouts.tile({
+                "type": "picture",
+                "url": root.pictureUrl,
+                "size": "2x1",
+                "fit": "stretch"
+            })
+    }
+
+    CardTile {
+        id: unknownFitProbe
+        x: root.width
+        width: 200
+        height: 100
+        account: Statusphere.accountsById["acc-probe"]
+        tile: CardLayouts.tile({
+                "type": "picture",
+                "url": root.pictureUrl,
+                "size": "2x1",
+                "fit": "sideways"
             })
     }
 }

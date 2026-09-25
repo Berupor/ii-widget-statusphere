@@ -15,6 +15,7 @@ Rectangle {
     property bool thumbnail: false
     property bool cropped: false
     property string url: ""
+    property string fit: "cover"
     property bool settleGif: false
     property int settleSeconds: 4
 
@@ -64,6 +65,7 @@ Rectangle {
                 fallbackIcon: "image"
                 settleGif: root.settleGif
                 settleSeconds: root.settleSeconds
+                fit: root.fit
             }
         }
 
@@ -80,6 +82,7 @@ Rectangle {
             thumbnailSizeName: "x-large" // The default sizes itself off sourceSize, which is 0 before the first load
             // Panoramas get letterboxed rather than gutted; anything taller is cropped to maxHeight
             fillMode: !root.cropped && root.naturalHeight > 0 && root.naturalHeight < root.minHeight ? Image.PreserveAspectFit : Image.PreserveAspectCrop
+            fit: root.cropped ? root.fit : "cover"
         }
     }
 

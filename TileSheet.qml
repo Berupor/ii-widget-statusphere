@@ -53,6 +53,25 @@ Rectangle {
             "value": "game"
         }
     ]
+    readonly property var fitOptions: [
+        {
+            "displayName": Translation.tr("Cover"),
+            "icon": "crop",
+            "value": "cover"
+        },
+        {
+            "displayName": Translation.tr("Blur"),
+            "icon": "blur_on",
+            "value": "blur"
+        },
+        {
+            "displayName": Translation.tr("Stretch"),
+            "icon": "aspect_ratio",
+            "value": "stretch"
+        }
+    ]
+    readonly property bool showsPictureFit: root.tile?.type === "picture" || root.tile?.type === "photo"
+    readonly property bool showsBackgroundFit: !root.backgroundHidden && (root.tile?.background?.kind === "url" || root.tile?.background?.kind === "live")
     readonly property string plainBackground: "none"
     readonly property string defaultLiveBackground: CardLayouts.typeOf(root.tile)?.reads ?? "photo"
     // photo/picture tiles and fullBleed forms (music Cover, game Banner) paint their own art over any background, so the background pickers below have no visible effect on them.
@@ -339,6 +358,21 @@ Rectangle {
         }
 
         ContentSubsectionLabel {
+            visible: root.showsPictureFit
+            text: Translation.tr("Fit")
+        }
+
+        ConfigSelectionArray {
+            Layout.fillWidth: true
+            visible: root.showsPictureFit
+            currentValue: CardLayouts.fitOf(root.tile)
+            options: root.fitOptions
+            onSelected: newValue => root.editor.updateSelectedTile({
+                "fit": newValue
+            })
+        }
+
+        ContentSubsectionLabel {
             visible: kindChoice.options.length > 1
             text: Translation.tr("Kind")
         }
@@ -481,6 +515,21 @@ Rectangle {
                         "kind": "url",
                         "value": backgroundUrlField.text
                     }
+                })
+            }
+
+            ContentSubsectionLabel {
+                visible: root.showsBackgroundFit
+                text: Translation.tr("Fit")
+            }
+
+            ConfigSelectionArray {
+                Layout.fillWidth: true
+                visible: root.showsBackgroundFit
+                currentValue: CardLayouts.fitOf(root.tile)
+                options: root.fitOptions
+                onSelected: newValue => root.editor.updateSelectedTile({
+                    "fit": newValue
                 })
             }
 

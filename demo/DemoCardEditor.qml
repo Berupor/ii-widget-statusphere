@@ -120,6 +120,10 @@ Item {
         return root.first(root.sheet, it => it.visible && it.placeholderText === "Picture URL, https://");
     }
 
+    function pictureFitPicker() {
+        return root.first(root.sheet, it => it.visible && it.selected !== undefined && it.options?.some(o => o.value === "blur"));
+    }
+
     function commitText(field, text) {
         field.text = text;
         field.editingFinished();
@@ -414,6 +418,8 @@ Item {
                 root.note("pictureAdded", root.editor.editDetail.map(t => t.type));
                 root.note("pictureSheetTexts", root.visibleTexts(root.sheet));
                 root.commitText(root.pictureUrlField(), root.pictureUrl);
+                root.note("pictureFitShown", root.pictureFitPicker() !== null);
+                root.pictureFitPicker().selected("blur");
             }
         }
         PauseAnimation {
@@ -684,6 +690,16 @@ Item {
                 "name": "a URL typed into a picture's sheet is autosaved on the tile",
                 "got": (s.layoutAfterPicture?.detail ?? []).map(t => [t.type, t.url]),
                 "want": [["picture", root.pictureUrl]]
+            },
+            {
+                "name": "a picture tile's sheet shows the Fit picker",
+                "got": s.pictureFitShown,
+                "want": true
+            },
+            {
+                "name": "picking Blur on a picture's sheet is autosaved together with its url",
+                "got": (s.layoutAfterPicture?.detail ?? []).map(t => [t.type, t.url, t.fit]),
+                "want": [["picture", root.pictureUrl, "blur"]]
             },
             {
                 "name": "a photo background can be picked in the sheet with every shape",

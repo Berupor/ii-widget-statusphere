@@ -51,7 +51,7 @@ Item {
 
     readonly property var colorKeys: CardLayouts.colorKeysOf(root.tile.color)
     readonly property color tint: Appearance.colors[root.colorKeys[0]]
-    readonly property color contentColor: Appearance.colors[root.colorKeys[1]]
+    readonly property color contentColor: root.backgroundSource.length > 0 ? "white" : Appearance.colors[root.colorKeys[1]]
     readonly property color mutedContentColor: ColorUtils.transparentize(root.contentColor, 0.35)
 
     Behavior on opacity {
@@ -83,6 +83,7 @@ Item {
     }
 
     readonly property bool shaped: !root.fullBleed && root.resolvedShape !== "default"
+    readonly property string fit: CardLayouts.fitOf(root.tile)
 
     Rectangle {
         id: silhouette
@@ -170,6 +171,7 @@ Item {
             sourceComponent: LocalPicture {
                 sourcePath: root.backgroundSource
                 fillMode: Image.PreserveAspectCrop
+                fit: root.fit
                 playing: root.animating
             }
         }
@@ -182,6 +184,7 @@ Item {
                 source: root.backgroundSource
                 fallbackIcon: root.liveBackground === "music" ? "music_note" : root.liveBackground === "game" ? "sports_esports" : "image"
                 playing: root.animating
+                fit: root.fit
                 settleGif: Statusphere.opt("pauseGifs") && root.tile.background?.kind === "url"
                 settleSeconds: Statusphere.opt("gifPauseSeconds")
             }
@@ -197,6 +200,7 @@ Item {
                 url: root.type?.art === "picture" ? CardLayouts.pictureUrlOf(root.tile) : ""
                 thumbnail: root.thumbnail
                 cropped: true
+                fit: root.fit
                 settleGif: Statusphere.opt("pauseGifs")
                 settleSeconds: Statusphere.opt("gifPauseSeconds")
             }

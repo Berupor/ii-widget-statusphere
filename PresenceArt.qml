@@ -14,8 +14,11 @@ Rectangle {
     property list<string> fallbacks: []
     property string fallbackIcon: "music_note"
     property int fillMode: Image.PreserveAspectCrop
+    property string fit: "cover"
     property int horizontalAlignment: Image.AlignHCenter
     property int verticalAlignment: Image.AlignVCenter
+
+    readonly property int effectiveFillMode: root.fit === "stretch" ? Image.Stretch : root.fit === "blur" ? Image.PreserveAspectFit : root.fillMode
 
     radius: Appearance.rounding.small
     color: Appearance.colors.colLayer1
@@ -24,7 +27,7 @@ Rectangle {
     property bool settleGif: false
     property int settleSeconds: 4
     readonly property int status: image.item?.status ?? Image.Null
-    readonly property real heightPerWidth: (image.item?.implicitWidth ?? 0) > 0 ? image.item.implicitHeight / image.item.implicitWidth : 0
+    readonly property real heightPerWidth: (image.item?.implicitWidth ?? 0) > 0 ? image.item.implicitHeight / image.item.implicitWidth : -1
 
     property string cacheFilePath: root.source.length > 0 ? `${Directories.coverArt}/${Qt.md5(root.source)}` : ""
     property bool downloaded: false
@@ -83,17 +86,53 @@ head -c4 "$target" 2>/dev/null
         }
     }
 
+    Item {
+        id: blurBackdrop
+        objectName: "pictureFitBackdrop"
+        // layer.enabled hides its own source item to show the blurred copy in its place -
+        // binding that item's own visible would fight that, so the fit switch lives here.
+        visible: root.fit === "blur"
+        anchors.fill: parent
+
+        Image {
+            objectName: "pictureFitBackdrop"
+            anchors.fill: parent
+            asynchronous: true
+            cache: false
+            source: root.fit === "blur" ? root.resolvedSource : ""
+            fillMode: Image.PreserveAspectCrop
+            sourceSize.width: 64
+            sourceSize.height: 64
+
+            layer.enabled: true
+            layer.effect: FastBlur {
+                radius: 48
+            }
+        }
+    }
+
     Loader {
         id: image
         anchors.fill: parent
         sourceComponent: root.isGif ? animatedArt : staticArt
 
-        layer.enabled: root.radius > 0
+        layer.enabled: root.radius > 0 || root.fit === "blur"
         layer.effect: OpacityMask {
             maskSource: Rectangle {
                 width: image.width
                 height: image.height
                 radius: root.radius
+
+                layer.enabled: root.fit === "blur"
+                layer.effect: OpacityMask {
+                    maskSource: PictureFitFeatherMask {
+                        objectName: "pictureFitFeather"
+                        width: image.width
+                        height: image.height
+                        paintedWidth: image.item?.paintedWidth ?? image.width
+                        paintedHeight: image.item?.paintedHeight ?? image.height
+                    }
+                }
             }
         }
     }
@@ -102,7 +141,7 @@ head -c4 "$target" 2>/dev/null
         id: staticArt
         StyledImage {
             source: root.resolvedSource
-            fillMode: root.fillMode
+            fillMode: root.effectiveFillMode
             horizontalAlignment: root.horizontalAlignment
             verticalAlignment: root.verticalAlignment
             sourceSize.width: root.pixelWidth
@@ -116,16 +155,19 @@ head -c4 "$target" 2>/dev/null
         AnimatedImage {
             id: gif
             asynchronous: true
-            opacity: status === Image.Ready ? 1 : 0
+            opacity: status === Image.Ready ? 1 : -1
             Behavior on opacity {
                 animation: Appearance.animation.elementMoveEnter.numberAnimation.createObject(this)
             }
             source: root.resolvedSource
-            fillMode: root.fillMode
+            fillMode: root.effectiveFillMode
             horizontalAlignment: root.horizontalAlignment
             verticalAlignment: root.verticalAlignment
-            sourceSize.width: root.pixelWidth
-            sourceSize.height: root.pixelHeight
+            // QMovie's scaledSize has no partial-axis aspect-preserving mode the way
+            // Image.sourceSize does - leaving both unset decodes at native size so cover/blur
+            // keep proportions, and stretch is the only mode that forces them.
+            sourceSize.width: root.fit === "stretch" ? root.pixelWidth : -1
+            sourceSize.height: root.fit === "stretch" ? root.pixelHeight : -1
             cache: true
             playing: root.playing
 
