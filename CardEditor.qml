@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Window
 import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
@@ -171,6 +172,26 @@ ColumnLayout {
             samples[Templates.fieldKeyOfKind(kind)] = Translation.tr(kind.sample);
         const device = root.withValues(Object.assign({}, root.demoDevice, root.ownerAccount?.primary ?? {}), samples);
         return root.accountWith(device, Statusphere.currentPhotoFor(root.ownerAccount) ?? root.demoPhoto);
+    }
+
+    readonly property var cyclingKinds: Templates.kinds.filter(k => Array.isArray(k.samples) && k.samples.length > 1)
+    property int gallerySamplePhase: 0
+
+    function advanceGallerySamples() {
+        if (root.cyclingKinds.length === 0 || !root.galleryAccount)
+            return;
+        root.gallerySamplePhase += 1;
+        const samples = {};
+        for (const kind of root.cyclingKinds)
+            samples[Templates.fieldKeyOfKind(kind)] = kind.samples[root.gallerySamplePhase % kind.samples.length];
+        root.galleryAccount = root.accountWith(root.withValues(root.galleryAccount.primary, samples), root.galleryAccount._photo);
+    }
+
+    Timer {
+        interval: 2500
+        repeat: true
+        running: root.galleryOpen && root.cyclingKinds.length > 0 && root.Window.visibility !== Window.Hidden
+        onTriggered: root.advanceGallerySamples()
     }
 
     function uniqueFieldKey(base, except) {
@@ -649,6 +670,28 @@ ColumnLayout {
                                 transformOrigin: Item.TopLeft
                                 account: root.galleryAccount
                                 tile: CardLayouts.tile(galleryCard.modelData.tile)
+                            }
+
+                            Rectangle {
+                                id: betaPill
+                                visible: galleryCard.modelData.beta === true
+                                anchors.top: parent.top
+                                anchors.right: parent.right
+                                anchors.margins: 4
+                                scale: gallery.entryScale
+                                transformOrigin: Item.TopRight
+                                radius: height / 2
+                                color: Appearance.colors.colTertiary
+                                implicitWidth: betaLabel.implicitWidth + 8
+                                implicitHeight: betaLabel.implicitHeight + 3
+
+                                StyledText {
+                                    id: betaLabel
+                                    anchors.centerIn: parent
+                                    text: Translation.tr("beta")
+                                    font.pixelSize: Appearance.font.pixelSize.smallest
+                                    color: Appearance.colors.colOnTertiary
+                                }
                             }
 
                             StyledText {
