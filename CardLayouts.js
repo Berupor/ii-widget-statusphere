@@ -44,6 +44,12 @@ const tileTypes = {
                 "file": "TileWeather.qml",
                 "autoShape": weatherShape
             },
+            "weatherLive": {
+                "label": "Live weather",
+                "file": "TileWeatherLive.qml",
+                "autoShape": weatherLiveShape,
+                "sky": true
+            },
             "moon": {
                 "label": "Moon",
                 "file": "TileSticker.qml"
@@ -155,6 +161,99 @@ function weatherShape(value) {
     if (/clear|sun/.test(v))
         return "Sunny";
     return "Circle";
+}
+
+// Keep in sync with Templates.weatherJqFilter.
+const weatherCompactPattern = /^(-?\d+);(\d+);(\d+(?:\.\d+)?);(\d+(?:\.\d+)?);(\d+(?:\.\d+)?);([01]);(.*)$/;
+
+function weatherFieldsOf(value) {
+    const m = weatherCompactPattern.exec(String(value));
+    if (!m)
+        return null;
+    return {
+        "temp": parseInt(m[1], 10),
+        "code": parseInt(m[2], 10),
+        "precipMM": parseFloat(m[3]),
+        "windKmph": parseFloat(m[4]),
+        "windDirDeg": parseFloat(m[5]),
+        "isDay": m[6] === "1",
+        "city": m[7]
+    };
+}
+
+// wttr.in's weatherCode -> condition, https://www.worldweatheronline.com/weather-api/api/docs/weather-icons.aspx
+const weatherConditionByCode = {
+    113: "clear",
+    116: "clouds",
+    119: "clouds",
+    122: "clouds",
+    143: "fog",
+    176: "rain",
+    179: "snow",
+    182: "snow",
+    185: "snow",
+    200: "thunder",
+    227: "snow",
+    230: "snow",
+    248: "fog",
+    260: "fog",
+    263: "rain",
+    266: "rain",
+    281: "rain",
+    284: "rain",
+    293: "rain",
+    296: "rain",
+    299: "rain",
+    302: "rain",
+    305: "rain",
+    308: "rain",
+    311: "rain",
+    314: "rain",
+    317: "snow",
+    320: "snow",
+    323: "snow",
+    326: "snow",
+    329: "snow",
+    332: "snow",
+    335: "snow",
+    338: "snow",
+    350: "snow",
+    353: "rain",
+    356: "rain",
+    359: "rain",
+    362: "snow",
+    365: "snow",
+    368: "snow",
+    371: "snow",
+    374: "snow",
+    377: "snow",
+    386: "thunder",
+    389: "thunder",
+    392: "thunder",
+    395: "thunder"
+};
+
+function weatherConditionOf(value) {
+    return weatherConditionByCode[weatherFieldsOf(value)?.code] ?? null;
+}
+
+function weatherLiveShape(value) {
+    const condition = weatherConditionOf(value);
+    switch (condition) {
+    case "thunder":
+        return "SoftBurst";
+    case "snow":
+        return "Cookie9Sided";
+    case "rain":
+    case "clouds":
+        return "Cookie6Sided";
+    case "fog":
+        return "Pill";
+    case "clear":
+        return (weatherFieldsOf(value)?.isDay ?? true) ? "Sunny" : "Circle";
+    default:
+        return "Circle";
+    }
 }
 
 // Names out of MaterialShape.Shape; "default" is the rounded rect, "auto" defers to the form.

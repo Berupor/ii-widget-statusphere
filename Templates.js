@@ -37,6 +37,13 @@ const clockCmd = "date +%H:%M";
 const batteryCmd = "printf '%s%%' \"$(cat /sys/class/power_supply/BAT*/capacity | head -n1)\"";
 const defaultCommandRepeat = 60;
 
+// weatherLive's cmdFor line out of wttr.in's ?format=j1: temp C, weatherCode, precipMM,
+// windspeedKmph, winddirDegree, is-day (local clock against the clock tile's own day
+// window), city - CardLayouts.weatherFieldsOf/weatherConditionOf are the other end.
+const weatherJqFilter = '.current_condition[0] as $c | (.nearest_area[0].areaName[0].value // "") as $city | [$c.temp_C, $c.weatherCode, $c.precipMM, $c.windspeedKmph, $c.winddirDegree, (if (now|localtime|strftime("%H")|tonumber) >= 6 and (now|localtime|strftime("%H")|tonumber) < 19 then "1" else "0" end), $city] | join(";")';
+
+const weatherLiveSamples = ["22;113;0;6;180;1;Munich", "15;119;0;10;200;1;Munich", "13;302;3;15;220;1;Munich", "24;389;5;20;90;1;Munich", "-2;332;2;12;320;1;Munich", "7;248;0;3;0;1;Munich", "9;113;0;5;180;0;Munich"];
+
 const kinds = [
     {
         "id": "weather",
@@ -53,6 +60,24 @@ const kinds = [
             "color": "primaryContainer"
         },
         "cmdFor": city => `curl -sf ${shQuote(`wttr.in/${encodeURIComponent(city.trim())}?format=%t+·+%C`)}`
+    },
+    {
+        "id": "weatherLive",
+        "label": "Live weather",
+        "beta": true,
+        "icon": "partly_cloudy_day",
+        "ask": "City",
+        "hint": "City, blank for where you are",
+        "sample": weatherLiveSamples[0],
+        "samples": weatherLiveSamples,
+        "repeat": 900,
+        "tile": {
+            "form": "weatherLive",
+            "shape": "auto",
+            "size": "1x1",
+            "color": "primaryContainer"
+        },
+        "cmdFor": city => `curl -sf ${shQuote(`wttr.in/${encodeURIComponent(city.trim())}?format=j1`)} | jq -r ${shQuote(weatherJqFilter)}`
     },
     {
         "id": "clock",
@@ -190,6 +215,7 @@ function galleryEntryFor(id) {
     return {
         "id": k.id,
         "label": k.label,
+        "beta": k.beta === true,
         "ownerKind": k.id,
         "tile": Object.assign({
             "type": "scalar",
@@ -202,7 +228,7 @@ const galleryGroups = [
     {
         "title": "Live",
         "startsOpen": true,
-        "entries": ["weather", "clock", "moon", "sun", "commits", "battery"].map(galleryEntryFor)
+        "entries": ["weather", "weatherLive", "clock", "moon", "sun", "commits", "battery"].map(galleryEntryFor)
     },
     {
         "title": "Your own",

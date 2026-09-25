@@ -104,13 +104,14 @@ Item {
     readonly property bool showsPhotoArt: (root.type?.art ?? "") !== ""
     readonly property real artScrimOpacity: 0.6
     readonly property bool hasArt: root.showsPhotoArt || root.backgroundSource.length > 0
+    readonly property bool showsSky: root.form.sky === true
 
     Loader {
         id: artMask
         objectName: "tileArtMask"
         anchors.fill: parent
         visible: false
-        active: root.hasArt
+        active: root.hasArt || root.showsSky
         sourceComponent: root.resolvedShape === "default" ? roundedArtMask : shapedArtMask
     }
 
@@ -181,6 +182,26 @@ Item {
             anchors.fill: parent
             color: Appearance.colors.colScrim
             opacity: root.artScrimOpacity
+        }
+    }
+
+    Loader {
+        id: weatherSky
+        objectName: "tileWeatherSky"
+        anchors.fill: parent
+        active: root.showsSky
+        visible: active
+
+        layer.enabled: root.showsSky
+        layer.effect: OpacityMask {
+            maskSource: artMask
+        }
+
+        sourceComponent: WeatherSky {
+            value: root.valueText
+            tint: root.tint
+            contentColor: root.contentColor
+            running: root.animating
         }
     }
 
