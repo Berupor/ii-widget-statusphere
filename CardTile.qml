@@ -15,6 +15,7 @@ Item {
     // A pack preview squeezes a surface into ~20px cells with no room for text -
     // it shows only the tile's silhouette, colour and any cover/banner/photo art.
     property bool thumbnail: false
+    property real skyAnimPhase: -1
 
     readonly property var type: CardLayouts.typeOf(root.tile)
     readonly property var form: CardLayouts.formOf(root.tile)
@@ -232,6 +233,7 @@ Item {
             tint: root.tint
             contentColor: root.contentColor
             running: root.animating
+            animPhase: root.skyAnimPhase
         }
     }
 

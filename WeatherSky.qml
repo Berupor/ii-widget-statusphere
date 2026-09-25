@@ -11,6 +11,9 @@ Item {
     required property color tint
     required property color contentColor
     required property bool running
+    // -1 leaves the rain on its own wall-clock loop; set to pin every drop to that
+    // many elapsed ms, for a frame that must render the same on every run.
+    property real animPhase: -1
 
     // No tile span reaches this sibling of TileWeatherLive, so the 2x1 layout is read
     // back off the rendered aspect ratio instead - keep sceneStart's fraction matching
@@ -322,23 +325,24 @@ Item {
                 readonly property real travelX: (sky.height + 2 * drop.height) * Math.tan(sky.windTilt * Math.PI / 180)
                 readonly property var spawnRange: sky.driftSpawnRange(drop.travelX, sky.width)
                 readonly property real startX: drop.spawnRange.min + sky.hash(drop.index + 3) * (drop.spawnRange.max - drop.spawnRange.min)
+                readonly property real pinnedProgress: (sky.animPhase % drop.fallDuration) / drop.fallDuration
                 width: 2
                 height: sky.height * (0.16 + sky.hash(drop.index) * 0.14)
                 radius: width / 2
                 color: sky.rainColor
                 rotation: -sky.windTilt
-                x: drop.startX
-                y: -drop.height
+                x: sky.animPhase >= 0 ? drop.startX + drop.travelX * drop.pinnedProgress : drop.startX
+                y: sky.animPhase >= 0 ? -drop.height + (sky.height + 2 * drop.height) * drop.pinnedProgress : -drop.height
 
                 NumberAnimation on y {
-                    running: sky.running && sky.showsRain
+                    running: sky.running && sky.showsRain && sky.animPhase < 0
                     from: -drop.height
                     to: sky.height + drop.height
                     duration: drop.fallDuration
                     loops: Animation.Infinite
                 }
                 NumberAnimation on x {
-                    running: sky.running && sky.showsRain
+                    running: sky.running && sky.showsRain && sky.animPhase < 0
                     from: drop.startX
                     to: drop.startX + drop.travelX
                     duration: drop.fallDuration
