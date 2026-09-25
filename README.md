@@ -35,7 +35,7 @@ through the same `ingest` the cli talks to.
 
 <p align="center">
 <img src="docs/weather.gif" width="700"><br>
-<sub>The same live tiles, moving: the sun runs its arc through sunset, past it into night with the moon, and back round to noon, rain keeps falling</sub>
+<sub>The same live tiles, moving: the sun runs its arc through sunset, past it into night with the moon, and back round to noon, a thunderstorm rains and flashes</sub>
 </p>
 
 ## Install

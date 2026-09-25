@@ -11,8 +11,9 @@ Item {
     required property color tint
     required property color contentColor
     required property bool running
-    // -1 leaves the rain on its own wall-clock loop; set to pin every drop to that
-    // many elapsed ms, for a frame that must render the same on every run.
+    // -1 leaves the rain and lightning on their own wall-clock loops; set to pin every
+    // drop and strike to that many elapsed ms, for a frame that must render the same on
+    // every run.
     property real animPhase: -1
 
     // No tile span reaches this sibling of TileWeatherLive, so the 2x1 layout is read
@@ -79,6 +80,30 @@ Item {
     function hash(n) {
         const v = Math.sin(n * 12.9898) * 43758.5453;
         return v - Math.floor(v);
+    }
+
+    readonly property int firstStrikeMs: 900
+    readonly property int flashRiseMs: 70
+    readonly property int flashFallMs: 220
+    readonly property real flashPeak: 0.5
+
+    function strikeGapMs(strike) {
+        return 1800 + sky.hash(strike) * 3000;
+    }
+
+    function pinnedFlashOpacity(phase) {
+        let strikeAt = sky.firstStrikeMs;
+        let strike = 1;
+        while (strikeAt + sky.strikeGapMs(strike) <= phase) {
+            strikeAt += sky.strikeGapMs(strike);
+            strike += 1;
+        }
+        const sinceStrike = phase - strikeAt;
+        if (sinceStrike < 0)
+            return 0;
+        if (sinceStrike < sky.flashRiseMs)
+            return sky.flashPeak * sinceStrike / sky.flashRiseMs;
+        return sky.flashPeak * Math.max(0, 1 - (sinceStrike - sky.flashRiseMs) / sky.flashFallMs);
     }
 
     function arcProgress(pos, start, end) {
@@ -451,7 +476,7 @@ Item {
                     }
 
                     SequentialAnimation on x {
-                        running: sky.running && sky.showsClouds
+                        running: sky.running && sky.showsClouds && sky.animPhase < 0
                         loops: Animation.Infinite
                         NumberAnimation {
                             to: cloud.baseX + sky.width * (0.1 + sky.windKmph * 0.003)
@@ -521,7 +546,7 @@ Item {
         anchors.fill: parent
         color: sky.flashColor
         gradient: sky.wide ? flashGradient : null
-        opacity: 0
+        opacity: sky.showsThunder && sky.animPhase >= 0 ? sky.pinnedFlashOpacity(sky.animPhase) : 0
 
         Gradient {
             id: flashGradient
@@ -541,27 +566,27 @@ Item {
             NumberAnimation {
                 target: flash
                 property: "opacity"
-                to: 0.5
-                duration: 70
+                to: sky.flashPeak
+                duration: sky.flashRiseMs
             }
             NumberAnimation {
                 target: flash
                 property: "opacity"
                 to: 0
-                duration: 220
+                duration: sky.flashFallMs
             }
         }
 
         Timer {
             id: flashTimer
             property int strikes: 0
-            interval: 900
-            running: sky.running && sky.showsThunder
+            interval: sky.firstStrikeMs
+            running: sky.running && sky.showsThunder && sky.animPhase < 0
             repeat: true
             onTriggered: {
                 flashPulse.restart();
                 flashTimer.strikes += 1;
-                flashTimer.interval = 1800 + sky.hash(flashTimer.strikes) * 3000;
+                flashTimer.interval = sky.strikeGapMs(flashTimer.strikes);
             }
         }
     }

@@ -1,7 +1,7 @@
 //@ probe statusphere -g 960x900 -s 2500
 /**
  * The README hero: five friends, each a different shape of the same room -
- * a night owl (clock, window, moon), a music head (spinning vinyl), a
+ * a night owl (clock over a GIF, window, moon), a music head (spinning vinyl), a
  * traveler (a shared photo next to a live weather tile, sun over Barcelona),
  * a coder (cpu ring, workspace number) and a friend just playing a game,
  * cover art and all, on the built-in row nobody had to design. Rows stay
@@ -33,7 +33,17 @@ Item {
                     "active_app": "mpv",
                     "_layout": {
                         "updated_at": root.now,
-                        "row": CardLayouts.packs.row.nightOwl
+                        "row": [
+                            Object.assign({}, CardLayouts.packs.row.nightOwl[0], {
+                                "shape": "default",
+                                "background": {
+                                    "kind": "url",
+                                    "value": root.cover("death-note-l.gif")
+                                }
+                            }),
+                            CardLayouts.packs.row.nightOwl[1],
+                            CardLayouts.packs.row.nightOwl[2]
+                        ]
                     },
                     "custom_fields": ["local_time", "moon"],
                     "local_time": "03:12",

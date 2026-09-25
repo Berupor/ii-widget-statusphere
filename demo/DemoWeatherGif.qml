@@ -1,10 +1,10 @@
 //@ probe statusphere -g 800x220 -s 1500
 /**
  * Frame source for docs/weather.gif (tests/widget-gif.sh): a sun tile and a
- * rain tile, side by side. `frame` (set via -p after load) drives both:
- * nowMin loops once around the clock over totalFrames, and rainPhase steps
- * WeatherSky's rain through CardTile's skyAnimPhase hook - a plain data
- * change either way, so the same frame always renders the same picture.
+ * thunderstorm tile, side by side. `frame` (set via -p after load) drives both:
+ * nowMin loops once around the clock over totalFrames, and skyPhase steps
+ * WeatherSky's rain and lightning through CardTile's skyAnimPhase hook - a plain
+ * data change either way, so the same frame always renders the same picture.
  */
 import ".."
 import "../CardLayouts.js" as CardLayouts
@@ -19,8 +19,8 @@ Item {
     readonly property int sunriseMin: 390
     readonly property int sunsetMin: 1170
     readonly property int nowMin: Math.round(720 + root.frame * 1440 / root.totalFrames) % 1440
-    readonly property real rainStepMs: 90
-    readonly property real rainPhase: root.frame * root.rainStepMs
+    readonly property real skyStepMs: 90
+    readonly property real skyPhase: root.frame * root.skyStepMs
 
     function weatherValue(temp, code, precip, wind, windDir, nowMin, moonIllum, moonPhase, city) {
         const isDay = nowMin >= root.sunriseMin && nowMin < root.sunsetMin ? 1 : 0;
@@ -42,12 +42,12 @@ Item {
         });
     }
 
-    readonly property var wallTiles: [root.wallTile("arc", "tertiaryContainer"), root.wallTile("rain", "secondaryContainer")]
+    readonly property var wallTiles: [root.wallTile("arc", "tertiaryContainer"), root.wallTile("thunder", "primaryContainer")]
 
     function ingestNow() {
         const fields = {
             "arc": root.weatherValue(18, 113, 0, 6, 180, root.nowMin, 70, "Waxing Gibbous", "Berlin"),
-            "rain": root.weatherValue(14, 302, 3.5, 18, 230, 720, 50, "First Quarter", "Seattle")
+            "thunder": root.weatherValue(7, 389, 6, 22, 230, 720, 50, "First Quarter", "Bergen")
         };
         Statusphere.ingest(JSON.stringify({
             "members": [
@@ -99,7 +99,7 @@ Item {
                 height: root.tileUnit
                 account: Statusphere.accountsById["acc-weather"]
                 tile: tileItem.modelData
-                skyAnimPhase: root.rainPhase
+                skyAnimPhase: root.skyPhase
             }
         }
     }
