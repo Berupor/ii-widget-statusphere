@@ -11,6 +11,7 @@ import ".."
 import "../CardLayouts.js" as CardLayouts
 import "../Templates.js" as Templates
 import qs.modules.common
+import qs.modules.widgets
 import Quickshell.Io
 import QtQuick
 
@@ -36,6 +37,17 @@ Item {
     readonly property var handEditedWeather: ({
             "cmd": "curl -sf 'wttr.in/Tokyo?format=3'",
             "repeat_seconds": 3600
+        })
+    readonly property string weatherLiveStaleField: "weather_live_stale"
+    readonly property string weatherLiveStaleAnswer: "Astana"
+    readonly property var weatherLiveStaleEntry: ({
+            "cmd": "curl -sf 'wttr.in/Astana?format=j1'",
+            "repeat_seconds": 900
+        })
+    readonly property string commandOwnedField: "uptime_owned"
+    readonly property var commandOwnedEntry: ({
+            "cmd": "uptime -p",
+            "repeat_seconds": 60
         })
     readonly property int slowestWeatherRefresh: 600
     readonly property string weatherLiveField: "live_weather"
@@ -243,11 +255,36 @@ Item {
         }));
         customView.setText(JSON.stringify({
             [root.handField]: root.handEntry,
-            [root.legacyField]: root.legacyEntry
+            [root.legacyField]: root.legacyEntry,
+            [root.weatherLiveStaleField]: root.weatherLiveStaleEntry,
+            [root.commandOwnedField]: root.commandOwnedEntry
         }));
+        root.seedOwnedFields();
         Statusphere.ingest(JSON.stringify(root.selfRoom));
         Statusphere.selfAccountId = "acc-owner";
         timeline.start();
+    }
+
+    // A field's kind lives in WidgetsStore, keyed by widget id - the same spot a real
+    // upgrade would carry an owner's pre-existing kind/answer pairs across. WidgetsStore's
+    // own FileView can still be loading a previous run's leftover state when this scene
+    // starts, so callers restate this once that settles rather than trusting a single call.
+    function seedOwnedFields() {
+        WidgetsStore.data = Object.assign({}, WidgetsStore.data, {
+            "options": Object.assign({}, WidgetsStore.data.options, {
+                "statusphere": Object.assign({}, WidgetsStore.data.options?.statusphere, {
+                    "editorOwnedFields": {
+                        [root.weatherLiveStaleField]: {
+                            "kind": "weatherLive",
+                            "answer": root.weatherLiveStaleAnswer
+                        },
+                        [root.commandOwnedField]: {
+                            "kind": "command"
+                        }
+                    }
+                })
+            })
+        });
     }
 
     SequentialAnimation {
@@ -282,6 +319,21 @@ Item {
         }
         ScriptAction {
             script: {
+                // WidgetsStore's own FileView can still be settling from a prior run's
+                // leftover disk state at this point, so restate the seed and force a
+                // fresh load before reading it back.
+                root.seedOwnedFields();
+                root.editor.store.customFile.reload();
+            }
+        }
+        PauseAnimation {
+            duration: 200
+        }
+        ScriptAction {
+            script: {
+                root.note("staleWeatherLiveCmd", root.editor.customEntries[root.weatherLiveStaleField]?.cmd ?? null);
+                root.note("staleWeatherLiveKind", root.editor.shownKindFor(root.weatherLiveStaleField));
+                root.note("ownedCommandCmd", root.editor.customEntries[root.commandOwnedField]?.cmd ?? null);
                 root.editor.selectTile(root.tileIndex(root.handField));
                 root.note("handKind", root.sheet.kindId);
                 root.note("handAnswer", root.answerField()?.text ?? null);
@@ -662,6 +714,21 @@ Item {
                 "want": "command"
             },
             {
+                "name": "a template's changed cmdFor rewrites a stale stored cmd at load",
+                "got": s.staleWeatherLiveCmd,
+                "want": Templates.kind("weatherLive").cmdFor(root.weatherLiveStaleAnswer)
+            },
+            {
+                "name": "the rebuilt cmd is recognized back as its own kind, not raw command",
+                "got": s.staleWeatherLiveKind,
+                "want": "weatherLive"
+            },
+            {
+                "name": "an owned command-kind entry keeps its cmd untouched at load",
+                "got": s.ownedCommandCmd,
+                "want": root.commandOwnedEntry.cmd
+            },
+            {
                 "name": "a hand-written command shows its cmd, not an empty field",
                 "got": s.handAnswer,
                 "want": "uptime -p"
@@ -782,9 +849,9 @@ Item {
                 "want": root.handEntry
             },
             {
-                "name": "a Weather entry edited by hand shows as Your command with the edited cmd",
+                "name": "reloading rebuilds a hand-edited cmd back to its owned kind's command",
                 "got": s.handEditedWeather,
-                "want": ["command", root.handEditedWeather.cmd]
+                "want": ["weather", "Tokyo"]
             },
             {
                 "name": "every template's refresh is one of the sheet's refresh choices",

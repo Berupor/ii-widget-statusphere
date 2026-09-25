@@ -3,6 +3,7 @@ import Quickshell.Io
 import qs.modules.common
 import qs.modules.widgets
 import "CardLayouts.js" as CardLayouts
+import "Templates.js" as Templates
 
 QtObject {
     id: root
@@ -143,12 +144,42 @@ QtObject {
     function loadEntries() {
         if (root.customPending)
             return;
+        let entries;
         try {
             const raw = JSON.parse(customFile.text());
-            root.entries = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+            entries = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
         } catch (e) {
-            root.entries = {};
+            entries = {};
         }
+        const rebuilt = root.withRebuiltCmds(entries);
+        root.entries = rebuilt;
+        if (rebuilt !== entries)
+            root.markCustomChanged();
+    }
+
+    // A template's cmdFor can change between releases (e.g. weatherLive's jq filter),
+    // leaving entries with a cmd that no longer matches their kind and answer. Rebuild
+    // it here so the running command and the editor's kind match up again.
+    function withRebuiltCmds(entries) {
+        let changed = false;
+        const rebuilt = Object.assign({}, entries);
+        for (const [key, stored] of Object.entries(root.fieldKinds)) {
+            const entry = rebuilt[key];
+            const kind = Templates.kind(stored?.kind);
+            if (!entry || !kind?.cmdFor)
+                continue;
+            const answer = stored.answer ?? "";
+            if (kind.needsAnswer && !answer.trim())
+                continue;
+            const cmd = kind.cmdFor(answer);
+            if (cmd && cmd !== entry.cmd) {
+                rebuilt[key] = Object.assign({}, entry, {
+                    cmd
+                });
+                changed = true;
+            }
+        }
+        return changed ? rebuilt : entries;
     }
 
     Component.onDestruction: root.flush()
