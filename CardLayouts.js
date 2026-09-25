@@ -111,6 +111,30 @@ const tileTypes = {
         },
         "hasData": (data, account) => data.videoDevices(account).length > 0
     },
+    "alarm": {
+        "label": "Alarm",
+        "reads": "alarm",
+        "defaultForm": "clock",
+        "forms": {
+            "clock": {
+                "label": "Clock",
+                "file": "TileAlarm.qml"
+            }
+        },
+        "hasData": (data, account) => data.alarmDevices(account).length > 0
+    },
+    "meeting": {
+        "label": "Meeting",
+        "reads": "meeting",
+        "defaultForm": "banner",
+        "forms": {
+            "banner": {
+                "label": "Banner",
+                "file": "TileMeeting.qml"
+            }
+        },
+        "hasData": (data, account) => data.meetingDevices(account).length > 0
+    },
     "photo": {
         "label": "Photo",
         "art": "photo",

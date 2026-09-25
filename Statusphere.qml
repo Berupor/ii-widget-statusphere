@@ -483,6 +483,32 @@ Singleton {
         });
     }
 
+    function alarmDevices(account): var {
+        const seen = new Set();
+        return (account?.devices ?? []).filter(d => {
+            if (d.alarm_at === undefined)
+                return false;
+            const key = String(d.alarm_at);
+            if (seen.has(key))
+                return false;
+            seen.add(key);
+            return true;
+        });
+    }
+
+    function meetingDevices(account): var {
+        const seen = new Set();
+        return (account?.devices ?? []).filter(d => {
+            if (d.meeting_until === undefined)
+                return false;
+            const key = String(d.meeting_until);
+            if (seen.has(key))
+                return false;
+            seen.add(key);
+            return true;
+        });
+    }
+
     // The photo badge's vocabulary - Now, 5m, 2h, and a day count once a full day has
     // elapsed. Elapsed, not calendar-day: a session started 13 minutes ago at 23:58
     // reads "13m", not "Yesterday", so it never depends on when the clock is read.

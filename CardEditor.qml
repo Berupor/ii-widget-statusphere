@@ -66,6 +66,8 @@ ColumnLayout {
             "video_channel": "Fireship",
             "video_position": 40,
             "video_length": 160,
+            "alarm_at": Math.floor(Date.now() / 1000) + 3600,
+            "meeting_until": Math.floor(Date.now() / 1000) + 900,
             "custom_fields": Object.keys(root.packSamples).concat(["local_time", "weather", "moon", "sun"]),
             "local_time": "23:14",
             "weather": "18° · Clear",
