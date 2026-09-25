@@ -99,6 +99,18 @@ const tileTypes = {
         },
         "hasData": (data, account) => data.gameDevices(account).length > 0
     },
+    "video": {
+        "label": "Video",
+        "reads": "video",
+        "defaultForm": "player",
+        "forms": {
+            "player": {
+                "label": "Player",
+                "file": "TileVideo.qml"
+            }
+        },
+        "hasData": (data, account) => data.videoDevices(account).length > 0
+    },
     "photo": {
         "label": "Photo",
         "art": "photo",

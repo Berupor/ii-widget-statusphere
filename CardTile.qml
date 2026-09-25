@@ -25,6 +25,7 @@ Item {
     readonly property var device: Statusphere.deviceForTile(root.account, root.tile)
     readonly property string liveBackground: root.tile.background?.kind === "live" ? (root.tile.background?.value ?? "") : ""
     readonly property var musicDevice: root.type?.reads === "music" || root.liveBackground === "music" ? Statusphere.musicDevices(root.account)[0] ?? null : null
+    readonly property var videoDevice: root.type?.reads === "video" ? Statusphere.videoDevices(root.account)[0] ?? null : null
     readonly property var gameDevice: root.type?.reads === "game" || root.liveBackground === "game" ? Statusphere.gameDevices(root.account)[0] ?? null : null
     readonly property bool pictureFailed: root.type?.art === "picture" && photoArt.item?.status === Image.Error
     readonly property bool hasData: Statusphere.tileHasData(root.account, root.tile) && !root.pictureFailed

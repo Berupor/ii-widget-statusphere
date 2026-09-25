@@ -470,6 +470,19 @@ Singleton {
         });
     }
 
+    function videoDevices(account): var {
+        const seen = new Set();
+        return (account?.devices ?? []).filter(d => {
+            if (!d.video_status || !d.video_title)
+                return false;
+            const key = `${d.video_title}/${d.video_channel ?? ""}`;
+            if (seen.has(key))
+                return false;
+            seen.add(key);
+            return true;
+        });
+    }
+
     // The photo badge's vocabulary - Now, 5m, 2h, and a day count once a full day has
     // elapsed. Elapsed, not calendar-day: a session started 13 minutes ago at 23:58
     // reads "13m", not "Yesterday", so it never depends on when the clock is read.
