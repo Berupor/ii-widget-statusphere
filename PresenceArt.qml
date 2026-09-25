@@ -11,13 +11,18 @@ import Quickshell.Io
 Rectangle {
     id: root
     required property string source
+    property list<string> fallbacks: []
     property string fallbackIcon: "music_note"
+    property int fillMode: Image.PreserveAspectCrop
+    property int horizontalAlignment: Image.AlignHCenter
+    property int verticalAlignment: Image.AlignVCenter
 
     radius: Appearance.rounding.small
     color: Appearance.colors.colLayer1
 
     property bool playing: true
     readonly property int status: image.item?.status ?? Image.Null
+    readonly property real heightPerWidth: (image.item?.implicitWidth ?? 0) > 0 ? image.item.implicitHeight / image.item.implicitWidth : 0
 
     property string cacheFilePath: root.source.length > 0 ? `${Directories.coverArt}/${Qt.md5(root.source)}` : ""
     property bool downloaded: false
@@ -30,8 +35,8 @@ Rectangle {
     function fetch(): void {
         if (artDownloader.running || root.cacheFilePath.length === 0)
             return;
-        artDownloader.targetUrl = root.source;
         artDownloader.filePath = root.cacheFilePath;
+        artDownloader.urls = [root.source, ...root.fallbacks];
         artDownloader.running = true;
     }
 
@@ -41,11 +46,27 @@ Rectangle {
         root.fetch();
     }
 
+    onFallbacksChanged: root.fetch()
+
     Process {
         id: artDownloader
-        property string targetUrl
         property string filePath
-        command: ["bash", "-c", `[ -f ${filePath} ] || curl -4 -sSL '${targetUrl}' -o '${filePath}'; head -c4 '${filePath}' 2>/dev/null`]
+        property list<string> urls
+        readonly property string script: `
+target="$1"; shift
+if [ ! -f "$target" ]; then
+    for url in "$@"; do
+        tmp="$target.$$"
+        if curl -4 -fsSL "$url" -o "$tmp"; then
+            mv "$tmp" "$target"
+            break
+        fi
+        rm -f "$tmp"
+    done
+fi
+head -c4 "$target" 2>/dev/null
+`
+        command: ["bash", "-c", artDownloader.script, "_", artDownloader.filePath, ...artDownloader.urls]
         stdout: StdioCollector {
             onStreamFinished: if (artDownloader.filePath === root.cacheFilePath)
                 root.isGif = text === "GIF8"
@@ -79,7 +100,9 @@ Rectangle {
         id: staticArt
         StyledImage {
             source: root.resolvedSource
-            fillMode: Image.PreserveAspectCrop
+            fillMode: root.fillMode
+            horizontalAlignment: root.horizontalAlignment
+            verticalAlignment: root.verticalAlignment
             sourceSize.width: root.pixelWidth
             sourceSize.height: root.pixelHeight
             cache: true
@@ -95,7 +118,9 @@ Rectangle {
                 animation: Appearance.animation.elementMoveEnter.numberAnimation.createObject(this)
             }
             source: root.resolvedSource
-            fillMode: Image.PreserveAspectCrop
+            fillMode: root.fillMode
+            horizontalAlignment: root.horizontalAlignment
+            verticalAlignment: root.verticalAlignment
             sourceSize.width: root.pixelWidth
             sourceSize.height: root.pixelHeight
             cache: true
@@ -104,7 +129,7 @@ Rectangle {
     }
 
     MaterialSymbol {
-        visible: root.status !== Image.Ready
+        visible: root.status !== Image.Ready && root.fallbackIcon.length > 0
         anchors.centerIn: parent
         iconSize: Math.round(root.height * 0.4)
         color: Appearance.colors.colSubtext

@@ -183,8 +183,19 @@ Item {
 
     readonly property var room: root.rooms[root.scenario] ?? root.rooms.plain
 
+    function findAll(item, pred, out) {
+        if (pred(item))
+            out.push(item);
+        for (const c of item.children ?? [])
+            root.findAll(c, pred, out);
+        return out;
+    }
+
     function checks() {
         const many = Statusphere.accountsById["acc-many"];
+        const art = root.findAll(tab, it => it.resolvedSource !== undefined && it.cacheFilePath !== undefined, []);
+        const loadedArt = art.filter(it => it.status === Image.Ready);
+        const namelessGame = root.findAll(tab, it => it.hasBanner !== undefined && it.device?.account_id === "acc-nameless", [])[0] ?? null;
         return [
             {
                 "name": "the room is what was fed in",
@@ -236,6 +247,16 @@ Item {
                 "name": "an idle device marks its account away without hiding what it's doing",
                 "got": root.scenario === "plain" ? [Statusphere.awayFor(Statusphere.accountsById["acc-you"]), Statusphere.statusFor(Statusphere.accountsById["acc-you"])] : [true, ""],
                 "want": root.scenario === "plain" ? [true, "Away · 10m"] : [true, ""]
+            },
+            {
+                "name": "loaded art plays from the cover cache, never straight off its source url",
+                "got": loadedArt.length > 0 && loadedArt.every(it => it.resolvedSource.startsWith(Qt.resolvedUrl(Directories.coverArt))),
+                "want": true
+            },
+            {
+                "name": "a dead hero url falls back to the header, the game still shows a banner",
+                "got": root.scenario === "edge" ? namelessGame?.hasBanner : true,
+                "want": true
             },
             {
                 "name": "every row got drawn",

@@ -11,8 +11,8 @@ import ".."
 import "../CardLayouts.js" as CardLayouts
 import qs.modules.common
 import qs.modules.common.widgets
-import Quickshell
 import QtQuick
+import QtQuick.Window
 
 Item {
     id: root
@@ -25,6 +25,7 @@ Item {
     readonly property int now: 1780000000
 
     readonly property string pictureUrl: "https://upload.wikimedia.org/wikipedia/commons/3/3f/JPEG_example_flower.jpg"
+    readonly property string pictureCachePath: String(Qt.resolvedUrl(`${Directories.coverArt}/${Qt.md5(root.pictureUrl)}`))
     readonly property var notHttpsUrls: ["http://example.org/a.jpg", "ftp://example.org/a.jpg", "file:///etc/hostname", "javascript:alert(1)", "https://", " https://example.org/a.jpg", 42]
     readonly property var photoBackground: ({
             "kind": "live",
@@ -698,7 +699,7 @@ Item {
         return images.length > 0 && images.concat(scrims).every(it => root.tileArtOf(it) !== null);
     }
 
-    readonly property real devicePixelRatio: (QsWindow.window as QsWindow)?.devicePixelRatio ?? 1
+    readonly property real devicePixelRatio: Screen.devicePixelRatio
 
     function decodedWithinTile(tile) {
         const image = root.shownImages(tile)[0];
@@ -735,9 +736,9 @@ Item {
                 "want": root.notHttpsUrls.map(() => ["picture", ""])
             },
             {
-                "name": "an https picture renders the image straight from its url",
+                "name": "an https picture renders from its downloaded cache file, not straight off the url",
                 "got": root.pictureTiles().filter(t => t.tile.type === "picture" && t.tile.url === root.pictureUrl).map(t => root.shownImages(t).map(i => String(i.source))),
-                "want": [[root.pictureUrl], [root.pictureUrl], [root.pictureUrl], [root.pictureUrl]]
+                "want": [[root.pictureCachePath], [root.pictureCachePath], [root.pictureCachePath], [root.pictureCachePath]]
             },
             {
                 "name": "an https picture is decoded no larger than its tile, in 2x1, 1x1, 2x2 and 4x1",

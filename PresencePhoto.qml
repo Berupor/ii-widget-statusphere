@@ -7,7 +7,6 @@ import qs.modules.widgets
 import QtQuick
 import QtQuick.Window
 import Qt5Compat.GraphicalEffects
-import Quickshell.Io
 
 /** A friend's current shared photo, with a relative-time corner label, or a picture by url. No captions, no reactions. */
 Rectangle {
@@ -21,32 +20,6 @@ Rectangle {
     readonly property bool showsUrl: root.url.length > 0
     readonly property var shownImage: root.showsUrl ? remoteImage.item : image
     readonly property int status: root.shownImage?.status ?? Image.Null
-
-    property bool remoteIsGif: false
-
-    function sniffRemote(): void {
-        if (remoteGifSniff.running || root.url.length === 0)
-            return;
-        remoteGifSniff.sniffedUrl = root.url;
-        remoteGifSniff.running = true;
-    }
-
-    onUrlChanged: {
-        root.remoteIsGif = false;
-        root.sniffRemote();
-    }
-
-    Process {
-        id: remoteGifSniff
-        property string sniffedUrl
-        command: ["curl", "-4", "-sSL", "-r", "0-3", remoteGifSniff.sniffedUrl]
-        stdout: StdioCollector {
-            onStreamFinished: if (remoteGifSniff.sniffedUrl === root.url)
-                root.remoteIsGif = text === "GIF8"
-        }
-        onRunningChanged: if (!remoteGifSniff.running && remoteGifSniff.sniffedUrl !== root.url)
-            root.sniffRemote()
-    }
 
     readonly property int minHeight: 100
     readonly property int maxHeight: 320
@@ -80,32 +53,13 @@ Rectangle {
 
         Loader {
             id: remoteImage
-            anchors {
-                left: parent.left
-                right: parent.right
-                verticalCenter: parent.verticalCenter
-            }
-            height: root.imageHeight
+            anchors.fill: parent
             active: root.showsUrl
-            sourceComponent: root.remoteIsGif ? animatedRemote : staticRemote
-        }
-
-        Component {
-            id: staticRemote
-            StyledImage {
-                source: width > 0 && height > 0 ? root.url : ""
-                fillMode: Image.PreserveAspectCrop
-            }
-        }
-
-        Component {
-            id: animatedRemote
-            AnimatedImage {
-                source: width > 0 && height > 0 ? root.url : ""
-                fillMode: Image.PreserveAspectCrop
-                sourceSize.width: Math.ceil(width * Screen.devicePixelRatio)
-                sourceSize.height: Math.ceil(height * Screen.devicePixelRatio)
+            sourceComponent: PresenceArt {
+                radius: 0
+                source: root.url
                 playing: root.animating
+                fallbackIcon: "image"
             }
         }
 
@@ -126,11 +80,11 @@ Rectangle {
     }
 
     MaterialSymbol {
-        visible: (root.shownImage?.status ?? Image.Null) !== Image.Ready
+        visible: !root.showsUrl && root.status !== Image.Ready
         anchors.centerIn: parent
         iconSize: Math.round(root.height * 0.3)
         color: Appearance.colors.colSubtext
-        text: root.showsUrl ? "image" : "photo_camera"
+        text: "photo_camera"
     }
 
     Rectangle {

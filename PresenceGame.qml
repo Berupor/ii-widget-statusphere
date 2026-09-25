@@ -18,13 +18,8 @@ Rectangle {
     readonly property string logo: root.device?.game_logo_url ?? ""
     // A cover is 2:3 and comes out of a wide band as a random slice of box art, so it is
     // not in the chain - only the two pictures that were cut wide to begin with.
-    function urlsFor(device): var {
-        return [device?.game_hero_url ?? "", device?.game_header_url ?? ""].filter(url => url.length > 0);
-    }
-
-    readonly property var bannerUrls: root.urlsFor(root.device)
-    readonly property bool bannerDead: art.status === Image.Error && art.currentFallbackIndex >= art.fallbacks.length
-    readonly property bool hasBanner: root.bannerUrls.length > 0 && !root.bannerDead
+    readonly property var bannerUrls: [root.device?.game_hero_url ?? "", root.device?.game_header_url ?? ""].filter(url => url.length > 0)
+    readonly property bool hasBanner: root.bannerUrls.length > 0 && art.status !== Image.Error
 
     radius: Appearance.rounding.normal
     color: Appearance.colors.colLayer2
@@ -33,7 +28,7 @@ Rectangle {
     // Hero is 3.1:1 and header 2.14:1, so the loaded picture sets the height rather than
     // one of the two getting cropped into a band it was never cut for. The ceiling is a
     // ratio: a pixel count is tuned for one card width and crops hard at the next.
-    readonly property real natural: art.implicitWidth > 0 ? root.width * art.implicitHeight / art.implicitWidth : 0
+    readonly property real natural: root.width * art.heightPerWidth
     implicitHeight: root.natural > 0 ? Math.round(Math.max(80, Math.min(root.width / 2, root.natural))) : 120
 
     Behavior on implicitHeight {
@@ -53,12 +48,14 @@ Rectangle {
             }
         }
 
-        StyledImage {
+        PresenceArt {
             id: art
             anchors.fill: parent
-            fallbacks: root.bannerUrls.slice(1) // source is assigned in reload(), never bound
-            fillMode: Image.PreserveAspectCrop
-            cache: true
+            radius: 0
+            color: "transparent"
+            fallbackIcon: ""
+            source: root.bannerUrls[0] ?? ""
+            fallbacks: root.bannerUrls.slice(1)
         }
 
         Rectangle { // Only where a logo has to be carried
@@ -87,7 +84,7 @@ Rectangle {
             }
         }
 
-        StyledImage { // Bottom left, where Steam's own library grid puts it
+        PresenceArt { // Bottom left, where Steam's own library grid puts it
             anchors {
                 left: parent.left
                 bottom: parent.bottom
@@ -95,33 +92,13 @@ Rectangle {
             }
             width: Math.round(banner.width * 0.45)
             height: Math.round(banner.height * 0.42)
+            radius: 0
+            color: "transparent"
+            fallbackIcon: ""
             source: root.logo
             fillMode: Image.PreserveAspectFit
             horizontalAlignment: Image.AlignLeft
             verticalAlignment: Image.AlignBottom
-            cache: true
         }
     }
-
-    // StyledImage walks its list by assigning source, so a binding there is gone after the
-    // first miss and the index never rewinds. Reads the urls off the device it was handed,
-    // not off bannerUrls: on the null -> device edge this handler runs first and would set
-    // an empty source the walk never comes back from - a game started with the tab open.
-    function reload(): void {
-        const urls = root.urlsFor(root.device);
-        art.currentFallbackIndex = 0;
-        art.source = urls[0] ?? "";
-    }
-
-    property string _loaded: ""
-
-    onDeviceChanged: {
-        const key = String(root.device?.game_appid ?? root.device?.game_name ?? "");
-        if (key !== root._loaded) {
-            root._loaded = key;
-            root.reload();
-        }
-    }
-
-    Component.onCompleted: root.reload()
 }
