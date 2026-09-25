@@ -106,7 +106,8 @@ const tileTypes = {
         "forms": {
             "player": {
                 "label": "Player",
-                "file": "TileVideo.qml"
+                "file": "TileVideo.qml",
+                "neutralSurface": true
             }
         },
         "hasData": (data, account) => data.videoDevices(account).length > 0

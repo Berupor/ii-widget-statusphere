@@ -94,7 +94,7 @@ Item {
         visible: !root.fullBleed && !root.shaped
         anchors.fill: parent
         radius: Appearance.rounding.large
-        color: root.backgroundSource ? Appearance.colors.colLayer2 : root.tint
+        color: root.backgroundSource || (root.form.neutralSurface && !root.thumbnail) ? Appearance.colors.colLayer2 : root.tint
     }
 
     Loader {
