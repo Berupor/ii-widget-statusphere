@@ -9,6 +9,7 @@ QtObject {
 
     property var row: []
     property var detail: []
+    property string avatarShape: "Circle"
     property var entries: ({})
     readonly property var fieldKinds: root.fieldKindsFrom(Statusphere.opt("editorOwnedFields"))
     property var undoState: null
@@ -24,6 +25,13 @@ QtObject {
     function setLayout(row, detail) {
         root.row = row;
         root.detail = detail;
+        root.markLayoutChanged();
+    }
+
+    function setAvatarShape(shape) {
+        if (root.avatarShape === shape)
+            return;
+        root.avatarShape = shape;
         root.markLayoutChanged();
     }
 
@@ -69,6 +77,7 @@ QtObject {
         root.undoState = {
             "row": root.row,
             "detail": root.detail,
+            "avatarShape": root.avatarShape,
             "entries": root.entries,
             "fieldKinds": root.fieldKinds
         };
@@ -82,6 +91,7 @@ QtObject {
         root.entries = state.entries;
         root.setFieldKinds(state.fieldKinds);
         root.markCustomChanged();
+        root.avatarShape = state.avatarShape;
         root.setLayout(state.row, state.detail);
         return true;
     }
@@ -103,7 +113,8 @@ QtObject {
             layoutFile.setText(JSON.stringify({
                 "updated_at": Math.floor(Date.now() / 1000),
                 "row": root.row,
-                "detail": root.detail
+                "detail": root.detail,
+                "avatarShape": root.avatarShape
             }, null, 2));
         }
         if (root.customPending) {
@@ -120,9 +131,11 @@ QtObject {
             const saved = JSON.parse(layoutFile.text());
             root.row = (saved.row ?? []).map(CardLayouts.withKnownBackground);
             root.detail = (saved.detail ?? []).map(CardLayouts.withKnownBackground);
+            root.avatarShape = CardLayouts.shapes.includes(saved.avatarShape) ? saved.avatarShape : "Circle";
         } catch (e) {
             root.row = [];
             root.detail = [];
+            root.avatarShape = "Circle";
         }
         root.layoutLoaded();
     }

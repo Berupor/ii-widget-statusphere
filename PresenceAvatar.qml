@@ -15,6 +15,7 @@ Item {
     property bool hidden: false
     property bool away: false
     property bool interactive: false
+    property string shape: "Circle"
     readonly property bool isServer: Statusphere.isServer(root.account)
     readonly property string health: Statusphere.healthFor(root.account)
     property real holdProgress: 0
@@ -71,7 +72,15 @@ Item {
 
         MaterialShape {
             anchors.fill: parent
-            shape: MaterialShape.Shape.Circle
+            visible: root.shape !== "SineCookie"
+            shape: MaterialShape.Shape[root.shape] ?? MaterialShape.Shape.Circle
+            color: root.offline ? Appearance.colors.colLayer2 : Appearance.colors.colSecondaryContainer
+        }
+
+        SineCookie {
+            anchors.fill: parent
+            visible: root.shape === "SineCookie"
+            implicitSize: root.width
             color: root.offline ? Appearance.colors.colLayer2 : Appearance.colors.colSecondaryContainer
         }
 

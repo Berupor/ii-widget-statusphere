@@ -46,6 +46,12 @@ Item {
         }),
         CardLayouts.tile({
             "type": "picture",
+            "url": root.pictureUrl,
+            "size": "1x1",
+            "shape": "SineCookie"
+        }),
+        CardLayouts.tile({
+            "type": "picture",
             "url": "http://example.org/a.jpg",
             "size": "1x1",
             "onMissing": "dim"
@@ -690,7 +696,11 @@ Item {
         const shown = mask ? Array.from(mask.children).filter(c => c.opacity > 0) : [];
         if (shown.length !== 1)
             return null;
-        return shown[0].shape !== undefined ? shown[0].shape : `radius ${shown[0].radius}`;
+        if (shown[0].shape !== undefined)
+            return shown[0].shape;
+        if (shown[0].sides !== undefined)
+            return "SineCookie";
+        return `radius ${shown[0].radius}`;
     }
 
     function drawnThroughTileMask(tile) {
@@ -713,7 +723,8 @@ Item {
             "photoBackgroundCookie": t => t.type === "scalar" && t.field === "cpu",
             "photoTile": t => t.type === "photo",
             "pictureRounded": t => t.type === "picture" && t.size === "2x1",
-            "pictureCircle": t => t.type === "picture" && t.shape === "Circle"
+            "pictureCircle": t => t.type === "picture" && t.shape === "Circle",
+            "pictureSineCookie": t => t.type === "picture" && t.shape === "SineCookie"
         })
     function checks() {
         const grids = root.standardAccounts.map(id => root.standardGrid(id));
@@ -738,12 +749,12 @@ Item {
             {
                 "name": "an https picture renders from its downloaded cache file, not straight off the url",
                 "got": root.pictureTiles().filter(t => t.tile.type === "picture" && t.tile.url === root.pictureUrl).map(t => root.shownImages(t).map(i => String(i.source))),
-                "want": [[root.pictureCachePath], [root.pictureCachePath], [root.pictureCachePath], [root.pictureCachePath]]
+                "want": [[root.pictureCachePath], [root.pictureCachePath], [root.pictureCachePath], [root.pictureCachePath], [root.pictureCachePath]]
             },
             {
-                "name": "an https picture is decoded no larger than its tile, in 2x1, 1x1, 2x2 and 4x1",
+                "name": "an https picture is decoded no larger than its tile, in 2x1, 1x1 (twice), 2x2 and 4x1",
                 "got": root.pictureTiles().filter(t => t.tile.type === "picture" && t.tile.url === root.pictureUrl).map(t => [t.tile.size, root.decodedWithinTile(t)]).sort(),
-                "want": [["1x1", true], ["2x1", true], ["2x2", true], ["4x1", true]]
+                "want": [["1x1", true], ["1x1", true], ["2x1", true], ["2x2", true], ["4x1", true]]
             },
             {
                 "name": "a picture that is not https renders missing: dimmed with no image when kept, dropped when hidden",
@@ -778,7 +789,13 @@ Item {
                 }),
                 "want": Object.keys(root.maskedTiles).map(key => {
                     const t = root.pictureTile(root.maskedTiles[key]);
-                    return [key, !t ? "no tile" : t.tile.shape === "default" ? `radius ${Appearance.rounding.large}` : MaterialShape.Shape[t.tile.shape]];
+                    if (!t)
+                        return [key, "no tile"];
+                    if (t.tile.shape === "default")
+                        return [key, `radius ${Appearance.rounding.large}`];
+                    if (t.tile.shape === "SineCookie")
+                        return [key, "SineCookie"];
+                    return [key, MaterialShape.Shape[t.tile.shape]];
                 })
             },
             {

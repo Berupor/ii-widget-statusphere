@@ -101,6 +101,7 @@ Rectangle {
                 offline: root.offline
                 hidden: root.hidden
                 away: root.away
+                shape: Statusphere.avatarShapeFor(root.account)
                 interactive: root.canPick
                 onHoldStarted: picker.open = true
                 onHoldMoved: (x, y) => {

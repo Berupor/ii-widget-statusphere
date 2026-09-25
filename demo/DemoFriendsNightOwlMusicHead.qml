@@ -63,7 +63,8 @@ Item {
                     "_layout": {
                         "updated_at": root.now,
                         "row": CardLayouts.packs.row.musicHead,
-                        "detail": CardLayouts.packs.detail.minimal
+                        "detail": CardLayouts.packs.detail.minimal,
+                        "avatarShape": CardLayouts.packAvatarShapes.musicHead
                     },
                     "spotify_status": "playing",
                     "spotify_track": "Nightcall",
@@ -109,6 +110,8 @@ Item {
         const waveBars = root.findAll(root, it => it.wavy !== undefined && it.waveFrequency !== undefined && root.isShown(it), []);
         const nyxDevice = Statusphere.musicDevices(Statusphere.accountsById["acc-nyx"])[0];
         const expectedProgress = nyxDevice.spotify_position / nyxDevice.spotify_length;
+        const nyxAvatar = root.findAll(nyxRow, it => it.holdProgress !== undefined, [])[0];
+        const echoAvatar = root.findAll(echoRow, it => it.holdProgress !== undefined, [])[0];
 
         return [
             {
@@ -120,6 +123,21 @@ Item {
                 "name": "a music head row with a minimal detail owns its row and detail",
                 "got": ["row", "detail"].map(surface => Statusphere.ownsSurface(Statusphere.accountsById["acc-echo"], surface)),
                 "want": [true, true]
+            },
+            {
+                "name": "a layout with no avatarShape keeps the default circle",
+                "got": [Statusphere.avatarShapeFor(Statusphere.accountsById["acc-nyx"]), nyxAvatar.shape],
+                "want": ["Circle", "Circle"]
+            },
+            {
+                "name": "the music head pack's avatar shape carries through to the row's avatar",
+                "got": [Statusphere.avatarShapeFor(Statusphere.accountsById["acc-echo"]), echoAvatar.shape],
+                "want": ["SineCookie", "SineCookie"]
+            },
+            {
+                "name": "a SineCookie avatar shape actually draws the wavy shape, not a plain circle",
+                "got": root.findAll(echoAvatar, it => it.sides !== undefined && it.visible, []).length,
+                "want": 1
             },
             {
                 "name": "both rows drew their detail card open",

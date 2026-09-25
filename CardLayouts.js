@@ -256,8 +256,9 @@ function weatherLiveShape(value) {
     }
 }
 
-// Names out of MaterialShape.Shape; "default" is the rounded rect, "auto" defers to the form.
-const shapes = ["Circle", "Pill", "Arch", "SemiCircle", "Diamond", "Pentagon", "Cookie4Sided", "Cookie6Sided", "Cookie9Sided", "Clover4Leaf", "Heart", "Sunny", "SoftBurst"];
+// Names out of MaterialShape.Shape, plus SineCookie which isn't one - CardTile and
+// PresenceAvatar special-case it by name. "default" is the rounded rect, "auto" defers to the form.
+const shapes = ["Circle", "Pill", "Arch", "SemiCircle", "Diamond", "Pentagon", "Cookie4Sided", "Cookie6Sided", "Cookie9Sided", "Clover4Leaf", "Heart", "Sunny", "SoftBurst", "SineCookie"];
 const shapeChoices = ["default", "auto"].concat(shapes);
 
 function resolvedShape(t, value) {
@@ -476,6 +477,14 @@ const packNames = {
     "traveler": "Traveler",
     "coder": "Coder",
     "minimal": "Minimal"
+};
+
+// A pack not listed here keeps the avatar's own default (Circle).
+const packAvatarShapes = {
+    "nightOwl": "SoftBurst",
+    "musicHead": "SineCookie",
+    "traveler": "Arch",
+    "coder": "Diamond"
 };
 
 const packs = {
@@ -823,7 +832,8 @@ function packsFor(surface) {
     return Object.keys(tilesById).map(id => ({
                 "id": id,
                 "name": packNames[id],
-                "tiles": tilesById[id]
+                "tiles": tilesById[id],
+                "avatarShape": packAvatarShapes[id] ?? "Circle"
             }));
 }
 

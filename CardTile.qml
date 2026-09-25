@@ -64,6 +64,7 @@ Item {
 
     readonly property string resolvedShape: CardLayouts.resolvedShape(root.tile, root.valueText)
     readonly property int shapeEnum: MaterialShape.Shape[root.resolvedShape] ?? MaterialShape.Shape.Circle
+    readonly property bool sineCookieShape: root.resolvedShape === "SineCookie"
 
     readonly property bool backgroundIsLocal: root.liveBackground === "photo"
     readonly property string backgroundSource: {
@@ -94,9 +95,22 @@ Item {
     Loader {
         active: root.shaped
         anchors.centerIn: parent
-        sourceComponent: MaterialShape {
+        sourceComponent: root.sineCookieShape ? sineCookieSilhouette : materialShapeSilhouette
+    }
+
+    Component {
+        id: materialShapeSilhouette
+        MaterialShape {
             implicitSize: Math.min(root.width, root.height)
             shape: root.shapeEnum
+            color: root.tint
+        }
+    }
+
+    Component {
+        id: sineCookieSilhouette
+        SineCookie {
+            implicitSize: Math.min(root.width, root.height)
             color: root.tint
         }
     }
@@ -112,7 +126,7 @@ Item {
         anchors.fill: parent
         visible: false
         active: root.hasArt || root.showsSky
-        sourceComponent: root.resolvedShape === "default" ? roundedArtMask : shapedArtMask
+        sourceComponent: root.resolvedShape === "default" ? roundedArtMask : (root.sineCookieShape ? sineCookieArtMask : shapedArtMask)
     }
 
     Component {
@@ -127,6 +141,14 @@ Item {
         // Stretched over the whole tile, which is fine because resolvedShape is non-default only on a square one
         MaterialShape {
             shape: root.shapeEnum
+            color: "white"
+        }
+    }
+
+    Component {
+        id: sineCookieArtMask
+        SineCookie {
+            implicitSize: Math.min(root.width, root.height)
             color: "white"
         }
     }

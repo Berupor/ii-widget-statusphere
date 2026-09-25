@@ -782,6 +782,11 @@ Singleton {
         return Array.isArray(root.layoutFor(account)?.[surface]);
     }
 
+    function avatarShapeFor(account): string {
+        const shape = root.layoutFor(account)?.avatarShape;
+        return CardLayouts.shapes.includes(shape) ? shape : "Circle";
+    }
+
     // A layout.json can be hand-edited or come from a stale client: an unrecognised
     // type/size/form gets the tile dropped rather than mis-rendered.
     function sanitizeTile(t): var {

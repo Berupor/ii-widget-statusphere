@@ -16,6 +16,7 @@ ColumnLayout {
     readonly property var ownerAccount: Statusphere.selfAccount
     readonly property var editRow: store.row
     readonly property var editDetail: store.detail
+    readonly property var avatarShapeOptions: CardLayouts.shapes
     property string editSurface: "row"
     property int selectedIndex: -1
     property bool galleryOpen: false
@@ -397,6 +398,8 @@ ColumnLayout {
         root.selectedIndex = -1;
         root.packsOpen = false;
         root.setSurfaceTiles(pack.tiles);
+        if (root.editSurface === "row")
+            store.setAvatarShape(pack.avatarShape);
         root.seedEntries(pack.tiles);
         const askIndex = pack.tiles.findIndex(t => t.type === "scalar" && Statusphere.isCustomFieldKey(t.field) && root.kindFromForm(t.field) === "text");
         if (askIndex < 0)
@@ -473,6 +476,34 @@ ColumnLayout {
         }
         SecondaryTabButton {
             buttonText: Translation.tr("Detail")
+        }
+    }
+
+    RowLayout {
+        Layout.fillWidth: true
+        visible: root.editSurface === "row"
+        spacing: 8
+
+        PresenceAvatar {
+            account: root.previewAccount
+            offline: false
+            shape: store.avatarShape
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 2
+
+            ContentSubsectionLabel {
+                text: Translation.tr("Avatar shape")
+            }
+
+            ShapeGrid {
+                Layout.fillWidth: true
+                options: root.avatarShapeOptions
+                current: store.avatarShape
+                onPicked: name => store.setAvatarShape(name)
+            }
         }
     }
 
