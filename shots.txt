@@ -4,7 +4,10 @@
 # cli talks to - no live account, nobody real. The plain and edge rooms
 # (demo/DemoRoom.qml) are not here on purpose: they are for looking at while
 # working, and `widget-shots.sh -x . -- "-f demo/DemoRoomEdge.qml -n edge -g
-# 430x1180"` draws the edge one.
--f demo/DemoRoomSimple.qml -n room -g 420x620 -s 1500
--f demo/DemoCardEditor.qml -n StatusphereSettings -p shot=packs-row -g 480x480 -s 12000
+# 430x1180"` draws the edge one. docs/weather.gif is a second pass over
+# demo/DemoWeatherGif.qml, not this list: tests/widget-gif.sh.
+-f demo/DemoRoomHero.qml -n hero -g 670x600 -s 2500
+-f demo/DemoWeatherStrip.qml -n weather -g 700x520 -s 1500
+-f demo/DemoCardEditor.qml -n cardEditor -p shot=gallery -g 480x745 -s 12000
+-f demo/DemoIncognito.qml -n incognito -g 440x210 -s 1500
 -f demo/DemoFriendCard.qml -n friendCard -g 420x480 -s 1500

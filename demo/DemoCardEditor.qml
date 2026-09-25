@@ -603,6 +603,13 @@ Item {
             return;
         }
         if (root.shot === "gallery") {
+            const owner = root.selfRoom.members[0];
+            Statusphere.ingest(JSON.stringify({
+                "members": [Object.assign({}, owner, {
+                        "custom_fields": owner.custom_fields.concat([root.weatherLiveField]),
+                        [root.weatherLiveField]: Templates.kind("weatherLive").samples[0].value
+                    })]
+            }));
             root.openGalleryGroup("Your own");
             root.openGalleryGroup("Activity");
             root.openGalleryGroup("System");
