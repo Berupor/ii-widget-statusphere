@@ -26,6 +26,7 @@ ColumnLayout {
         color: form.card.contentColor
         to: 100
         value: form.card.hasData ? form.card.percent : 0
+        wavy: false
         animateWave: false
     }
 }
