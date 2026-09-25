@@ -546,8 +546,6 @@ Singleton {
             return p.active_window;
         if (p?.active_app && !covered.has("active_app"))
             return p.active_app;
-        if (p?.spotify_status)
-            return "";
         if (root.awayFor(account))
             return Translation.tr("Away · %1").arg(root.sessionFor(root._now - (p?.idle_seconds ?? 0) * 1000));
         return Translation.tr("Online");

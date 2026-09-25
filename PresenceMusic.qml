@@ -82,6 +82,8 @@ Rectangle {
     readonly property string titleText: root.hasTrack ? root.device.spotify_track : Statusphere.trackFor(root.device)
     readonly property string artistText: root.hasTrack ? (root.device.spotify_artist ?? "") : ""
     readonly property real artSide: root.tileLayout ? Math.min(root.height - 24, root.width * 0.4) : 56
+    readonly property bool hasCover: !!root.device?.spotify_art_url
+    readonly property bool splitLines: root.tileLayout || !root.hasCover
 
     MouseArea { // Tap the opened-up card to collapse it back to the compact line
         anchors.fill: content
@@ -101,7 +103,7 @@ Rectangle {
         spacing: 16
 
         Item {
-            visible: !root.showingCompact
+            visible: !root.showingCompact && root.hasCover
             Layout.alignment: Qt.AlignVCenter
             implicitWidth: art.width + (root.stackedCount > 0 ? 8 : 0)
             implicitHeight: art.height
@@ -241,12 +243,12 @@ Rectangle {
                 textFormat: Text.PlainText
                 font.pixelSize: Appearance.font.pixelSize.normal
                 color: Appearance.colors.colOnLayer2
-                text: root.tileLayout ? root.titleText : Statusphere.trackFor(root.device)
+                text: root.splitLines ? root.titleText : Statusphere.trackFor(root.device)
             }
 
             StyledText {
                 Layout.fillWidth: true
-                visible: root.tileLayout && root.artistText !== ""
+                visible: root.splitLines && root.artistText !== ""
                 elide: Text.ElideRight
                 textFormat: Text.PlainText
                 font.pixelSize: Appearance.font.pixelSize.smaller
