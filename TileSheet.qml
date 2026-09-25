@@ -339,16 +339,16 @@ Rectangle {
         }
 
         ContentSubsectionLabel {
-            visible: kindChoice.options.length > 0
+            visible: kindChoice.options.length > 1
             text: Translation.tr("Kind")
         }
 
         ConfigSelectionArray {
             id: kindChoice
             Layout.fillWidth: true
-            visible: kindChoice.options.length > 0
+            visible: kindChoice.options.length > 1
             currentValue: root.tile?.form ?? ""
-            options: root.editor.formOptionsFor(root.tile?.type ?? "")
+            options: root.editor.formOptionsFor(root.tile?.type ?? "", root.kindId)
             onSelected: newValue => root.editor.updateSelectedTile({
                 "form": newValue
             })

@@ -82,9 +82,20 @@ ColumnLayout {
 
     readonly property var galleryGroups: Templates.galleryGroups
 
-    function formOptionsFor(typeName) {
+    function isStrictForm(form) {
+        return Templates.kind(Templates.kindByForm[form] ?? "")?.strictValue === true;
+    }
+
+    function formsFitting(forms, kindId) {
+        const kind = Templates.kind(kindId);
+        if (kind?.strictValue)
+            return [kind.tile.form];
+        return kindId === "command" ? forms : forms.filter(f => !root.isStrictForm(f));
+    }
+
+    function formOptionsFor(typeName, kindId) {
         const forms = CardLayouts.tileTypes[typeName]?.forms ?? {};
-        return Object.keys(forms).map(f => ({
+        return root.formsFitting(Object.keys(forms), kindId).map(f => ({
                     "displayName": Translation.tr(forms[f].label),
                     "value": f
                 }));

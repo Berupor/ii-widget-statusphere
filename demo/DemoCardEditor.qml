@@ -935,6 +935,14 @@ Item {
                 "name": "a live weather tile offers its own kind and a command, not free text",
                 "got": root.editor.kindChoicesFor(root.weatherLiveField).map(c => c.value),
                 "want": ["weatherLive", "command"]
+            },
+            {
+                "name": "a live weather value keeps its own form, other kinds skip it, a command may pick any",
+                "got": ["weatherLive", "text", "command"].map(k => {
+                    const forms = root.editor.formOptionsFor("scalar", k).map(o => o.value);
+                    return [forms.length > 1, forms.includes("weatherLive")];
+                }),
+                "want": [[false, true], [true, false], [true, true]]
             }
         ];
     }
