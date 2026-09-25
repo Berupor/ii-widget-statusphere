@@ -666,6 +666,14 @@ Singleton {
                 "value": `${Math.round(device.disk_used_percent)}%`,
                 "percent": device.disk_used_percent
             });
+        if (device?.battery_percent !== undefined)
+            fields.push({
+                "key": "battery",
+                "icon": "battery_full",
+                "label": device.battery_charging ? Translation.tr("Charging") : Translation.tr("Battery"),
+                "value": `${Math.round(device.battery_percent)}%`,
+                "percent": device.battery_percent
+            });
         if (device?.load_avg_1m !== undefined)
             fields.push({
                 "key": "load",
@@ -751,10 +759,12 @@ Singleton {
         return key.length > 0 && key !== "*" && !root.nativeFieldKeys.includes(key);
     }
 
+    // active_app/active_window already carry the row above (statusFor), so the fallback
+    // detail grid does not repeat them as a lone tile.
     function detailFieldsFor(account): var {
         if (!account || account.offline)
             return [];
-        return root.fieldsFor(account.primary);
+        return root.fieldsFor(account.primary).filter(f => f.key !== "active_app" && f.key !== "active_window");
     }
 
     function fieldFor(device, key): var {
