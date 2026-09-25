@@ -184,7 +184,7 @@ ColumnLayout {
         root.gallerySamplePhase += 1;
         const samples = {};
         for (const kind of root.cyclingKinds)
-            samples[Templates.fieldKeyOfKind(kind)] = kind.samples[root.gallerySamplePhase % kind.samples.length];
+            samples[Templates.fieldKeyOfKind(kind)] = kind.samples[root.gallerySamplePhase % kind.samples.length].value;
         root.galleryAccount = root.accountWith(root.withValues(root.galleryAccount.primary, samples), root.galleryAccount._photo);
     }
 
@@ -193,6 +193,52 @@ ColumnLayout {
         repeat: true
         running: root.galleryOpen && root.cyclingKinds.length > 0 && root.Window.visibility !== Window.Hidden
         onTriggered: root.advanceGallerySamples()
+    }
+
+    readonly property string previewFieldKey: (root.selectedTile?.type === "scalar" && Statusphere.isCustomFieldKey(root.selectedTile.field)) ? root.selectedTile.field : ""
+    readonly property var previewKind: root.previewFieldKey ? Templates.kind(root.shownKindFor(root.previewFieldKey)) : null
+    readonly property var previewSamples: Array.isArray(root.previewKind?.samples) && root.previewKind.samples.length > 1 ? root.previewKind.samples : []
+    readonly property var previewSampleOptions: root.previewSamples.map((sample, index) => ({
+                "displayName": Translation.tr(sample.label),
+                "value": index
+            })).concat(root.previewSamples.length > 0 ? [{
+                    "displayName": Translation.tr("Cycle"),
+                    "icon": "sync",
+                    "value": "cycle"
+                }] : [])
+    property var previewSampleChoice: null
+    property int previewSamplePhase: 0
+
+    readonly property string previewSampleValue: {
+        if (root.previewSamples.length === 0 || root.previewSampleChoice === null)
+            return "";
+        if (root.previewSampleChoice === "cycle")
+            return root.previewSamples[root.previewSamplePhase % root.previewSamples.length].value;
+        return root.previewSamples[root.previewSampleChoice]?.value ?? "";
+    }
+
+    readonly property var previewDisplayAccount: {
+        if (root.previewSampleValue === "" || !root.previewAccount)
+            return root.previewAccount;
+        const values = {
+            [root.previewFieldKey]: root.previewSampleValue
+        };
+        return Object.assign({}, root.previewAccount, {
+            "primary": root.withValues(root.previewAccount.primary, values),
+            "devices": (root.previewAccount.devices ?? []).map(d => root.withValues(d, values))
+        });
+    }
+
+    onSelectedIndexChanged: {
+        root.previewSampleChoice = null;
+        root.previewSamplePhase = 0;
+    }
+
+    Timer {
+        interval: 2500
+        repeat: true
+        running: root.previewSampleChoice === "cycle" && root.Window.visibility !== Window.Hidden
+        onTriggered: root.previewSamplePhase += 1
     }
 
     function uniqueFieldKey(base, except) {
@@ -538,7 +584,7 @@ ColumnLayout {
                 top: parent.top
                 margins: 8
             }
-            account: root.previewAccount
+            account: root.previewDisplayAccount
             maxRows: CardLayouts.rowsFor(root.editSurface)
             tiles: root.previewTiles
             selectable: true
@@ -740,6 +786,24 @@ ColumnLayout {
                     }
                 }
             }
+        }
+    }
+
+    ColumnLayout {
+        id: previewStateChips
+        Layout.fillWidth: true
+        visible: root.previewSamples.length > 0 && !root.galleryOpen
+        spacing: 2
+
+        ContentSubsectionLabel {
+            text: Translation.tr("Preview state")
+        }
+
+        ConfigSelectionArray {
+            Layout.fillWidth: true
+            currentValue: root.previewSampleChoice
+            options: root.previewSampleOptions
+            onSelected: newValue => root.previewSampleChoice = newValue
         }
     }
 

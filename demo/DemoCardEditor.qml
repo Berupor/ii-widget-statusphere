@@ -4,7 +4,7 @@
  * the Room tab free of editor controls, the tile gallery, the tile sheet and the
  * files autosave writes. Starts from a layout.json and a custom.json already on
  * disk, one field in them written by hand, the way a cli user set it up before
- * the editor existed. `-p shot=room|card|gallery|sheet|picture|packs-row|packs-detail`
+ * the editor existed. `-p shot=room|card|gallery|sheet|picture|packs-row|packs-detail|weather-states`
  * picks what the frame shows.
  */
 import ".."
@@ -38,6 +38,7 @@ Item {
             "repeat_seconds": 3600
         })
     readonly property int slowestWeatherRefresh: 600
+    readonly property string weatherLiveField: "live_weather"
 
     readonly property var selfRoom: ({
             "members": [
@@ -126,6 +127,14 @@ Item {
 
     function tileIndex(field) {
         return root.editor.editRow.findIndex(t => t.field === field);
+    }
+
+    function previewCardTile(field) {
+        return root.first(root.first(root.editor, it => it.reorderable === true), it => it.tile?.field === field && it.device !== undefined);
+    }
+
+    function previewChips() {
+        return root.first(root.editor, it => it.selected !== undefined && it.options !== undefined && it.options.some(o => o.displayName === "Cycle"));
     }
 
     function clipAncestor(item, tile) {
@@ -478,6 +487,38 @@ Item {
                 root.note("travelerFillHint", root.visibleTexts(root.editor).includes("Dimmed tiles have no value yet - pick one to fill it in"));
                 root.editor.undo();
                 root.editor.selectSurface("row");
+                root.editor.addFromGallery("weatherLive");
+            }
+        }
+        PauseAnimation {
+            duration: 800
+        }
+        ScriptAction {
+            script: {
+                root.note("customBeforeChipPick", root.readJson(customView));
+                const chips = root.previewChips();
+                root.note("chipsShownOnSelect", chips !== null && chips.visible);
+                root.note("chipLabels", chips?.options.map(o => o.displayName) ?? []);
+                root.note("weatherLiveValueBeforePick", root.previewCardTile(root.weatherLiveField)?.field?.value ?? null);
+                chips.selected(2);
+            }
+        }
+        PauseAnimation {
+            duration: 200
+        }
+        ScriptAction {
+            script: {
+                root.note("weatherLiveValueAfterRainPick", root.previewCardTile(root.weatherLiveField)?.field?.value ?? null);
+                root.note("customAfterRainPick", root.readJson(customView));
+                root.editor.selectTile(root.tileIndex(root.weatherLiveField));
+            }
+        }
+        PauseAnimation {
+            duration: 200
+        }
+        ScriptAction {
+            script: {
+                root.note("weatherLiveValueAfterDeselect", root.previewCardTile(root.weatherLiveField)?.field?.value ?? null);
                 root.arrangeShot();
             }
         }
@@ -572,6 +613,9 @@ Item {
             root.editor.selectTile(root.tileIndex("output"));
             root.sheet.moreOpen = false;
             root.sheet.runTest();
+        } else if (root.shot === "weather-states") {
+            root.editor.selectTile(root.tileIndex(root.weatherLiveField));
+            root.previewChips()?.selected(2);
         }
     }
 
@@ -866,6 +910,26 @@ Item {
                 "name": "no tooltip shows without hover, on the Room tab, the gallery or a sheet",
                 "got": [s.roomTooltips, s.galleryTooltips, s.sheetTooltips, root.tooltipsShown(root.settings)],
                 "want": [0, 0, 0, 0]
+            },
+            {
+                "name": "selecting a weatherLive tile shows one chip per sample plus Cycle",
+                "got": [s.chipsShownOnSelect, s.chipLabels],
+                "want": [true, Templates.kind("weatherLive").samples.map(sample => sample.label).concat(["Cycle"])]
+            },
+            {
+                "name": "picking Rain puts the rain sample into the preview tile",
+                "got": [s.weatherLiveValueBeforePick, s.weatherLiveValueAfterRainPick],
+                "want": [null, Templates.kind("weatherLive").samples[2].value]
+            },
+            {
+                "name": "picking a preview state writes nothing to custom.json",
+                "got": s.customAfterRainPick?.[root.weatherLiveField],
+                "want": s.customBeforeChipPick?.[root.weatherLiveField]
+            },
+            {
+                "name": "deselecting the tile drops the preview state and returns to the real value",
+                "got": s.weatherLiveValueAfterDeselect,
+                "want": null
             }
         ];
     }
